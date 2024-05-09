@@ -1,8 +1,7 @@
 const parser = require('@typescript-eslint/parser');
 const eslintPlugin = require('@typescript-eslint/eslint-plugin');
 const tseslint = require('typescript-eslint');
-const eslint =require('@eslint/js');
-
+const eslint = require('@eslint/js');
 
 module.exports = tseslint.config(
         eslint.configs.recommended,
@@ -14,8 +13,7 @@ module.exports = tseslint.config(
                     sourceType: 'module',
                 },
             },
-            plugins: {'@typescript-eslint/eslint-plugin': eslintPlugin},
-            // extends: [
+            plugins: {'@typescript-eslint/eslint-plugin': eslintPlugin}, // extends: [
             //     'plugin:@typescript-eslint/eslint-recommended',
             //     'plugin:@typescript-eslint/recommended',
             //     'prettier',
@@ -33,10 +31,14 @@ module.exports = tseslint.config(
                 '@typescript-eslint/no-explicit-any': 'warn',
                 '@typescript-eslint/no-inferrable-types': 'off',
                 '@typescript-eslint/no-var-requires': 'warn',
-                'semi': 'off',
+                semi: 'off',
                 '@typescript-eslint/semi': ['error'],
-                '@typescript-eslint/quotes': ['error', 'single', {avoidEscape: true, allowTemplateLiterals: true}],
-                '@typescript-eslint/no-unused-vars': ['warn', {args: 'none',}],
+                '@typescript-eslint/quotes': [
+                    'error',
+                    'single',
+                    {avoidEscape: true, allowTemplateLiterals: true},
+                ],
+                '@typescript-eslint/no-unused-vars': ['warn', {args: 'none'}],
             },
-        }
-)
+        },
+);

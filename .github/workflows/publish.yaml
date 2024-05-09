@@ -1,0 +1,45 @@
+name: Publish
+
+on:
+  push:
+    branches: [ master, next ]
+
+jobs:
+  build-and-test:
+    uses: ./.github/workflows/_build-and-test.yaml
+    secrets:
+      npm_token: ${{ secrets.NPM_TOKEN }}
+
+  publish:
+    needs: build-and-test
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}
+      - name: Set git config
+        run: |
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.event.pusher.email }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: generate NPMRC file
+        run:
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+
+      - name: Install
+        run: yarn
+
+      - name: Build
+        run: yarn build
+
+      - name: Semantic Release
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}

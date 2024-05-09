@@ -1,10 +1,11 @@
 import {AxiosInstance} from 'axios';
-import {EntitlementsResult} from './types';
+import {LoggingClient} from './logging';
 
 export interface ClientConfiguration {
-    // clientId: string;
-    // apiKey: string;
     pdpHost: string;
-    axiosRef?: AxiosInstance;
-    logging?: true | ((res: EntitlementsResult) => void); // TODO is it EntitlementsResult or OPA result??
+    axiosInstance?: AxiosInstance;
+    logging: {
+        client?: LoggingClient;
+        logResults?: boolean;
+    };
 }

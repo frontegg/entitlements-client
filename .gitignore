@@ -19,6 +19,7 @@ dist
 .env
 .hybrid-env
 test-results/
+.husky/
 
 # Runtime data
 pids

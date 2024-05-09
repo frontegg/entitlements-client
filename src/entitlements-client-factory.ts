@@ -1,32 +1,31 @@
 import {ClientConfiguration} from './client-configuration';
 import axios from 'axios';
-import {EntitlementsResult} from './types';
-import {EntitlementsClient} from './entitlements-client';
-
-
-export const DEFAULT_LOGGING = (res: EntitlementsResult): void => console.log(res);
+import {EntitlementsClient} from './entitlements.client';
+import {LoggingClient, SimpleLoggingClient} from './logging';
+import {OpaQueryClient} from './opa-queries';
 
 export class EntitlementsClientFactory {
+
     public static create(configuration: ClientConfiguration): EntitlementsClient {
-        const axiosRef = configuration.axiosRef ?? axios.create();
-        const normalizedConfiguration: ClientConfiguration = {
-            pdpHost: configuration.pdpHost,
+        if (!configuration.pdpHost) {
+            throw new Error('pdpHost is required'); // TODO add Errors
+        }
 
-            logging: EntitlementsClientFactory.normalizeLogging(configuration.logging)
-        };
+        const pdpHost = configuration.pdpHost;
+        const axiosInstance = configuration.axiosInstance ?? axios.create();
+        const opaQueryClient = new OpaQueryClient(pdpHost, axiosInstance);
+        const {loggingClient, logResults} = this.configureLoggingClient(configuration.logging);
 
-        return new EntitlementsClient(normalizedConfiguration, axiosRef); // TODO add logging wrapper
+        return new EntitlementsClient(opaQueryClient, loggingClient, logResults);
     }
 
-    private static normalizeLogging(logging: ClientConfiguration['logging']): ClientConfiguration['logging'] {
-        if (!logging) {
-            return undefined;
-        }
 
-        if (logging === true) {
-            return DEFAULT_LOGGING;
-        }
-
-        return logging;
+    private static configureLoggingClient(logging: ClientConfiguration['logging']): {
+        loggingClient: LoggingClient,
+        logResults: boolean
+    } {
+        const client = logging?.client ?? new SimpleLoggingClient();
+        const logResults = logging?.logResults ?? false;
+        return {loggingClient: client, logResults};
     }
 }
