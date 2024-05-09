@@ -1,0 +1,100 @@
+{
+	"name": "@frontegg/e8s-client",
+	"version": "0.1.0",
+	"description": "",
+	"author": "Royi Freifeld",
+	"main": "dist/index.js",
+	"typings": "dist/index.d.ts",
+	"license": "ISC",
+	"scripts": {
+		"cz:commit": "cz",
+		"clean": "rm -rf dist coverage",
+		"build": "tsc",
+		"test": "jest --coverage --runInBand --bail --detectOpenHandles --forceExit --passWithNoTests",
+		"lint": "eslint -c eslint.config.js src/",
+		"lint:fix": "eslint -c eslint.config.js --fix src/",
+		"prettier": "prettier --config .prettierrc src --check",
+		"prettier:fix": "prettier --config .prettierrc src --write",
+		"prepare": "husky install"
+	},
+	"peerDependencies": {
+		"axios": "^1"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.2.0",
+		"@semantic-release/changelog": "^6.0.3",
+		"@semantic-release/git": "^10.0.1",
+		"@types/jest": "^29.5.12",
+		"@typescript-eslint/eslint-plugin": "^7.8.0",
+		"@typescript-eslint/parser": "^7.8.0",
+		"axios": "^1",
+		"commitizen": "^4.3.0",
+		"cz-conventional-changelog": "^3.3.0",
+		"eslint": "^9.2.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-import": "^2.29.1",
+		"husky": "^9.0.11",
+		"jest": "^29.7.0",
+		"jest-junit": "^16.0.0",
+		"jest-mock-extended": "^3.0.7",
+		"prettier": "^3.2.5",
+		"semantic-release": "^21.0.1",
+		"ts-jest": "^29.1.2",
+		"ts-loader": "^9.5.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.4.5",
+		"typescript-eslint": "^7.8.0"
+	},
+	"jest": {
+		"restoreMocks": true,
+		"testTimeout": 60000,
+		"moduleFileExtensions": [
+			"js",
+			"json",
+			"ts"
+		],
+		"rootDir": "src",
+		"testRegex": ".*\\.spec\\.ts$",
+		"transform": {
+			"^.+\\.(t|j)s$": "ts-jest"
+		},
+		"testEnvironment": "node",
+		"collectCoverage": true,
+		"coverageDirectory": "../coverage",
+		"collectCoverageFrom": [
+			"**/*.(t|j)s",
+			"!**/*.spec-helper.ts"
+		],
+		"coverageThreshold": {
+			"global": {
+				"statements": 68,
+				"branches": 76,
+				"functions": 87,
+				"lines": 68
+			}
+		},
+		"reporters": [
+			"default",
+			[
+				"jest-junit",
+				{
+					"outputDirectory": "test-results",
+					"outputName": "jest-junit.xml",
+					"titleTemplate": "{title}",
+					"classNameTemplate": "{classname}",
+					"ancestorSeparator": "."
+				}
+			]
+		]
+	},
+	"config": {
+		"commitizen": {
+			"path": "./node_modules/cz-conventional-changelog"
+		}
+	},
+	"husky": {
+		"hooks": {
+			"prepare-commit-msg": "exec < /dev/tty && npx cz --hook || true"
+		}
+	}
+}
