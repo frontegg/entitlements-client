@@ -31,7 +31,7 @@ jobs:
           cache: 'npm'
       - name: generate NPMRC file
         run:
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > .npmrc
 
       - name: Install
         run: yarn
