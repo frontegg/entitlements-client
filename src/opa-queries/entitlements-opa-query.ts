@@ -16,6 +16,7 @@ export abstract class EntitlementsOpaQuery {
 	abstract query(subjectContext: SubjectContext, requestContext: RequestContext): Promise<OpaResponse<EntitlementsResult>>;
 
 	protected async queryOpa(route: string, subjectContext: SubjectContext, requestContext: RequestContext): Promise<OpaResponse<EntitlementsResult>> {
+		// TODO should we validate subjectContext and requestContext? if so, add tests
 		const {type: _, ...context} = requestContext;
 		const opaQuery = this.constructOpaPayload(subjectContext, context);
 		const res = await this.httpClient
