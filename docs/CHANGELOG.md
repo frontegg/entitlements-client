@@ -1,3 +1,11 @@
+## [1.0.1](https://github.com/frontegg/entitlements-client/compare/1.0.0...1.0.1) (2024-05-21)
+
+
+### Bug Fixes
+
+* **update opa route:** update opa route ([59ca8f7](https://github.com/frontegg/entitlements-client/commit/59ca8f79e73de64d1749444f67775fc9edc7efd1))
+* **update opa route:** update opa route ([e820498](https://github.com/frontegg/entitlements-client/commit/e8204982312575610d97e763cb1cf8b9309edf91))
+
 # 1.0.0 (2024-05-12)
 
 
