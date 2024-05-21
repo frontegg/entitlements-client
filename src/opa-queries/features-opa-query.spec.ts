@@ -1,7 +1,7 @@
 import {FeaturesOpaQuery} from './features-opa-query';
 import {EntitlementsOpaQueryCommonTests} from './entitlements-opa-query.spec-helper';
 import {RequestContextType} from '../types';
-
+ 
 describe(FeaturesOpaQuery.name, () => {
 	EntitlementsOpaQueryCommonTests(
 		FeaturesOpaQuery,
