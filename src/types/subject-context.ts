@@ -1,6 +1,6 @@
 export interface SubjectContext {
-	userId: string;
+	userId?: string | null;
 	tenantId: string;
-	permissions: string[];
-	attributes: Record<string, unknown>;
+	permissions?: string[];
+	attributes?: Record<string, unknown>;
 }

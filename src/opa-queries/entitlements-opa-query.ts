@@ -44,10 +44,10 @@ export abstract class EntitlementsOpaQuery {
 		return {
 			input: {
 				subjectContext: {
-					userId: subjectContext.userId,
+					userId: subjectContext.userId || null,
 					tenantId: subjectContext.tenantId,
-					permissions: subjectContext.permissions,
-					attributes: subjectContext.attributes
+					permissions: subjectContext.permissions || [],
+					attributes: subjectContext.attributes || {}
 				},
 				requestContext
 			}
