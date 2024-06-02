@@ -7,29 +7,40 @@ import {
 	RequestContext,
 	SubjectContext
 } from '../types';
-import {AxiosInstance, AxiosResponse} from 'axios';
+import { AxiosInstance, AxiosResponse } from 'axios';
 
 export abstract class EntitlementsOpaQuery {
-	protected constructor(private readonly pdpHost: string, private readonly httpClient: AxiosInstance) {
-	}
+	protected constructor(
+		private readonly pdpHost: string,
+		private readonly httpClient: AxiosInstance
+	) {}
 
-	abstract query(subjectContext: SubjectContext, requestContext: RequestContext): Promise<OpaResponse<EntitlementsResult>>;
+	abstract query(
+		subjectContext: SubjectContext,
+		requestContext: RequestContext
+	): Promise<OpaResponse<EntitlementsResult>>;
 
-	protected async queryOpa(route: string, subjectContext: SubjectContext, requestContext: RequestContext): Promise<OpaResponse<EntitlementsResult>> {
+	protected async queryOpa(
+		route: string,
+		subjectContext: SubjectContext,
+		requestContext: RequestContext
+	): Promise<OpaResponse<EntitlementsResult>> {
 		// TODO should we validate subjectContext and requestContext? if so, add tests
-		const {type: _, ...context} = requestContext;
+		const { type: _, ...context } = requestContext;
 		const opaQuery = this.constructOpaPayload(subjectContext, context);
-		const res = await this.httpClient
-			.post<OpaResponse<EntitlementsResult>, AxiosResponse<OpaResponse<EntitlementsResult>>, OpaRequest<EntitlementsQuery>>(
-				route,
-				opaQuery,
-				{baseURL: this.pdpHost}
-			);
+		const res = await this.httpClient.post<
+			OpaResponse<EntitlementsResult>,
+			AxiosResponse<OpaResponse<EntitlementsResult>>,
+			OpaRequest<EntitlementsQuery>
+		>(route, opaQuery, { baseURL: this.pdpHost });
 
 		return res.data;
 	}
 
-	protected constructOpaPayload(subjectContext: SubjectContext, requestContext: EntitlementsQueryRequestContext): OpaRequest<EntitlementsQuery> {
+	protected constructOpaPayload(
+		subjectContext: SubjectContext,
+		requestContext: EntitlementsQueryRequestContext
+	): OpaRequest<EntitlementsQuery> {
 		return {
 			input: {
 				subjectContext: {

@@ -1,7 +1,7 @@
-import {EntitlementJustifications} from './entitlements-justifications.enum';
+import { EntitlementJustifications } from './entitlements-justifications.enum';
 
 export type EntitlementsResult = {
-    result?: boolean;
-    justification?: EntitlementJustifications;
-    monitoring?: boolean;
+	result?: boolean;
+	justification?: EntitlementJustifications;
+	monitoring?: boolean;
 };

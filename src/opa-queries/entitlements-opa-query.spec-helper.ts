@@ -1,7 +1,7 @@
-import {AxiosInstance} from 'axios';
-import {EntitlementsOpaQuery} from './entitlements-opa-query';
-import {mock, MockProxy, mockReset} from 'jest-mock-extended';
-import {RequestContext} from '../types';
+import { AxiosInstance } from 'axios';
+import { EntitlementsOpaQuery } from './entitlements-opa-query';
+import { mock, MockProxy, mockReset } from 'jest-mock-extended';
+import { RequestContext } from '../types';
 
 export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 	ctor: new (pdpHost: string, httpClient: AxiosInstance) => R,
@@ -29,14 +29,14 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 				userId: 'mock-user-id',
 				tenantId: 'mock-tenant-id',
 				permissions: ['mock-permission'],
-				attributes: {mockAttribute: 'mock-value'}
+				attributes: { mockAttribute: 'mock-value' }
 			};
 			const requestContext: RequestContext = contextProvider();
-			mockAxiosInstance.post.mockResolvedValue({data: 'mock-data'});
+			mockAxiosInstance.post.mockResolvedValue({ data: 'mock-data' });
 
 			const result = await queryClient.query(subjectContext, requestContext);
 
-			const expectedRequestContext: Partial<RequestContext> = {...requestContext};
+			const expectedRequestContext: Partial<RequestContext> = { ...requestContext };
 			delete expectedRequestContext.type;
 			const expectedPayload = {
 				input: {
@@ -44,7 +44,7 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 					requestContext: expectedRequestContext
 				}
 			};
-			expect(mockAxiosInstance.post).toHaveBeenCalledWith(opaRoute, expectedPayload, {baseURL: mockPdpHost});
+			expect(mockAxiosInstance.post).toHaveBeenCalledWith(opaRoute, expectedPayload, { baseURL: mockPdpHost });
 			expect(result).toBe('mock-data');
 		});
 
@@ -53,7 +53,7 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 				userId: 'mock-user-id',
 				tenantId: 'mock-tenant-id',
 				permissions: ['mock-permission'],
-				attributes: {mockAttribute: 'mock-value'}
+				attributes: { mockAttribute: 'mock-value' }
 			};
 			const requestContext: RequestContext = contextProvider();
 			const mockError = new Error('mock-error');

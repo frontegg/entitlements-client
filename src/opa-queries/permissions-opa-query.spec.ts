@@ -1,6 +1,6 @@
-import {EntitlementsOpaQueryCommonTests} from './entitlements-opa-query.spec-helper';
-import {RequestContextType} from '../types';
-import {PermissionsOpaQuery} from './permissions-opa-query';
+import { EntitlementsOpaQueryCommonTests } from './entitlements-opa-query.spec-helper';
+import { RequestContextType } from '../types';
+import { PermissionsOpaQuery } from './permissions-opa-query';
 
 describe(PermissionsOpaQuery.name, () => {
 	EntitlementsOpaQueryCommonTests(
@@ -9,5 +9,6 @@ describe(PermissionsOpaQuery.name, () => {
 		() => ({
 			type: RequestContextType.Permission,
 			permissionKey: 'mock-permission-key'
-		}));
+		})
+	);
 });
