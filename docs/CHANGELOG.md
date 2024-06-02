@@ -1,3 +1,11 @@
+## [1.0.2](https://github.com/frontegg/entitlements-client/compare/1.0.1...1.0.2) (2024-06-02)
+
+
+### Bug Fixes
+
+* fix SubjectContext required fields ([b18370e](https://github.com/frontegg/entitlements-client/commit/b18370e9fcaa2edf5d68dcaad8c9902c1ecd025c))
+* **SubjectContext:** update some fields to be optional ([96a12c6](https://github.com/frontegg/entitlements-client/commit/96a12c6aafd1c701ac2aec98cdf615c87766fc2e))
+
 ## [1.0.1](https://github.com/frontegg/entitlements-client/compare/1.0.0...1.0.1) (2024-05-21)
 
 
