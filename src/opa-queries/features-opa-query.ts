@@ -1,4 +1,4 @@
-import { EntitlementsResult, OpaResponse, RequestContext, SubjectContext } from 'types';
+import { EntitlementsResult, OpaResponse, RequestContext, SubjectContext } from '../types';
 import { EntitlementsOpaQuery } from './entitlements-opa-query';
 import { AxiosInstance } from 'axios';
 
