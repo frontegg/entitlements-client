@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/frontegg/entitlements-client/compare/1.0.2...1.0.3) (2024-06-16)
+
+
+### Bug Fixes
+
+* **import-path:** fix relative import path ([9fe19c8](https://github.com/frontegg/entitlements-client/commit/9fe19c8c0b1011093dc9bbf3ea7538b79816e94b))
+
 ## [1.0.2](https://github.com/frontegg/entitlements-client/compare/1.0.1...1.0.2) (2024-06-02)
 
 
