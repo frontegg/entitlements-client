@@ -13,7 +13,7 @@ export class EntitlementsClient {
 
 	public async isEntitledTo(
 		subjectContext: SubjectContext,
-		requestContext: RequestContext
+		requestContext: RequestContext | RequestContext[]
 	): Promise<EntitlementsResult> {
 		const res = await this.opaQueryClient.query(subjectContext, requestContext);
 		if (res.result.monitoring || this.logResults) {
