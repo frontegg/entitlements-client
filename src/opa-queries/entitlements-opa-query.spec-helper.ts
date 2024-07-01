@@ -37,7 +37,7 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 			const result = await queryClient.query(subjectContext, requestContext);
 
 			const expectedRequestContext: Partial<RequestContext> = { ...requestContext };
-			delete expectedRequestContext.type;
+
 			const expectedPayload = {
 				input: {
 					subjectContext,

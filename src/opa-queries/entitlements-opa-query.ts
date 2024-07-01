@@ -1,6 +1,5 @@
 import {
 	EntitlementsQuery,
-	EntitlementsQueryRequestContext,
 	EntitlementsResult,
 	OpaRequest,
 	OpaResponse,
@@ -17,17 +16,16 @@ export abstract class EntitlementsOpaQuery {
 
 	abstract query(
 		subjectContext: SubjectContext,
-		requestContext: RequestContext
+		requestContext: RequestContext | RequestContext[]
 	): Promise<OpaResponse<EntitlementsResult>>;
 
 	protected async queryOpa(
 		route: string,
 		subjectContext: SubjectContext,
-		requestContext: RequestContext
+		requestContext: RequestContext | RequestContext[]
 	): Promise<OpaResponse<EntitlementsResult>> {
 		// TODO should we validate subjectContext and requestContext? if so, add tests
-		const { type: _, ...context } = requestContext;
-		const opaQuery = this.constructOpaPayload(subjectContext, context);
+		const opaQuery = this.constructOpaPayload(subjectContext, requestContext);
 		const res = await this.httpClient.post<
 			OpaResponse<EntitlementsResult>,
 			AxiosResponse<OpaResponse<EntitlementsResult>>,
@@ -39,7 +37,7 @@ export abstract class EntitlementsOpaQuery {
 
 	protected constructOpaPayload(
 		subjectContext: SubjectContext,
-		requestContext: EntitlementsQueryRequestContext
+		requestContext: RequestContext | RequestContext[]
 	): OpaRequest<EntitlementsQuery> {
 		return {
 			input: {
@@ -49,7 +47,7 @@ export abstract class EntitlementsOpaQuery {
 					permissions: subjectContext.permissions || [],
 					attributes: subjectContext.attributes || {}
 				},
-				requestContext
+				...(Array.isArray(requestContext) ? { requestContextList: requestContext } : { requestContext })
 			}
 		};
 	}

@@ -6,11 +6,16 @@ import {
 import { SubjectContext } from './subject-context';
 
 export type EntitlementsQueryRequestContext =
-	| Omit<FeatureEntitlementsContext, 'type'>
-	| Omit<PermissionsEntitlementsContext, 'type'>
-	| Omit<RouteEntitlementsContext, 'type'>;
+	| FeatureEntitlementsContext
+	| PermissionsEntitlementsContext
+	| RouteEntitlementsContext;
 
-export interface EntitlementsQuery {
-	subjectContext: SubjectContext;
-	requestContext: EntitlementsQueryRequestContext;
-}
+export type EntitlementsQuery =
+	| {
+			subjectContext: SubjectContext;
+			requestContext: EntitlementsQueryRequestContext;
+	  }
+	| {
+			subjectContext: SubjectContext;
+			requestContextList: EntitlementsQueryRequestContext[];
+	  };
