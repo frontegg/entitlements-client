@@ -6,7 +6,8 @@ import { RequestContext } from '../types';
 export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 	ctor: new (pdpHost: string, httpClient: AxiosInstance) => R,
 	opaRoute: string,
-	contextProvider: () => RequestContext
+	contextProvider: () => RequestContext | RequestContext[],
+	requestContextField: 'requestContext' | 'requestContextList' = 'requestContext'
 ): void {
 	describe(`[${ctor.name}] ${EntitlementsOpaQuery.name} - common mocked tests`, () => {
 		let queryClient: R;
@@ -31,17 +32,14 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			const requestContext: RequestContext = contextProvider();
+			const requestContext: RequestContext | RequestContext[] = contextProvider();
 			mockAxiosInstance.post.mockResolvedValue({ data: 'mock-data' });
 
 			const result = await queryClient.query(subjectContext, requestContext);
-
-			const expectedRequestContext: Partial<RequestContext> = { ...requestContext };
-
 			const expectedPayload = {
 				input: {
 					subjectContext,
-					requestContext: expectedRequestContext
+					[requestContextField]: requestContext
 				}
 			};
 			expect(mockAxiosInstance.post).toHaveBeenCalledWith(opaRoute, expectedPayload, { baseURL: mockPdpHost });
@@ -55,7 +53,7 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			const requestContext: RequestContext = contextProvider();
+			const requestContext: RequestContext | RequestContext[] = contextProvider();
 			const mockError = new Error('mock-error');
 			mockAxiosInstance.post.mockRejectedValue(mockError);
 
