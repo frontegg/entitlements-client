@@ -41,6 +41,8 @@ const e10sClient = EntitlementsClientFactory.create({
 
 ### Setting up the Subject Context
 
+Subject context describes the user which performs the action, these can be taken from Frontegg JWT if authenticating with Frontegg
+
 ```typescript
 const subjectContext: SubjectContext = {
 	tenantId: 'my-tenant-id',
@@ -50,13 +52,14 @@ const subjectContext: SubjectContext = {
 };
 ```
 
-### Query for Feature
+### Query
+The Entitlements client allows you to query for a feature, permission or a route entitlement, each requires different context information.
+
+#### Query for Feature
 
 ```typescript
 const e10sResult = await e10sClient.isEntitledTo(
-    // Subject Context
-	subjectContext
-	// Request Context
+	subjectContext,
 	{
 		type: RequestContextType.Feature,
 		featureKey: 'my-cool-feature'
@@ -68,13 +71,11 @@ if (!e10sResult.result) {
 }
 ```
 
-### Query for Permission
+#### Query for Permission
 
 ```typescript
 const e10sResult = await e10sClient.isEntitledTo(
-    // Subject Context
-	subjectContext
-	// Request Context
+	subjectContext,
 	{
 		type: RequestContextType.Permission,
 		permissionKey: 'read'
@@ -86,13 +87,11 @@ if (!e10sResult.result) {
 }
 ```
 
-### Query for Route
+#### Query for Route
 
 ```typescript
 const e10sResult = await e10sClient.isEntitledTo(
-    // Subject Context
-	subjectContext
-	// Request Context
+	subjectContext,
 	{
 		type: RequestContextType.Route,
 		method: "GET",
