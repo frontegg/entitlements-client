@@ -10,9 +10,9 @@ jobs:
   pre-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: generate NPMRC file
@@ -24,9 +24,9 @@ jobs:
 
       - name: Test Release
         env:
-          GH_TOKEN: ${{ secrets.GH_ADMIN_REPO_TOKEN }}
+          GH_TOKEN: ${{ env.GITHUB_TOKEN }}
           GITHUB_HEAD_REF: $GITHUB_HEAD_REF
-          GITHUB_TOKEN: ${{ secrets.GH_ADMIN_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
         run: |
           echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > /home/runner/work/_temp/.npmrc
