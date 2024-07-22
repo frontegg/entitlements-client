@@ -26,6 +26,8 @@ analyzeCommits:
       release: "minor"
     - type: "breaking"
       release: "major"
+    - type: "refactor"
+      release: "patch"
 
 generateNotes:
   - path: "@semantic-release/release-notes-generator"
