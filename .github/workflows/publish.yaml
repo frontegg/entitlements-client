@@ -15,9 +15,9 @@ jobs:
     name: Publish
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}
+          token: ${{ env.GITHUB_TOKEN }}
       - name: Set git config
         run: |
           git config --global user.name "${{ github.actor }}"
@@ -25,7 +25,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}
       - name: Use Node.js 18
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
@@ -42,5 +42,5 @@ jobs:
       - name: Semantic Release
         run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
