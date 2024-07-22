@@ -16,14 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ env.GITHUB_TOKEN }}
+        name: Checkout code
       - name: Set git config
         run: |
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.event.pusher.email }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_REPOSITORY_ADMIN_TOKEN }}
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
       - name: Use Node.js 18
         uses: actions/setup-node@v4
         with:
