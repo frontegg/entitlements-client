@@ -15,9 +15,14 @@ jobs:
     name: Publish
     runs-on: ubuntu-latest
     steps:
+      - uses: wow-actions/use-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_FRONTEGG_BOT_APP_ID }}
+          private_key: ${{ secrets.GH_FRONTEGG_BOT_APP_SECRET }}
+
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ env.BOT_TOKEN }}
      
       - name: Use Node.js 18
         uses: actions/setup-node@v4
@@ -33,21 +38,16 @@ jobs:
 
       - name: Build
         run: yarn build
-
-      - uses: wow-actions/use-app-token@v2
-        id: token
-        with:
-          app_id: ${{ secrets.GH_FRONTEGG_BOT_APP_ID }}
-          private_key: ${{ secrets.GH_FRONTEGG_BOT_APP_SECRET }}
     
       - name: Set git config
         run: |
-          git config --global user.name "$${{ steps.token.outputs.BOT_NAME }}[bot]"
-          git config --global user.email "${{ steps.token.outputs.BOT_NAME }}[bot]@users.noreply.github.com"
+          git config --global user.name "$${{ env.BOT_NAME }}[bot]"
+          git config --global user.email "${{ env.BOT_NAME }}[bot]@users.noreply.github.com"
         env:
-          GITHUB_TOKEN: ${{ steps.token.outputs.BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ env.BOT_TOKEN }}
       
       - name: Semantic Release
         run: npx semantic-release
         env:
-          GITHUB_TOKEN: ${{ steps.token.outputs.BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ env.BOT_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
