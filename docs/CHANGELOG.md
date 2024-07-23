@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/frontegg/entitlements-client/compare/1.0.3...1.0.4) (2024-07-23)
+
+
+### Bug Fixes
+
+* **publish action:** add bot to pulish action ([3dce820](https://github.com/frontegg/entitlements-client/commit/3dce82092cdce520b5972f4e0057d5c40814c446))
+
 ## [1.0.3](https://github.com/frontegg/entitlements-client/compare/1.0.2...1.0.3) (2024-06-16)
 
 
