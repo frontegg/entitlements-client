@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/frontegg/entitlements-client/compare/1.0.4...1.0.5) (2024-07-23)
+
+
+### Bug Fixes
+
+* **test:** Update CODEOWNERS ([f3e022f](https://github.com/frontegg/entitlements-client/commit/f3e022f02ff1974800db25e911713d2aa8a6f723))
+
 ## [1.0.4](https://github.com/frontegg/entitlements-client/compare/1.0.3...1.0.4) (2024-07-23)
 
 
