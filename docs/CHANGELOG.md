@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/frontegg/entitlements-client/compare/1.0.5...1.1.0) (2024-07-23)
+
+
+### Features
+
+* **new_file:** Create text.txt ([11ea9b5](https://github.com/frontegg/entitlements-client/commit/11ea9b5c4f06e1cda33ba527083c9933f599f70c))
+
 ## [1.0.5](https://github.com/frontegg/entitlements-client/compare/1.0.4...1.0.5) (2024-07-23)
 
 
