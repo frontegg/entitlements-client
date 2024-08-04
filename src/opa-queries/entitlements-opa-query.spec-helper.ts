@@ -4,7 +4,7 @@ import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { RequestContext } from '../types';
 
 export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
-	ctor: new (pdpHost: string, httpClient: AxiosInstance, timeout: number) => R,
+	ctor: new (pdpHost: string, httpClient: AxiosInstance) => R,
 	opaRoute: string,
 	contextProvider: () => RequestContext
 ): void {
@@ -17,7 +17,7 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 			mockAxiosInstance = mock<AxiosInstance>();
 			mockPdpHost = 'mock-string';
 
-			queryClient = new ctor(mockPdpHost, mockAxiosInstance, 30_000);
+			queryClient = new ctor(mockPdpHost, mockAxiosInstance);
 		});
 
 		beforeEach(() => {
