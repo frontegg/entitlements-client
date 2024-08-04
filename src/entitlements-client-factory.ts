@@ -15,11 +15,8 @@ export class EntitlementsClientFactory {
 			throw new ConfigurationInputIsInvalidException('timeout must be positive number');
 		}
 
-		const DEFAULT_TIMEOUT = 30_000; // TODO: export this from a different file
-
 		const pdpHost = configuration.pdpHost;
-		const axiosInstance =
-			configuration.axiosInstance ?? axios.create({ timeout: configuration.timeout || DEFAULT_TIMEOUT });
+		const axiosInstance = configuration.axiosInstance ?? axios.create({ timeout: configuration.timeout });
 		const opaQueryClient = new OpaQueryClient(pdpHost, axiosInstance);
 		const { loggingClient, logResults } = this.configureLoggingClient(configuration.logging);
 
