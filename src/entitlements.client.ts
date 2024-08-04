@@ -1,6 +1,7 @@
-import { EntitlementsResult, OpaResponse, RequestContext, SubjectContext } from './types';
+import { EntitlementsResult, OpaResponse, RequestContext, RequestContextType, SubjectContext } from './types';
 import { LoggingClient } from './logging';
 import { EntitlementsOpaQuery } from './opa-queries';
+import { FallbackConfiguration } from './client-configuration';
 
 export class EntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -8,26 +9,60 @@ export class EntitlementsClient {
 	constructor(
 		private readonly opaQueryClient: EntitlementsOpaQuery,
 		private readonly loggingClient: LoggingClient,
-		private readonly logResults = false
+		private readonly logResults = false,
+		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
 	) {}
 
 	public async isEntitledTo(
 		subjectContext: SubjectContext,
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
-		const res = await this.opaQueryClient.query(subjectContext, requestContext);
-		if (res.result.monitoring || this.logResults) {
-			await this.loggingClient.log(res);
-		}
+		try {
+			const res = await this.opaQueryClient.query(subjectContext, requestContext);
+			if (res.result.monitoring || this.logResults) {
+				await this.loggingClient.log(res);
+			}
 
-		if (res.result.monitoring) {
-			return EntitlementsClient.MONITORING_RESULT;
-		}
+			if (res.result.monitoring) {
+				return EntitlementsClient.MONITORING_RESULT;
+			}
 
-		return this.constructResult(res);
+			return this.constructResult(res);
+		} catch (err) {
+			await this.loggingClient.error(err);
+			return this.constructFallbackResult(requestContext);
+		}
 	}
 
 	private constructResult(data: OpaResponse<EntitlementsResult>): EntitlementsResult {
-		return data?.result; // TODO ? new Authorized(data?.rules) : new NotAuthorized(data?.rules);
+		return data?.result;
+	}
+
+	private constructFallbackResult(requestContext: RequestContext): EntitlementsResult {
+		const { defaultFallback } = this.fallbackConfiguration;
+		let specificFallback: { fallback: boolean } | undefined;
+		switch (requestContext.type) {
+			case RequestContextType.Feature: {
+				specificFallback = this.fallbackConfiguration[RequestContextType.Feature]?.find(
+					({ featureKey }) => featureKey === requestContext.featureKey
+				);
+				break;
+			}
+			case RequestContextType.Permission: {
+				specificFallback = this.fallbackConfiguration[RequestContextType.Permission]?.find(
+					({ permissionKey }) => permissionKey === requestContext.permissionKey
+				);
+				break;
+			}
+			case RequestContextType.Route: {
+				specificFallback = this.fallbackConfiguration[RequestContextType.Route]?.find(
+					({ method, path }) => method === requestContext.method && path === requestContext.path
+				);
+				break;
+			}
+		}
+		return {
+			result: specificFallback ? specificFallback.fallback : defaultFallback
+		};
 	}
 }

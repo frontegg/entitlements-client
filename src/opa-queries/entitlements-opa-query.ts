@@ -1,3 +1,4 @@
+import { Milliseconds } from '../client-configuration';
 import {
 	EntitlementsQuery,
 	EntitlementsQueryRequestContext,
@@ -5,6 +6,7 @@ import {
 	OpaRequest,
 	OpaResponse,
 	RequestContext,
+	RequestContextType,
 	SubjectContext
 } from '../types';
 import { AxiosInstance, AxiosResponse } from 'axios';
