@@ -38,29 +38,35 @@ export class EntitlementsClient {
 		return data?.result;
 	}
 
-	private constructFallbackResult(requestContext: RequestContext): EntitlementsResult {
-		const { defaultFallback } = this.fallbackConfiguration;
-		let specificFallback: boolean | undefined;
-		switch (requestContext.type) {
-			case RequestContextType.Feature: {
-				specificFallback = this.fallbackConfiguration[RequestContextType.Feature]?.[requestContext.featureKey];
-				break;
+	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {
+		let fallback: boolean;
+		if (this.fallbackConfiguration instanceof Function) {
+			fallback = await this.fallbackConfiguration(requestContext);
+		} else {
+			const { defaultFallback } = this.fallbackConfiguration;
+			let specificFallback: boolean | undefined;
+			switch (requestContext.type) {
+				case RequestContextType.Feature: {
+					specificFallback =
+						this.fallbackConfiguration[RequestContextType.Feature]?.[requestContext.featureKey];
+					break;
+				}
+				case RequestContextType.Permission: {
+					specificFallback =
+						this.fallbackConfiguration[RequestContextType.Permission]?.[requestContext.permissionKey];
+					break;
+				}
+				case RequestContextType.Route: {
+					specificFallback =
+						this.fallbackConfiguration[RequestContextType.Route]?.[
+							`${requestContext.method}_${requestContext.path}`
+						];
+					break;
+				}
 			}
-			case RequestContextType.Permission: {
-				specificFallback =
-					this.fallbackConfiguration[RequestContextType.Permission]?.[requestContext.permissionKey];
-				break;
-			}
-			case RequestContextType.Route: {
-				specificFallback =
-					this.fallbackConfiguration[RequestContextType.Route]?.[
-						`${requestContext.method}_${requestContext.path}`
-					];
-				break;
-			}
+			fallback = specificFallback !== undefined ? specificFallback : defaultFallback;
 		}
-		return {
-			result: specificFallback !== undefined ? specificFallback : defaultFallback
-		};
+
+		return { result: fallback };
 	}
 }

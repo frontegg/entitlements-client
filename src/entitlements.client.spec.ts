@@ -193,7 +193,7 @@ describe(EntitlementsClient.name, () => {
 			},
 			{ result: false }
 		]
-	])('Given fallback configurations', (requestContext, expectedResult) => {
+	])('Given static fallback configurations', (requestContext, expectedResult) => {
 		const mockOpaQueryClient: MockProxy<EntitlementsOpaQuery> = mock<EntitlementsOpaQuery>();
 		const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
 		const error = new Error('Test Error');
@@ -212,6 +212,49 @@ describe(EntitlementsClient.name, () => {
 		};
 
 		it('should pick specific fallback if configured, otherwise fallback to default', async () => {
+			const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, false, fallbackConfiguration);
+			const res = await cut.isEntitledTo(subjectContext, requestContext);
+
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+			expect(res).toEqual(expectedResult);
+		});
+	});
+
+	describe.each<[RequestContext, EntitlementsResult]>([
+		[
+			{
+				type: RequestContextType.Feature,
+				featureKey: 'test-feature'
+			},
+			{ result: false }
+		],
+		[
+			{
+				type: RequestContextType.Permission,
+				permissionKey: 'test.permission'
+			},
+			{ result: true }
+		]
+	])('Given function fallback configurations', (requestContext, expectedResult) => {
+		const mockOpaQueryClient: MockProxy<EntitlementsOpaQuery> = mock<EntitlementsOpaQuery>();
+		const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+		const error = new Error('Test Error');
+		mockOpaQueryClient.query.mockRejectedValue(error);
+		const fallbackConfiguration: FallbackConfiguration = async (requestContext: RequestContext) => {
+			if (requestContext.type === RequestContextType.Feature) {
+				return false;
+			} else {
+				return true;
+			}
+		};
+		const subjectContext = {
+			userId: 'mock-user-id',
+			tenantId: 'mock-tenant-id',
+			permissions: ['mock-permission'],
+			attributes: { mockAttribute: 'mock-value' }
+		};
+
+		it('should call function fallback with given request-context', async () => {
 			const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, false, fallbackConfiguration);
 			const res = await cut.isEntitledTo(subjectContext, requestContext);
 
