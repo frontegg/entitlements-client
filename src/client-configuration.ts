@@ -22,9 +22,7 @@ export type Milliseconds = number;
 
 export type FallbackConfiguration = {
 	defaultFallback: boolean;
-	[RequestContextType.Feature]?: Array<Pick<FeatureEntitlementsContext, 'featureKey'> & { fallback: boolean }>;
-	[RequestContextType.Permission]?: Array<
-		Pick<PermissionsEntitlementsContext, 'permissionKey'> & { fallback: boolean }
-	>;
-	[RequestContextType.Route]?: Array<Pick<RouteEntitlementsContext, 'method' | 'path'> & { fallback: boolean }>;
+	[RequestContextType.Feature]?: Record<string, boolean>;
+	[RequestContextType.Permission]?: Record<string, boolean>;
+	[RequestContextType.Route]?: Record<string, boolean>;
 };

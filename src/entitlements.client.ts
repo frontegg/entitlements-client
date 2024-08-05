@@ -40,29 +40,27 @@ export class EntitlementsClient {
 
 	private constructFallbackResult(requestContext: RequestContext): EntitlementsResult {
 		const { defaultFallback } = this.fallbackConfiguration;
-		let specificFallback: { fallback: boolean } | undefined;
+		let specificFallback: boolean | undefined;
 		switch (requestContext.type) {
 			case RequestContextType.Feature: {
-				specificFallback = this.fallbackConfiguration[RequestContextType.Feature]?.find(
-					({ featureKey }) => featureKey === requestContext.featureKey
-				);
+				specificFallback = this.fallbackConfiguration[RequestContextType.Feature]?.[requestContext.featureKey];
 				break;
 			}
 			case RequestContextType.Permission: {
-				specificFallback = this.fallbackConfiguration[RequestContextType.Permission]?.find(
-					({ permissionKey }) => permissionKey === requestContext.permissionKey
-				);
+				specificFallback =
+					this.fallbackConfiguration[RequestContextType.Permission]?.[requestContext.permissionKey];
 				break;
 			}
 			case RequestContextType.Route: {
-				specificFallback = this.fallbackConfiguration[RequestContextType.Route]?.find(
-					({ method, path }) => method === requestContext.method && path === requestContext.path
-				);
+				specificFallback =
+					this.fallbackConfiguration[RequestContextType.Route]?.[
+						`${requestContext.method} ${requestContext.path}`
+					];
 				break;
 			}
 		}
 		return {
-			result: specificFallback ? specificFallback.fallback : defaultFallback
+			result: specificFallback !== undefined ? specificFallback : defaultFallback
 		};
 	}
 }

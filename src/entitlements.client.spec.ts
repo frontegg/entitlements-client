@@ -200,9 +200,9 @@ describe(EntitlementsClient.name, () => {
 		mockOpaQueryClient.query.mockRejectedValue(error);
 		const fallbackConfiguration: FallbackConfiguration = {
 			defaultFallback: false,
-			feature: [{ featureKey: 'test-feature', fallback: true }],
-			permission: [{ permissionKey: 'test.permission', fallback: true }],
-			route: [{ method: 'GET', path: '/users', fallback: true }]
+			feature: { 'test-feature': true },
+			permission: { 'test.permission': true },
+			route: { 'GET /users': true }
 		};
 		const subjectContext = {
 			userId: 'mock-user-id',
