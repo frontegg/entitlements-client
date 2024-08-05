@@ -5,6 +5,7 @@ import { AxiosInstance } from 'axios';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { RequestContext, RequestContextType, SubjectContext } from './types';
 import { ClientConfiguration } from './client-configuration';
+import { ConfigurationInputIsInvalidException } from './exceptions/configuration-input-is-invalid.exception';
 
 describe(EntitlementsClientFactory.name, () => {
 	it('should fail to create an EntitlementsClient when pdpHost is missing', () => {
@@ -16,6 +17,14 @@ describe(EntitlementsClientFactory.name, () => {
 		}
 	});
 
+	it('should fail to create an EntitlementsClient when timeout is not positive number', () => {
+		try {
+			EntitlementsClientFactory.create({ pdpHost: 'mock-host', timeout: -1 });
+			fail();
+		} catch (e) {
+			expect(e).toBeInstanceOf(ConfigurationInputIsInvalidException);
+		}
+	});
 	it('should create an EntitlementsClient with default configuration', async () => {
 		const client = EntitlementsClientFactory.create({ pdpHost: 'mock-host' });
 		expect(client).toBeInstanceOf(EntitlementsClient);

@@ -5,4 +5,8 @@ export class SimpleLoggingClient implements LoggingClient {
 	public log(queryResult: OpaResponse<EntitlementsResult>): void {
 		console.log(queryResult.result);
 	}
+
+	public error(error: unknown): void {
+		console.error(error);
+	}
 }
