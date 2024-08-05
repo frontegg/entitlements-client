@@ -1,7 +1,16 @@
-import { EntitlementsResult, OpaResponse, RequestContext, RequestContextType, SubjectContext } from './types';
+import {
+	EntitlementsResult,
+	FeatureEntitlementsContext,
+	OpaResponse,
+	PermissionsEntitlementsContext,
+	RequestContext,
+	RequestContextType,
+	RouteEntitlementsContext,
+	SubjectContext
+} from './types';
 import { LoggingClient } from './logging';
 import { EntitlementsOpaQuery } from './opa-queries';
-import { FallbackConfiguration } from './client-configuration';
+import { FallbackConfiguration, StaticFallbackConfiguration } from './client-configuration';
 
 export class EntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -39,34 +48,31 @@ export class EntitlementsClient {
 	}
 
 	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {
-		let fallback: boolean;
-		if (this.fallbackConfiguration instanceof Function) {
-			fallback = await this.fallbackConfiguration(requestContext);
-		} else {
-			const { defaultFallback } = this.fallbackConfiguration;
-			let specificFallback: boolean | undefined;
-			switch (requestContext.type) {
-				case RequestContextType.Feature: {
-					specificFallback =
-						this.fallbackConfiguration[RequestContextType.Feature]?.[requestContext.featureKey];
-					break;
-				}
-				case RequestContextType.Permission: {
-					specificFallback =
-						this.fallbackConfiguration[RequestContextType.Permission]?.[requestContext.permissionKey];
-					break;
-				}
-				case RequestContextType.Route: {
-					specificFallback =
-						this.fallbackConfiguration[RequestContextType.Route]?.[
-							`${requestContext.method}_${requestContext.path}`
-						];
-					break;
-				}
-			}
-			fallback = specificFallback !== undefined ? specificFallback : defaultFallback;
-		}
-
+		const fallback =
+			this.fallbackConfiguration instanceof Function
+				? await this.fallbackConfiguration(requestContext)
+				: this.getStaticFallback(requestContext);
 		return { result: fallback };
+	}
+
+	private getStaticFallback(requestContext: RequestContext): boolean {
+		const staticFallbackConfiguration = this.fallbackConfiguration as StaticFallbackConfiguration;
+
+		const fallbackMapper = {
+			[RequestContextType.Feature]:
+				staticFallbackConfiguration[RequestContextType.Feature]?.[
+					(requestContext as FeatureEntitlementsContext).featureKey
+				],
+			[RequestContextType.Permission]:
+				staticFallbackConfiguration[RequestContextType.Permission]?.[
+					(requestContext as PermissionsEntitlementsContext).permissionKey
+				],
+			[RequestContextType.Route]:
+				staticFallbackConfiguration[RequestContextType.Route]?.[
+					`${(requestContext as RouteEntitlementsContext).method}_${(requestContext as RouteEntitlementsContext).path}`
+				]
+		};
+
+		return fallbackMapper[requestContext.type] ?? staticFallbackConfiguration.defaultFallback;
 	}
 }
