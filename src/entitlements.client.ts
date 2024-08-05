@@ -54,7 +54,7 @@ export class EntitlementsClient {
 			case RequestContextType.Route: {
 				specificFallback =
 					this.fallbackConfiguration[RequestContextType.Route]?.[
-						`${requestContext.method} ${requestContext.path}`
+						`${requestContext.method}_${requestContext.path}`
 					];
 				break;
 			}

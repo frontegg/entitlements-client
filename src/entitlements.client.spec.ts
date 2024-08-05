@@ -202,7 +202,7 @@ describe(EntitlementsClient.name, () => {
 			defaultFallback: false,
 			feature: { 'test-feature': true },
 			permission: { 'test.permission': true },
-			route: { 'GET /users': true }
+			route: { 'GET_/users': true }
 		};
 		const subjectContext = {
 			userId: 'mock-user-id',
