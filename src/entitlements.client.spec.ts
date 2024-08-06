@@ -235,7 +235,7 @@ describe(EntitlementsClient.name, () => {
 			},
 			{ result: true }
 		]
-	])('Given function fallback configurations', (requestContext, expectedResult) => {
+	])('Given async function fallback configurations', (requestContext, expectedResult) => {
 		const mockOpaQueryClient: MockProxy<EntitlementsOpaQuery> = mock<EntitlementsOpaQuery>();
 		const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
 		const error = new Error('Test Error');
