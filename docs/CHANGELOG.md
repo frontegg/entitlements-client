@@ -1,3 +1,19 @@
+# [1.2.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/1.2.0-alpha.1...1.2.0-alpha.2) (2024-08-06)
+
+
+### Bug Fixes
+
+* **types:** allow sync function as fallback ([5b62111](https://github.com/frontegg/entitlements-client/commit/5b62111686bd9badab9be193e90557eaae70043e))
+* **types:** allow sync function as fallback ([0d3bfa0](https://github.com/frontegg/entitlements-client/commit/0d3bfa0c817d9ddbc96f8a2a358047d0a0eaf206))
+
+# [1.2.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.1.0...1.2.0-alpha.1) (2024-08-05)
+
+
+### Features
+
+* **client configurations:** adding timeout and fallback configurations ([e3f4fd3](https://github.com/frontegg/entitlements-client/commit/e3f4fd35e16a3e72481abf0190243de75ceb176c))
+* **client configurations:** adding timeout and fallback configurations ([322117e](https://github.com/frontegg/entitlements-client/commit/322117e03df02180d3889cb705737df5c0090442))
+
 # [1.1.0](https://github.com/frontegg/entitlements-client/compare/1.0.5...1.1.0) (2024-07-23)
 
 
