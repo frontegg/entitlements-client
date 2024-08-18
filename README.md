@@ -118,7 +118,7 @@ List of possible justifications
 
 ## Monitoring
 
-In case monitoring mode is enabled, the result object will always return as the following:
+In case monitoring mode is enabled, the real results will only be logged, and the following payload will always return
 
 ```json
 {
@@ -127,4 +127,4 @@ In case monitoring mode is enabled, the result object will always return as the 
 }
 ```
 
-The real result, well be logged.
+.
