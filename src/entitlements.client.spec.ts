@@ -48,7 +48,7 @@ describe(EntitlementsClient.name, () => {
 				const res = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(opaResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
 			});
 		}
 	);
@@ -89,7 +89,7 @@ describe(EntitlementsClient.name, () => {
 				const res = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(opaResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
 				expect(res).toEqual({ monitoring: true, result: true });
 			});
 
@@ -99,7 +99,7 @@ describe(EntitlementsClient.name, () => {
 				const res = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(opaResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
 				expect(res).toEqual({ monitoring: true, result: true });
 			});
 		}
