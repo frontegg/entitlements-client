@@ -1,3 +1,11 @@
+# [1.3.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.2.0...1.3.0-alpha.1) (2024-09-24)
+
+
+### Features
+
+* **log:** add subject and request context to logger ([c16cbbc](https://github.com/frontegg/entitlements-client/commit/c16cbbcb870c49a7db89348897c506b0d5f10274))
+* **log:** add subject and request context to logger ([ba7b1d4](https://github.com/frontegg/entitlements-client/commit/ba7b1d42fe23d18b495afc7ccc2d8eca92aa4993))
+
 # [1.2.0](https://github.com/frontegg/entitlements-client/compare/1.1.0...1.2.0) (2024-08-06)
 
 
