@@ -29,7 +29,7 @@ export class EntitlementsClient {
 		try {
 			const res = await this.opaQueryClient.query(subjectContext, requestContext);
 			if (res.result.monitoring || this.logResults) {
-				await this.loggingClient.log(res);
+				await this.loggingClient.log(subjectContext, requestContext, res);
 			}
 
 			if (res.result.monitoring) {
