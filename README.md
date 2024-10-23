@@ -25,7 +25,7 @@ $ npm install @frontegg/e10s-client
 
 Since the Entitlements Client is interacting with the Entitlements Agent, it is required to setup and run the agent.
 
-Look for instructions here https://github.com/frontegg/entitlements-agent
+Look for instructions [here](https://docs.frontegg.com/docs/configuration)
 
 ## Usage
 
@@ -126,5 +126,3 @@ In case monitoring mode is enabled, the real results will only be logged, and th
 	"monitoring": true
 }
 ```
-
-.
