@@ -1,5 +1,6 @@
 import {
 	EntitlementsResult,
+	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
 	OpaResponse,
 	PermissionsEntitlementsContext,
@@ -70,6 +71,10 @@ export class EntitlementsClient {
 			[RequestContextType.Route]:
 				staticFallbackConfiguration[RequestContextType.Route]?.[
 					`${(requestContext as RouteEntitlementsContext).method}_${(requestContext as RouteEntitlementsContext).path}`
+				],
+			[RequestContextType.Entity]:
+				staticFallbackConfiguration[RequestContextType.Entity]?.[
+					`${(requestContext as EntityEntitlementsContext).entityType}:${(requestContext as EntityEntitlementsContext).key}@${(requestContext as EntityEntitlementsContext).action}`
 				]
 		};
 

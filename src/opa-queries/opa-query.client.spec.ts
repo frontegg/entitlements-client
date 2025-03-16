@@ -39,7 +39,10 @@ describe(OpaQueryClient.name, () => {
 			path: 'mock-path',
 			method: 'mock-method',
 			permissionKey: 'mock-permission-key',
-			featureKey: 'mock-feature'
+			featureKey: 'mock-feature',
+			entityType: 'document',
+			key: 'document-1',
+			action: 'read'
 		};
 		mockHttpClient.post.mockResolvedValue({ data: 'mock-data' });
 		await queryClient.query(subjectContext, requestContext);
