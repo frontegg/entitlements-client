@@ -136,7 +136,7 @@ List of possible justifications
 | PLAN_EXPIRED       | User has a plan that covers the feature, but the plan is expired |
 | MISSING_ROUTE      | Requested route is not configured                                |
 | ROUTE_DENIED       | Requested route is configured to be blocked                      |
-| MISSING_RELATION   | Missing ReBAC relation that enables a subject-entity to perform a specified action on a target-entity                      |
+| MISSING_RELATION   | Missing ReBAC relation that enables a subject-entity to perform a specified action on a target-entity                       |
 
 ## Monitoring
 
