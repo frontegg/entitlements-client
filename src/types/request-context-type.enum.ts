@@ -1,5 +1,6 @@
 export enum RequestContextType {
 	Feature = 'feature',
 	Permission = 'permission',
-	Route = 'route'
+	Route = 'route',
+	Entity = 'entity'
 }

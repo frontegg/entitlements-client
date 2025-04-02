@@ -30,7 +30,10 @@ describe(EntitlementsClient.name, () => {
 				path: 'mock-path',
 				method: 'mock-method',
 				permissionKey: 'mock-permission-key',
-				featureKey: 'mock-feature'
+				featureKey: 'mock-feature',
+				entityType: 'document',
+				key: 'document-1',
+				action: 'read'
 			};
 
 			it('should not log results if logResults flag is turned off ', async () => {
@@ -80,7 +83,10 @@ describe(EntitlementsClient.name, () => {
 				path: 'mock-path',
 				method: 'mock-method',
 				permissionKey: 'mock-permission-key',
-				featureKey: 'mock-feature'
+				featureKey: 'mock-feature',
+				entityType: 'document',
+				key: 'document-1',
+				action: 'read'
 			};
 
 			it('should log results if logResults flag is turned off and return a default response', async () => {
@@ -125,7 +131,10 @@ describe(EntitlementsClient.name, () => {
 				path: 'mock-path',
 				method: 'mock-method',
 				permissionKey: 'mock-permission-key',
-				featureKey: 'mock-feature'
+				featureKey: 'mock-feature',
+				entityType: 'document',
+				key: 'document-1',
+				action: 'read'
 			};
 
 			it('should log error and return default EntitlementClient fallback of false', async () => {
