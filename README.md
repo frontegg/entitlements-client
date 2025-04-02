@@ -35,7 +35,7 @@ Look for instructions [here](https://docs.frontegg.com/docs/configuration)
 import { EntitlementsClientFactory, RequestContextType } from '@frontegg/e10s-client';
 
 const e10sClient = EntitlementsClientFactory.create({
-	pdpHost: 'localhost:8181' // Entitlements Agent Host
+	pdpHost: 'http://localhost:8181' // Entitlements Agent Host
 });
 ```
 
