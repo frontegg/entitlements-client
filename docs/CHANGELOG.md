@@ -1,3 +1,10 @@
+# [1.3.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.1...1.3.0-alpha.2) (2025-04-02)
+
+
+### Bug Fixes
+
+* **publish:** republish ([6a6be70](https://github.com/frontegg/entitlements-client/commit/6a6be704908c2d27482cea00f0ddf889ec47ab25))
+
 # [1.3.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.2.0...1.3.0-alpha.1) (2025-04-02)
 
 
