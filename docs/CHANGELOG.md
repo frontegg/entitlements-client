@@ -1,3 +1,11 @@
+# [1.3.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.2.0...1.3.0-alpha.1) (2025-04-02)
+
+
+### Features
+
+* **fga:** add fga policy query ([7ff9dd5](https://github.com/frontegg/entitlements-client/commit/7ff9dd56891a2b727f07d3b69857c01ea9377e14))
+* **log:** add subject and request context to logger ([f65e60a](https://github.com/frontegg/entitlements-client/commit/f65e60ad76b90580654e806326ba28fb4b67bf16))
+
 # [1.2.0](https://github.com/frontegg/entitlements-client/compare/1.1.0...1.2.0) (2024-08-06)
 
 
