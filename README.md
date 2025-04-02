@@ -104,6 +104,27 @@ if (!e10sResult.result) {
 }
 ```
 
+#### Query for FGA
+
+```typescript
+const e10sResult = await e10sClient.isEntitledTo(
+	{
+		entityType: "user",
+		key: "some@user.com"
+	},
+	{
+		type: RequestContextType.Entity,
+		entityType: "document",
+        key: "README.md",
+		action: "read"
+	}
+);
+
+if (!e10sResult.result) {
+	console.log(`User is not allowed to read document, reason: ${e10sResult.justification}`);
+}
+```
+
 ## Justifications
 
 List of possible justifications
@@ -115,6 +136,7 @@ List of possible justifications
 | PLAN_EXPIRED       | User has a plan that covers the feature, but the plan is expired |
 | MISSING_ROUTE      | Requested route is not configured                                |
 | ROUTE_DENIED       | Requested route is configured to be blocked                      |
+| MISSING_RELATION   | Missing ReBAC relation that enables a subject-entity to perform a specified action on a target-entity                      |
 
 ## Monitoring
 

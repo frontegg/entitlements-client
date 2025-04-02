@@ -1,12 +1,12 @@
 import { AxiosInstance } from 'axios';
 import { EntitlementsOpaQuery } from './entitlements-opa-query';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
-import { RequestContext } from '../types';
+import { RequestContext, SubjectContext } from '../types';
 
 export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 	ctor: new (pdpHost: string, httpClient: AxiosInstance) => R,
 	opaRoute: string,
-	contextProvider: () => RequestContext
+	contextProvider: () => { requestContext: RequestContext; subjectContext?: SubjectContext }
 ): void {
 	describe(`[${ctor.name}] ${EntitlementsOpaQuery.name} - common mocked tests`, () => {
 		let queryClient: R;
@@ -25,22 +25,22 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 		});
 
 		it('should call httpClient.post with correct arguments', async () => {
-			const subjectContext = {
+			const defaultSubjectContext = {
 				userId: 'mock-user-id',
 				tenantId: 'mock-tenant-id',
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			const requestContext: RequestContext = contextProvider();
+			const { requestContext, subjectContext } = contextProvider();
 			mockAxiosInstance.post.mockResolvedValue({ data: 'mock-data' });
 
-			const result = await queryClient.query(subjectContext, requestContext);
+			const result = await queryClient.query(subjectContext || defaultSubjectContext, requestContext);
 
 			const expectedRequestContext: Partial<RequestContext> = { ...requestContext };
 			delete expectedRequestContext.type;
 			const expectedPayload = {
 				input: {
-					subjectContext,
+					subjectContext: subjectContext || defaultSubjectContext,
 					requestContext: expectedRequestContext
 				}
 			};
@@ -49,17 +49,19 @@ export function EntitlementsOpaQueryCommonTests<R extends EntitlementsOpaQuery>(
 		});
 
 		it('should not block exceptions from httpClient and propagate them to the user', async () => {
-			const subjectContext = {
+			const defaultSubjectContext = {
 				userId: 'mock-user-id',
 				tenantId: 'mock-tenant-id',
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			const requestContext: RequestContext = contextProvider();
+			const { requestContext, subjectContext } = contextProvider();
 			const mockError = new Error('mock-error');
 			mockAxiosInstance.post.mockRejectedValue(mockError);
 
-			await expect(queryClient.query(subjectContext, requestContext)).rejects.toThrow(mockError);
+			await expect(queryClient.query(subjectContext || defaultSubjectContext, requestContext)).rejects.toThrow(
+				mockError
+			);
 		});
 	});
 }

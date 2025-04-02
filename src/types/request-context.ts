@@ -16,4 +16,15 @@ export interface RouteEntitlementsContext {
 	path: string;
 }
 
-export type RequestContext = FeatureEntitlementsContext | PermissionsEntitlementsContext | RouteEntitlementsContext;
+export interface EntityEntitlementsContext {
+	type: RequestContextType.Entity;
+	entityType: string;
+	key: string;
+	action: string;
+}
+
+export type RequestContext =
+	| FeatureEntitlementsContext
+	| PermissionsEntitlementsContext
+	| RouteEntitlementsContext
+	| EntityEntitlementsContext;

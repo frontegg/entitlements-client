@@ -4,7 +4,6 @@ import { RequestContextType } from '../types';
 
 describe(FeaturesOpaQuery.name, () => {
 	EntitlementsOpaQueryCommonTests(FeaturesOpaQuery, '/v1/data/e10s/features/is_entitled_to_input_feature', () => ({
-		type: RequestContextType.Feature,
-		featureKey: 'mock-feature-key'
+		requestContext: { type: RequestContextType.Feature, featureKey: 'mock-feature-key' }
 	}));
 });

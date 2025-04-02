@@ -7,8 +7,7 @@ describe(PermissionsOpaQuery.name, () => {
 		PermissionsOpaQuery,
 		`/v1/data/e10s/permissions/is_entitled_to_input_permission`,
 		() => ({
-			type: RequestContextType.Permission,
-			permissionKey: 'mock-permission-key'
+			requestContext: { type: RequestContextType.Permission, permissionKey: 'mock-permission-key' }
 		})
 	);
 });
