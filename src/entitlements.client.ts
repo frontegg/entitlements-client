@@ -2,6 +2,7 @@ import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
+	CompositeEntitlementsContext,
 	OpaResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
@@ -75,6 +76,10 @@ export class EntitlementsClient {
 			[RequestContextType.Entity]:
 				staticFallbackConfiguration[RequestContextType.Entity]?.[
 					`${(requestContext as EntityEntitlementsContext).entityType}:${(requestContext as EntityEntitlementsContext).key}@${(requestContext as EntityEntitlementsContext).action}`
+				],
+			[RequestContextType.Composite]:
+				staticFallbackConfiguration[RequestContextType.Composite]?.[
+					`${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity].entityType}:${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity].key}@${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity].action}`
 				]
 		};
 
