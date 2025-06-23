@@ -1,6 +1,7 @@
 import { EntitlementsClient } from './entitlements.client';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { EntitlementsOpaQuery, FeaturesOpaQuery } from './opa-queries';
+import { getRequestContext } from './opa-queries/entitlements-opa-query.spec-helper';
 import { LoggingClient } from './logging';
 import { EntitlementsResult, OpaResponse, RequestContext, RequestContextType } from './types';
 import { FallbackConfiguration } from './client-configuration';
@@ -23,60 +24,6 @@ describe(EntitlementsClient.name, () => {
 				tenantId: 'mock-tenant-id',
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
-			};
-
-			// Create specific request context based on the type
-			const getRequestContext = (type: RequestContextType): RequestContext => {
-				switch (type) {
-					case RequestContextType.Feature:
-						return {
-							type: RequestContextType.Feature,
-							featureKey: 'mock-feature'
-						};
-					case RequestContextType.Permission:
-						return {
-							type: RequestContextType.Permission,
-							permissionKey: 'mock-permission-key'
-						};
-					case RequestContextType.Route:
-						return {
-							type: RequestContextType.Route,
-							method: 'mock-method',
-							path: 'mock-path'
-						};
-					case RequestContextType.Entity:
-						return {
-							type: RequestContextType.Entity,
-							entityType: 'document',
-							key: 'document-1',
-							action: 'read'
-						};
-					case RequestContextType.Composite:
-						return {
-							type: RequestContextType.Composite,
-							[RequestContextType.Feature]: {
-								type: RequestContextType.Feature,
-								featureKey: 'mock-feature'
-							},
-							[RequestContextType.Permission]: {
-								type: RequestContextType.Permission,
-								permissionKey: 'mock-permission-key'
-							},
-							[RequestContextType.Route]: {
-								type: RequestContextType.Route,
-								method: 'mock-method',
-								path: 'mock-path'
-							},
-							[RequestContextType.Entity]: {
-								type: RequestContextType.Entity,
-								entityType: 'document',
-								key: 'document-1',
-								action: 'read'
-							}
-						};
-					default:
-						throw new Error(`Unknown request context type: ${type}`);
-				}
 			};
 
 			const requestContext = getRequestContext(requestContextType);
@@ -121,60 +68,6 @@ describe(EntitlementsClient.name, () => {
 				tenantId: 'mock-tenant-id',
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
-			};
-
-			// Create specific request context based on the type
-			const getRequestContext = (type: RequestContextType): RequestContext => {
-				switch (type) {
-					case RequestContextType.Feature:
-						return {
-							type: RequestContextType.Feature,
-							featureKey: 'mock-feature'
-						};
-					case RequestContextType.Permission:
-						return {
-							type: RequestContextType.Permission,
-							permissionKey: 'mock-permission-key'
-						};
-					case RequestContextType.Route:
-						return {
-							type: RequestContextType.Route,
-							method: 'mock-method',
-							path: 'mock-path'
-						};
-					case RequestContextType.Entity:
-						return {
-							type: RequestContextType.Entity,
-							entityType: 'document',
-							key: 'document-1',
-							action: 'read'
-						};
-					case RequestContextType.Composite:
-						return {
-							type: RequestContextType.Composite,
-							[RequestContextType.Feature]: {
-								type: RequestContextType.Feature,
-								featureKey: 'mock-feature'
-							},
-							[RequestContextType.Permission]: {
-								type: RequestContextType.Permission,
-								permissionKey: 'mock-permission-key'
-							},
-							[RequestContextType.Route]: {
-								type: RequestContextType.Route,
-								method: 'mock-method',
-								path: 'mock-path'
-							},
-							[RequestContextType.Entity]: {
-								type: RequestContextType.Entity,
-								entityType: 'document',
-								key: 'document-1',
-								action: 'read'
-							}
-						};
-					default:
-						throw new Error(`Unknown request context type: ${type}`);
-				}
 			};
 
 			const requestContext = getRequestContext(requestContextType);
