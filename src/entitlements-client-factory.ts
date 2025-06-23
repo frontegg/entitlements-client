@@ -1,4 +1,4 @@
-import { ClientConfiguration, FallbackConfiguration } from './client-configuration';
+import { ClientConfiguration } from './client-configuration';
 import axios from 'axios';
 import { EntitlementsClient } from './entitlements.client';
 import { LoggingClient, SimpleLoggingClient } from './logging';

@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { LoggingClient } from './logging';
-import { EntityEntitlementsContext, RequestContext, RequestContextType } from './types';
+import { RequestContext, RequestContextType } from './types';
 
 export interface ClientConfiguration {
 	pdpHost: string;

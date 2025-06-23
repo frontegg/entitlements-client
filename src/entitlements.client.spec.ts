@@ -1,6 +1,6 @@
 import { EntitlementsClient } from './entitlements.client';
 import { mock, MockProxy } from 'jest-mock-extended';
-import { EntitlementsOpaQuery, FeaturesOpaQuery } from './opa-queries';
+import { EntitlementsOpaQuery } from './opa-queries';
 import { getRequestContext } from './opa-queries/entitlements-opa-query.spec-helper';
 import { LoggingClient } from './logging';
 import { EntitlementsResult, OpaResponse, RequestContext, RequestContextType } from './types';
@@ -31,7 +31,7 @@ describe(EntitlementsClient.name, () => {
 			it('should not log results if logResults flag is turned off ', async () => {
 				//WHEN logging: false
 				const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, false);
-				const res = await cut.isEntitledTo(subjectContext, requestContext);
+				await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
 				expect(mockLoggingClient.log).not.toHaveBeenCalledWith(opaResult);
@@ -40,7 +40,7 @@ describe(EntitlementsClient.name, () => {
 			it('should log results if logResults flag is turned on ', async () => {
 				//WHEN logging: true
 				const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, true);
-				const res = await cut.isEntitledTo(subjectContext, requestContext);
+				await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
 				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
