@@ -19,5 +19,5 @@ export function isFGASubjectContext(subject: SubjectContext): subject is FGASubj
 }
 
 export function isCompositeSubjectContext(subject: SubjectContext): subject is CompositeSubjectContext {
-	return !!(subject as CompositeSubjectContext).userId && !!(subject as CompositeSubjectContext).entityType;
+	return !!(subject as CompositeSubjectContext).tenantId && !!(subject as CompositeSubjectContext).entityType;
 }
