@@ -8,6 +8,8 @@
 **/.npmrc
 **/node_modules/
 **/.yarnrc
+.yarn/**
+**/.yarn/**
 
 
 # Logs

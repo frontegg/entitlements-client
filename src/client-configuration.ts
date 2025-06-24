@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios';
 import { LoggingClient } from './logging';
-import { EntityEntitlementsContext, RequestContext, RequestContextType } from './types';
+import { RequestContext, RequestContextType } from './types';
 
 export interface ClientConfiguration {
 	pdpHost: string;
@@ -23,6 +23,7 @@ export type StaticFallbackConfiguration = {
 	[RequestContextType.Permission]?: Record<string, boolean>;
 	[RequestContextType.Route]?: Record<string, boolean>;
 	[RequestContextType.Entity]?: Record<string, boolean>;
+	[RequestContextType.Composite]?: Record<string, boolean>;
 };
 
 export type FunctionFallbackConfiguration = (requestContext: RequestContext) => Promise<boolean> | boolean;

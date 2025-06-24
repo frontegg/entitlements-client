@@ -1,4 +1,6 @@
-export type SubjectContext = UserSubjectContext | FGASubjectContext;
+export type SubjectContext = UserSubjectContext | FGASubjectContext | CompositeSubjectContext;
+
+export type CompositeSubjectContext = UserSubjectContext & FGASubjectContext;
 
 export type UserSubjectContext = {
 	userId?: string | null;
@@ -14,4 +16,8 @@ export type FGASubjectContext = {
 
 export function isFGASubjectContext(subject: SubjectContext): subject is FGASubjectContext {
 	return !!(subject as FGASubjectContext).entityType;
+}
+
+export function isCompositeSubjectContext(subject: SubjectContext): subject is CompositeSubjectContext {
+	return !!(subject as CompositeSubjectContext).tenantId && !!(subject as CompositeSubjectContext).entityType;
 }

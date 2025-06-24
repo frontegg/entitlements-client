@@ -23,8 +23,17 @@ export interface EntityEntitlementsContext {
 	action: string;
 }
 
+export interface CompositeEntitlementsContext {
+	type: RequestContextType.Composite;
+	[RequestContextType.Feature]: FeatureEntitlementsContext;
+	[RequestContextType.Permission]: PermissionsEntitlementsContext;
+	[RequestContextType.Route]: RouteEntitlementsContext;
+	[RequestContextType.Entity]: EntityEntitlementsContext;
+}
+
 export type RequestContext =
 	| FeatureEntitlementsContext
 	| PermissionsEntitlementsContext
 	| RouteEntitlementsContext
-	| EntityEntitlementsContext;
+	| EntityEntitlementsContext
+	| CompositeEntitlementsContext;
