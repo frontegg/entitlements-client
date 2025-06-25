@@ -79,7 +79,7 @@ export class EntitlementsClient {
 				],
 			[RequestContextType.Composite]:
 				staticFallbackConfiguration[RequestContextType.Composite]?.[
-					`${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity].entityType}:${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity].key}@${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity].action}`
+					`${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity]?.entityType}:${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity]?.key}`
 				]
 		};
 
