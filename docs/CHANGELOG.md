@@ -1,3 +1,13 @@
+# [2.0.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.3...2.0.0-alpha.1) (2025-06-25)
+
+
+* feat(composite)API response justification type change ([d6a4fdc](https://github.com/frontegg/entitlements-client/commit/d6a4fdcef12d85e3e91d7ea3fe46b78bc76f1b7a))
+
+
+### BREAKING CHANGES
+
+* The justification type has been changed from enum to string in order to support multiple justification types
+
 # [1.3.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.2...1.3.0-alpha.3) (2025-06-24)
 
 
