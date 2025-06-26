@@ -1,5 +1,7 @@
 import { RequestContextType } from './request-context-type.enum';
 
+type Nullable<T> = { [K in keyof T]: T[K] | null };
+
 export interface FeatureEntitlementsContext {
 	type: RequestContextType.Feature;
 	featureKey: string;
@@ -25,10 +27,10 @@ export interface EntityEntitlementsContext {
 
 export interface CompositeEntitlementsContext {
 	type: RequestContextType.Composite;
-	[RequestContextType.Feature]: Partial<FeatureEntitlementsContext>;
-	[RequestContextType.Permission]: Partial<PermissionsEntitlementsContext>;
-	[RequestContextType.Route]: Partial<RouteEntitlementsContext>;
-	[RequestContextType.Entity]: Partial<EntityEntitlementsContext>;
+	[RequestContextType.Feature]: Nullable<FeatureEntitlementsContext>;
+	[RequestContextType.Permission]: Nullable<PermissionsEntitlementsContext>;
+	[RequestContextType.Route]: Nullable<RouteEntitlementsContext>;
+	[RequestContextType.Entity]: Nullable<EntityEntitlementsContext>;
 }
 
 export type RequestContext =
