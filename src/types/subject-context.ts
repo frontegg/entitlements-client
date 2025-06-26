@@ -1,6 +1,8 @@
 export type SubjectContext = UserSubjectContext | FGASubjectContext | CompositeSubjectContext;
 
-export type CompositeSubjectContext = UserSubjectContext & FGASubjectContext;
+type Nullable<T> = { [K in keyof T]: T[K] | null };
+
+export type CompositeSubjectContext = Nullable<UserSubjectContext> & Nullable<FGASubjectContext>;
 
 export type UserSubjectContext = {
 	userId?: string | null;
