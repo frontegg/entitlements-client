@@ -1,3 +1,10 @@
+# [2.0.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.1...2.0.0-alpha.2) (2025-06-26)
+
+
+### Bug Fixes
+
+* **composite:** bump version ([d38351f](https://github.com/frontegg/entitlements-client/commit/d38351f5f84dff5e7bcd8d378bdcad46118f8edb))
+
 # [2.0.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.3...2.0.0-alpha.1) (2025-06-25)
 
 
