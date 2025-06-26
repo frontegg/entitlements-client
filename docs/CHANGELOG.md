@@ -1,3 +1,10 @@
+# [2.0.0-alpha.4](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.3...2.0.0-alpha.4) (2025-06-26)
+
+
+### Bug Fixes
+
+* **composite:** nullable on composite subject context ([6dd1f31](https://github.com/frontegg/entitlements-client/commit/6dd1f317a5b0f8f75afea9dc4f6c4cff31449f4c))
+
 # [2.0.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.2...2.0.0-alpha.3) (2025-06-26)
 
 
