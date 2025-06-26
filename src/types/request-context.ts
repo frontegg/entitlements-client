@@ -25,10 +25,10 @@ export interface EntityEntitlementsContext {
 
 export interface CompositeEntitlementsContext {
 	type: RequestContextType.Composite;
-	[RequestContextType.Feature]?: FeatureEntitlementsContext;
-	[RequestContextType.Permission]?: PermissionsEntitlementsContext;
-	[RequestContextType.Route]?: RouteEntitlementsContext;
-	[RequestContextType.Entity]?: EntityEntitlementsContext;
+	[RequestContextType.Feature]: Partial<FeatureEntitlementsContext>;
+	[RequestContextType.Permission]: Partial<PermissionsEntitlementsContext>;
+	[RequestContextType.Route]: Partial<RouteEntitlementsContext>;
+	[RequestContextType.Entity]: Partial<EntityEntitlementsContext>;
 }
 
 export type RequestContext =
