@@ -1,3 +1,10 @@
+# [2.0.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.2...2.0.0-alpha.3) (2025-06-26)
+
+
+### Bug Fixes
+
+* **composite:** change from partial to nullable ([7098d6b](https://github.com/frontegg/entitlements-client/commit/7098d6b5bf1239038f3ddb3082663c6254e47b75))
+
 # [2.0.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.1...2.0.0-alpha.2) (2025-06-26)
 
 
