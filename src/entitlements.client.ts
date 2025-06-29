@@ -1,6 +1,8 @@
 import {
 	EntitlementsResult,
+	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
+	CompositeEntitlementsContext,
 	OpaResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
@@ -29,7 +31,7 @@ export class EntitlementsClient {
 		try {
 			const res = await this.opaQueryClient.query(subjectContext, requestContext);
 			if (res.result.monitoring || this.logResults) {
-				await this.loggingClient.log(res);
+				await this.loggingClient.log(subjectContext, requestContext, res);
 			}
 
 			if (res.result.monitoring) {
@@ -70,6 +72,14 @@ export class EntitlementsClient {
 			[RequestContextType.Route]:
 				staticFallbackConfiguration[RequestContextType.Route]?.[
 					`${(requestContext as RouteEntitlementsContext).method}_${(requestContext as RouteEntitlementsContext).path}`
+				],
+			[RequestContextType.Entity]:
+				staticFallbackConfiguration[RequestContextType.Entity]?.[
+					`${(requestContext as EntityEntitlementsContext).entityType}:${(requestContext as EntityEntitlementsContext).key}@${(requestContext as EntityEntitlementsContext).action}`
+				],
+			[RequestContextType.Composite]:
+				staticFallbackConfiguration[RequestContextType.Composite]?.[
+					`${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity]?.entityType}:${(requestContext as CompositeEntitlementsContext)[RequestContextType.Entity]?.key}`
 				]
 		};
 

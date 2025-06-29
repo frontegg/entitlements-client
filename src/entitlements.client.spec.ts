@@ -1,6 +1,7 @@
 import { EntitlementsClient } from './entitlements.client';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { EntitlementsOpaQuery } from './opa-queries';
+import { getRequestContext } from './opa-queries/entitlements-opa-query.spec-helper';
 import { LoggingClient } from './logging';
 import { EntitlementsResult, OpaResponse, RequestContext, RequestContextType } from './types';
 import { FallbackConfiguration } from './client-configuration';
@@ -24,19 +25,13 @@ describe(EntitlementsClient.name, () => {
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			// Don't care about actual request context, just need to pass it to the query method
-			const requestContext = {
-				type: requestContextType,
-				path: 'mock-path',
-				method: 'mock-method',
-				permissionKey: 'mock-permission-key',
-				featureKey: 'mock-feature'
-			};
+
+			const requestContext = getRequestContext(requestContextType);
 
 			it('should not log results if logResults flag is turned off ', async () => {
 				//WHEN logging: false
 				const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, false);
-				const res = await cut.isEntitledTo(subjectContext, requestContext);
+				await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
 				expect(mockLoggingClient.log).not.toHaveBeenCalledWith(opaResult);
@@ -45,10 +40,10 @@ describe(EntitlementsClient.name, () => {
 			it('should log results if logResults flag is turned on ', async () => {
 				//WHEN logging: true
 				const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, true);
-				const res = await cut.isEntitledTo(subjectContext, requestContext);
+				await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(opaResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
 			});
 		}
 	);
@@ -74,14 +69,8 @@ describe(EntitlementsClient.name, () => {
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			// Don't care about actual request context, just need to pass it to the query method
-			const requestContext = {
-				type: requestContextType,
-				path: 'mock-path',
-				method: 'mock-method',
-				permissionKey: 'mock-permission-key',
-				featureKey: 'mock-feature'
-			};
+
+			const requestContext = getRequestContext(requestContextType);
 
 			it('should log results if logResults flag is turned off and return a default response', async () => {
 				//WHEN logging: false
@@ -89,7 +78,7 @@ describe(EntitlementsClient.name, () => {
 				const res = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(opaResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
 				expect(res).toEqual({ monitoring: true, result: true });
 			});
 
@@ -99,7 +88,7 @@ describe(EntitlementsClient.name, () => {
 				const res = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(opaResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, opaResult);
 				expect(res).toEqual({ monitoring: true, result: true });
 			});
 		}
@@ -119,14 +108,53 @@ describe(EntitlementsClient.name, () => {
 				permissions: ['mock-permission'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
-			// Don't care about actual request context, just need to pass it to the query method
-			const requestContext = {
-				type: requestContextType,
-				path: 'mock-path',
-				method: 'mock-method',
-				permissionKey: 'mock-permission-key',
-				featureKey: 'mock-feature'
+
+			// Create specific request context based on the type
+			const getRequestContext = (type: RequestContextType): RequestContext => {
+				switch (type) {
+					case RequestContextType.Feature:
+						return {
+							type: RequestContextType.Feature,
+							featureKey: 'mock-feature'
+						};
+					case RequestContextType.Permission:
+						return {
+							type: RequestContextType.Permission,
+							permissionKey: 'mock-permission-key'
+						};
+					case RequestContextType.Route:
+						return {
+							type: RequestContextType.Route,
+							method: 'mock-method',
+							path: 'mock-path'
+						};
+					case RequestContextType.Entity:
+						return {
+							type: RequestContextType.Entity,
+							entityType: 'document',
+							key: 'document-1',
+							action: 'read'
+						};
+					case RequestContextType.Composite:
+						return {
+							type: RequestContextType.Composite,
+							[RequestContextType.Permission]: {
+								type: RequestContextType.Permission,
+								permissionKey: 'mock-permission-key'
+							},
+							[RequestContextType.Entity]: {
+								type: RequestContextType.Entity,
+								entityType: 'document',
+								key: 'document-1',
+								action: 'read'
+							}
+						};
+					default:
+						throw new Error(`Unknown request context type: ${type}`);
+				}
 			};
+
+			const requestContext = getRequestContext(requestContextType);
 
 			it('should log error and return default EntitlementClient fallback of false', async () => {
 				const cut = new EntitlementsClient(mockOpaQueryClient, mockLoggingClient, false);

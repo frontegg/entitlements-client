@@ -5,6 +5,7 @@ import { RequestContext, RequestContextType, SubjectContext } from '../types';
 import { FeaturesOpaRoute } from './features-opa-query';
 import { PermissionsOpaRoute } from './permissions-opa-query';
 import { RoutesOpaRoute } from './routes-opa-query';
+import { getRequestContext } from './entitlements-opa-query.spec-helper';
 
 describe(OpaQueryClient.name, () => {
 	let queryClient: OpaQueryClient;
@@ -34,13 +35,7 @@ describe(OpaQueryClient.name, () => {
 			attributes: { mockAttribute: 'mock-value' }
 		};
 		// Don't care about actual request context, just need to pass it to the query method
-		const requestContext: RequestContext = {
-			type: requestContextType,
-			path: 'mock-path',
-			method: 'mock-method',
-			permissionKey: 'mock-permission-key',
-			featureKey: 'mock-feature'
-		};
+		const requestContext: RequestContext = getRequestContext(requestContextType);
 		mockHttpClient.post.mockResolvedValue({ data: 'mock-data' });
 		await queryClient.query(subjectContext, requestContext);
 		expect(mockHttpClient.post).toHaveBeenCalledWith(route, expect.anything(), { baseURL: mockPdpHost });

@@ -1,3 +1,70 @@
+# [2.0.0-alpha.6](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.5...2.0.0-alpha.6) (2025-06-29)
+
+
+### Bug Fixes
+
+* **composite:** removed feature from composite ([6d97e3c](https://github.com/frontegg/entitlements-client/commit/6d97e3c5a94500144daa660f83e54b1b90225634))
+
+# [2.0.0-alpha.5](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.4...2.0.0-alpha.5) (2025-06-29)
+
+
+### Bug Fixes
+
+* **composite:** remove route from composite ([6e09d6b](https://github.com/frontegg/entitlements-client/commit/6e09d6bc7e5bc64f707484b5a60528ab2eae5ad5))
+
+# [2.0.0-alpha.4](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.3...2.0.0-alpha.4) (2025-06-26)
+
+
+### Bug Fixes
+
+* **composite:** nullable on composite subject context ([6dd1f31](https://github.com/frontegg/entitlements-client/commit/6dd1f317a5b0f8f75afea9dc4f6c4cff31449f4c))
+
+# [2.0.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.2...2.0.0-alpha.3) (2025-06-26)
+
+
+### Bug Fixes
+
+* **composite:** change from partial to nullable ([7098d6b](https://github.com/frontegg/entitlements-client/commit/7098d6b5bf1239038f3ddb3082663c6254e47b75))
+
+# [2.0.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.1...2.0.0-alpha.2) (2025-06-26)
+
+
+### Bug Fixes
+
+* **composite:** bump version ([d38351f](https://github.com/frontegg/entitlements-client/commit/d38351f5f84dff5e7bcd8d378bdcad46118f8edb))
+
+# [2.0.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.3...2.0.0-alpha.1) (2025-06-25)
+
+
+* feat(composite)API response justification type change ([d6a4fdc](https://github.com/frontegg/entitlements-client/commit/d6a4fdcef12d85e3e91d7ea3fe46b78bc76f1b7a))
+
+
+### BREAKING CHANGES
+
+* The justification type has been changed from enum to string in order to support multiple justification types
+
+# [1.3.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.2...1.3.0-alpha.3) (2025-06-24)
+
+
+### Bug Fixes
+
+* **composite:** bump version ([abc6712](https://github.com/frontegg/entitlements-client/commit/abc671264ed2a914b8c0377b102f785001c5f40e))
+
+# [1.3.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/1.3.0-alpha.1...1.3.0-alpha.2) (2025-04-02)
+
+
+### Bug Fixes
+
+* **publish:** republish ([6a6be70](https://github.com/frontegg/entitlements-client/commit/6a6be704908c2d27482cea00f0ddf889ec47ab25))
+
+# [1.3.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/1.2.0...1.3.0-alpha.1) (2025-04-02)
+
+
+### Features
+
+* **fga:** add fga policy query ([7ff9dd5](https://github.com/frontegg/entitlements-client/commit/7ff9dd56891a2b727f07d3b69857c01ea9377e14))
+* **log:** add subject and request context to logger ([f65e60a](https://github.com/frontegg/entitlements-client/commit/f65e60ad76b90580654e806326ba28fb4b67bf16))
+
 # [1.2.0](https://github.com/frontegg/entitlements-client/compare/1.1.0...1.2.0) (2024-08-06)
 
 

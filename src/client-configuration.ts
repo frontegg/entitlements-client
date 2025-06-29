@@ -22,6 +22,8 @@ export type StaticFallbackConfiguration = {
 	[RequestContextType.Feature]?: Record<string, boolean>;
 	[RequestContextType.Permission]?: Record<string, boolean>;
 	[RequestContextType.Route]?: Record<string, boolean>;
+	[RequestContextType.Entity]?: Record<string, boolean>;
+	[RequestContextType.Composite]?: Record<string, boolean>;
 };
 
 export type FunctionFallbackConfiguration = (requestContext: RequestContext) => Promise<boolean> | boolean;

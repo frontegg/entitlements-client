@@ -2,6 +2,8 @@ import {
 	EntitlementsQuery,
 	EntitlementsQueryRequestContext,
 	EntitlementsResult,
+	isCompositeSubjectContext,
+	isFGASubjectContext,
 	OpaRequest,
 	OpaResponse,
 	RequestContext,
@@ -43,14 +45,35 @@ export abstract class EntitlementsOpaQuery {
 	): OpaRequest<EntitlementsQuery> {
 		return {
 			input: {
-				subjectContext: {
-					userId: subjectContext.userId || null,
-					tenantId: subjectContext.tenantId,
-					permissions: subjectContext.permissions || [],
-					attributes: subjectContext.attributes || {}
-				},
+				subjectContext: this.constructSubjectContext(subjectContext),
 				requestContext
 			}
 		};
+	}
+
+	private constructSubjectContext(subjectContext: SubjectContext): SubjectContext {
+		if (isCompositeSubjectContext(subjectContext)) {
+			return {
+				userId: subjectContext.userId || null,
+				tenantId: subjectContext.tenantId,
+				permissions: subjectContext.permissions || [],
+				attributes: subjectContext.attributes || {},
+				entityType: subjectContext.entityType,
+				key: subjectContext.key
+			};
+		}
+		if (isFGASubjectContext(subjectContext)) {
+			return {
+				entityType: subjectContext.entityType,
+				key: subjectContext.key
+			};
+		} else {
+			return {
+				userId: subjectContext.userId || null,
+				tenantId: subjectContext.tenantId,
+				permissions: subjectContext.permissions || [],
+				attributes: subjectContext.attributes || {}
+			};
+		}
 	}
 }
