@@ -1,3 +1,10 @@
+# [2.0.0-alpha.6](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.5...2.0.0-alpha.6) (2025-06-29)
+
+
+### Bug Fixes
+
+* **composite:** removed feature from composite ([6d97e3c](https://github.com/frontegg/entitlements-client/commit/6d97e3c5a94500144daa660f83e54b1b90225634))
+
 # [2.0.0-alpha.5](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.4...2.0.0-alpha.5) (2025-06-29)
 
 
