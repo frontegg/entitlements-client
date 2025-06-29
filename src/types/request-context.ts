@@ -29,7 +29,6 @@ export interface CompositeEntitlementsContext {
 	type: RequestContextType.Composite;
 	[RequestContextType.Feature]: Nullable<FeatureEntitlementsContext>;
 	[RequestContextType.Permission]: Nullable<PermissionsEntitlementsContext>;
-	[RequestContextType.Route]: Nullable<RouteEntitlementsContext>;
 	[RequestContextType.Entity]: Nullable<EntityEntitlementsContext>;
 }
 

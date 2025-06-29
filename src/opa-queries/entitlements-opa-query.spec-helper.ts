@@ -39,11 +39,6 @@ export function getRequestContext(type: RequestContextType): RequestContext {
 					type: RequestContextType.Permission,
 					permissionKey: 'mock-permission-key'
 				},
-				[RequestContextType.Route]: {
-					type: RequestContextType.Route,
-					method: 'mock-method',
-					path: 'mock-path'
-				},
 				[RequestContextType.Entity]: {
 					type: RequestContextType.Entity,
 					entityType: 'document',
