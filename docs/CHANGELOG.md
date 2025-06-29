@@ -1,3 +1,10 @@
+# [2.0.0-alpha.5](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.4...2.0.0-alpha.5) (2025-06-29)
+
+
+### Bug Fixes
+
+* **composite:** remove route from composite ([6e09d6b](https://github.com/frontegg/entitlements-client/commit/6e09d6bc7e5bc64f707484b5a60528ab2eae5ad5))
+
 # [2.0.0-alpha.4](https://github.com/frontegg/entitlements-client/compare/2.0.0-alpha.3...2.0.0-alpha.4) (2025-06-26)
 
 
