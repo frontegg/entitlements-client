@@ -138,10 +138,6 @@ describe(EntitlementsClient.name, () => {
 					case RequestContextType.Composite:
 						return {
 							type: RequestContextType.Composite,
-							[RequestContextType.Feature]: {
-								type: RequestContextType.Feature,
-								featureKey: 'mock-feature'
-							},
 							[RequestContextType.Permission]: {
 								type: RequestContextType.Permission,
 								permissionKey: 'mock-permission-key'
