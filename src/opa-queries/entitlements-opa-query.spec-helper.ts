@@ -28,20 +28,6 @@ export function getRequestContext(type: RequestContextType): RequestContext {
 				key: 'document-1',
 				action: 'read'
 			};
-		case RequestContextType.Composite:
-			return {
-				type: RequestContextType.Composite,
-				[RequestContextType.Permission]: {
-					type: RequestContextType.Permission,
-					permissionKey: 'mock-permission-key'
-				},
-				[RequestContextType.Entity]: {
-					type: RequestContextType.Entity,
-					entityType: 'document',
-					key: 'document-1',
-					action: 'read'
-				}
-			};
 		default:
 			throw new Error(`Unknown request context type: ${type}`);
 	}

@@ -1,23 +1,21 @@
+import { EntitlementsSpiceDBQuery } from './spicedb-queries/entitlements-spicedb.query';
+import { FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
 import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
-	OpaResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
 	RouteEntitlementsContext,
 	SubjectContext
-} from './types';
-import { LoggingClient } from './logging';
-import { EntitlementsOpaQuery } from './opa-queries';
-import { FallbackConfiguration, StaticFallbackConfiguration } from './client-configuration';
+} from '../types';
+import { LoggingClient } from '../logging';
+import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 
-export class EntitlementsClient {
-	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
-
+export class SpiceDBEntitlementsClient {
 	constructor(
-		private readonly opaQueryClient: EntitlementsOpaQuery,
+		private readonly spiceDBQueryClient: SpiceDBQueryClient,
 		private readonly loggingClient: LoggingClient,
 		private readonly logResults = false,
 		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
@@ -28,24 +26,15 @@ export class EntitlementsClient {
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
 		try {
-			const res = await this.opaQueryClient.query(subjectContext, requestContext);
-			if (res.result.monitoring || this.logResults) {
+			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
+			if (this.logResults) {
 				await this.loggingClient.log(subjectContext, requestContext, res);
 			}
-
-			if (res.result.monitoring) {
-				return EntitlementsClient.MONITORING_RESULT;
-			}
-
-			return this.constructResult(res);
+			return res.result;
 		} catch (err) {
 			await this.loggingClient.error(err);
 			return this.constructFallbackResult(requestContext);
 		}
-	}
-
-	private constructResult(data: OpaResponse<EntitlementsResult>): EntitlementsResult {
-		return data?.result;
 	}
 
 	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {

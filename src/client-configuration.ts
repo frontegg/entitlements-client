@@ -1,15 +1,13 @@
-import { AxiosInstance } from 'axios';
 import { LoggingClient } from './logging';
 import { RequestContext, RequestContextType } from './types';
 
 export interface ClientConfiguration {
-	pdpHost: string;
-	axiosInstance?: AxiosInstance;
+	spiceDBEndpoint: string;
+	spiceDBToken: string;
 	logging?: {
 		client?: LoggingClient;
 		logResults?: boolean;
 	};
-	timeout?: Milliseconds;
 	fallbackConfiguration?: FallbackConfiguration;
 }
 
@@ -23,7 +21,6 @@ export type StaticFallbackConfiguration = {
 	[RequestContextType.Permission]?: Record<string, boolean>;
 	[RequestContextType.Route]?: Record<string, boolean>;
 	[RequestContextType.Entity]?: Record<string, boolean>;
-	[RequestContextType.Composite]?: Record<string, boolean>;
 };
 
 export type FunctionFallbackConfiguration = (requestContext: RequestContext) => Promise<boolean> | boolean;
