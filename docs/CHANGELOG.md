@@ -1,3 +1,15 @@
+# [3.0.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/2.0.0...3.0.0-alpha.1) (2025-07-10)
+
+
+### Features
+
+* **spicedb:** migrate to spicedb ([3dd3de4](https://github.com/frontegg/entitlements-client/commit/3dd3de423e27f237e0050df8cb8787795c62a3d9))
+
+
+### BREAKING CHANGES
+
+* **spicedb:** Changing engine to spicedb
+
 # [2.0.0](https://github.com/frontegg/entitlements-client/compare/1.2.0...2.0.0) (2025-06-29)
 
 
