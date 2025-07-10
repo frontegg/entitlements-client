@@ -65,13 +65,13 @@ export abstract class EntitlementsSpiceDBQuery {
 		return {
 			resource: {
 				objectType: resourceObjectType,
-				objectId: resourceObjectId
+				objectId: this.normalizeObjectId(resourceObjectId)
 			},
 			permission: 'access',
 			subject: {
 				object: {
 					objectType: subjectObjectType,
-					objectId: subjectObjectId
+					objectId: this.normalizeObjectId(subjectObjectId)
 				},
 				optionalRelation: ''
 			},
@@ -120,7 +120,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	protected async executeCommonQuery(
 		objectType: string,
 		objectId: string,
-		subjectContext: UserSubjectContext,
+		subjectContext: UserSubjectContext
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext;
 		const caveatContext = this.createCaveatContext(context);
@@ -131,5 +131,9 @@ export abstract class EntitlementsSpiceDBQuery {
 		return {
 			result: { result } as EntitlementsResult
 		} as SpiceDBResponse<EntitlementsResult>;
+	}
+
+	protected normalizeObjectId(objectId: string): string {
+		return Buffer.from(objectId).toString('base64');
 	}
 }

@@ -20,13 +20,13 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			subject: {
 				object: {
 					objectType: requestContext.entityType,
-					objectId: requestContext.key
+					objectId: this.normalizeObjectId(requestContext.key)
 				},
 				optionalRelation: ''
 			},
 			resource: {
 				objectType: context.entityType,
-				objectId: context.key
+				objectId: this.normalizeObjectId(context.key)
 			},
 			permission: requestContext.action
 		});
