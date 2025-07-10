@@ -28,7 +28,7 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				objectType: context.entityType,
 				objectId: this.normalizeObjectId(context.key)
 			},
-			permission: requestContext.action
+			permission: this.normalizeObjectId(requestContext.action)
 		});
 
 		const res = await this.client.checkPermission(request);

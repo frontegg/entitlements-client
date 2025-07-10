@@ -134,6 +134,6 @@ export abstract class EntitlementsSpiceDBQuery {
 	}
 
 	protected normalizeObjectId(objectId: string): string {
-		return Buffer.from(objectId).toString('base64');
+		return Buffer.from(objectId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 	}
 }
