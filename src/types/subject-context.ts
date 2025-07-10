@@ -1,4 +1,4 @@
-export type SubjectContext = UserSubjectContext | FGASubjectContext ;
+export type SubjectContext = UserSubjectContext | FGASubjectContext;
 
 type Nullable<T> = { [K in keyof T]: T[K] | null };
 

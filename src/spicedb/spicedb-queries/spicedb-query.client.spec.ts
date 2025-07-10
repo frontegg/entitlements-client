@@ -30,13 +30,13 @@ describe(SpiceDBQueryClient.name, () => {
 		};
 		// Don't care about actual request context, just need to pass it to the query method
 		const requestContext: RequestContext = getRequestContext(requestContextType);
-		
+
 		// Mock the strategy's query method
 		const mockStrategy = jest.spyOn(queryClient['strategy'][requestContextType], 'query');
 		mockStrategy.mockResolvedValue({ result: { result: true } });
 
 		await queryClient.spiceDBQuery(subjectContext, requestContext);
-		
+
 		expect(mockStrategy).toHaveBeenCalledWith({ requestContext, subjectContext });
 	});
 });

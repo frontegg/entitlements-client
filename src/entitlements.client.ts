@@ -75,7 +75,7 @@ export class EntitlementsClient {
 			[RequestContextType.Entity]:
 				staticFallbackConfiguration[RequestContextType.Entity]?.[
 					`${(requestContext as EntityEntitlementsContext).entityType}:${(requestContext as EntityEntitlementsContext).key}@${(requestContext as EntityEntitlementsContext).action}`
-				],
+				]
 		};
 
 		return fallbackMapper[requestContext.type] ?? staticFallbackConfiguration.defaultFallback;

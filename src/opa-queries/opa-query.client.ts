@@ -15,7 +15,7 @@ export class OpaQueryClient extends EntitlementsOpaQuery {
 			[RequestContextType.Feature]: new FeaturesOpaQuery(pdpHost, axiosInstance),
 			[RequestContextType.Permission]: new PermissionsOpaQuery(pdpHost, axiosInstance),
 			[RequestContextType.Route]: new RoutesOpaQuery(pdpHost, axiosInstance),
-			[RequestContextType.Entity]: new FGAOpaQuery(pdpHost, axiosInstance),
+			[RequestContextType.Entity]: new FGAOpaQuery(pdpHost, axiosInstance)
 		};
 	}
 
