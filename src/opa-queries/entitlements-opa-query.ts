@@ -2,7 +2,6 @@ import {
 	EntitlementsQuery,
 	EntitlementsQueryRequestContext,
 	EntitlementsResult,
-	isCompositeSubjectContext,
 	isFGASubjectContext,
 	OpaRequest,
 	OpaResponse,
@@ -52,16 +51,6 @@ export abstract class EntitlementsOpaQuery {
 	}
 
 	private constructSubjectContext(subjectContext: SubjectContext): SubjectContext {
-		if (isCompositeSubjectContext(subjectContext)) {
-			return {
-				userId: subjectContext.userId || null,
-				tenantId: subjectContext.tenantId,
-				permissions: subjectContext.permissions || [],
-				attributes: subjectContext.attributes || {},
-				entityType: subjectContext.entityType,
-				key: subjectContext.key
-			};
-		}
 		if (isFGASubjectContext(subjectContext)) {
 			return {
 				entityType: subjectContext.entityType,

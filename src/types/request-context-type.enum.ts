@@ -3,5 +3,4 @@ export enum RequestContextType {
 	Permission = 'permission',
 	Route = 'route',
 	Entity = 'entity',
-	Composite = 'composite'
 }

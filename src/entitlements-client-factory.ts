@@ -1,26 +1,28 @@
 import { ClientConfiguration } from './client-configuration';
-import axios from 'axios';
-import { EntitlementsClient } from './entitlements.client';
 import { LoggingClient, SimpleLoggingClient } from './logging';
-import { OpaQueryClient } from './opa-queries';
 import { ConfigurationInputIsMissingException } from './exceptions/configuration-input-is-missing.exception';
-import { ConfigurationInputIsInvalidException } from './exceptions/configuration-input-is-invalid.exception';
+import { SpiceDBQueryClient } from './spicedb/spicedb-queries/spicedb-query.client';
+import { SpiceDBEntitlementsClient } from './spicedb/spicedb-entitlements.client';
 
 export class EntitlementsClientFactory {
-	public static create(configuration: ClientConfiguration): EntitlementsClient {
-		if (!configuration.pdpHost) {
-			throw new ConfigurationInputIsMissingException('pdpHost is required');
-		}
-		if (configuration.timeout !== undefined && configuration.timeout <= 0) {
-			throw new ConfigurationInputIsInvalidException('timeout must be positive number');
+	public static create(configuration: ClientConfiguration): SpiceDBEntitlementsClient {
+		if (!configuration.spiceDBEndpoint) {
+			throw new ConfigurationInputIsMissingException('spiceDBEndpoint is required');
 		}
 
-		const pdpHost = configuration.pdpHost;
-		const axiosInstance = configuration.axiosInstance ?? axios.create({ timeout: configuration.timeout });
-		const opaQueryClient = new OpaQueryClient(pdpHost, axiosInstance);
+		if (!configuration.spiceDBToken) {
+			throw new ConfigurationInputIsMissingException('spiceDBToken is required');
+		}
+
+		const queryClient = new SpiceDBQueryClient(configuration.spiceDBEndpoint, configuration.spiceDBToken);
 		const { loggingClient, logResults } = this.configureLoggingClient(configuration.logging);
 
-		return new EntitlementsClient(opaQueryClient, loggingClient, logResults, configuration.fallbackConfiguration);
+		return new SpiceDBEntitlementsClient(
+			queryClient,
+			loggingClient,
+			logResults,
+			configuration.fallbackConfiguration
+		);
 	}
 
 	private static configureLoggingClient(logging: ClientConfiguration['logging']): {

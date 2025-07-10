@@ -1,8 +1,6 @@
-export type SubjectContext = UserSubjectContext | FGASubjectContext | CompositeSubjectContext;
+export type SubjectContext = UserSubjectContext | FGASubjectContext ;
 
 type Nullable<T> = { [K in keyof T]: T[K] | null };
-
-export type CompositeSubjectContext = Nullable<UserSubjectContext> & Nullable<FGASubjectContext>;
 
 export type UserSubjectContext = {
 	userId?: string | null;
@@ -18,8 +16,4 @@ export type FGASubjectContext = {
 
 export function isFGASubjectContext(subject: SubjectContext): subject is FGASubjectContext {
 	return !!(subject as FGASubjectContext).entityType;
-}
-
-export function isCompositeSubjectContext(subject: SubjectContext): subject is CompositeSubjectContext {
-	return !!(subject as CompositeSubjectContext).tenantId && !!(subject as CompositeSubjectContext).entityType;
 }

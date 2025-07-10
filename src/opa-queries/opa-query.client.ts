@@ -5,7 +5,6 @@ import { AxiosInstance } from 'axios';
 import { PermissionsOpaQuery } from './permissions-opa-query';
 import { RoutesOpaQuery } from './routes-opa-query';
 import { FGAOpaQuery } from './fga-opa-query';
-import { CompositeFGAOpaQuery } from './composite-fga-query';
 
 export class OpaQueryClient extends EntitlementsOpaQuery {
 	private readonly strategy: Record<RequestContextType, EntitlementsOpaQuery>;
@@ -17,7 +16,6 @@ export class OpaQueryClient extends EntitlementsOpaQuery {
 			[RequestContextType.Permission]: new PermissionsOpaQuery(pdpHost, axiosInstance),
 			[RequestContextType.Route]: new RoutesOpaQuery(pdpHost, axiosInstance),
 			[RequestContextType.Entity]: new FGAOpaQuery(pdpHost, axiosInstance),
-			[RequestContextType.Composite]: new CompositeFGAOpaQuery(pdpHost, axiosInstance)
 		};
 	}
 
