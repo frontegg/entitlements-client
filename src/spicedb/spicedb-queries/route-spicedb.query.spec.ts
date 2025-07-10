@@ -40,7 +40,7 @@ describe(RouteSpiceDBQuery.name, () => {
 
 		it('should not block exceptions from client and propagate them to the user', async () => {
 			const mockError = new Error('mock-error');
-			
+
 			// Mock the cache to return relations
 			const mockRelations = [
 				{
@@ -65,12 +65,12 @@ describe(RouteSpiceDBQuery.name, () => {
 					}
 				}
 			];
-			
+
 			const mockCache = {
 				wrap: jest.fn().mockResolvedValue(mockRelations)
 			};
 			(queryClient as any).cache = mockCache;
-			
+
 			mockClient.checkBulkPermissions.mockRejectedValue(mockError);
 
 			await expect(

@@ -86,7 +86,7 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 	});
 
 	describe('createCaveatContext', () => {
-				it('should create caveat context with user attributes and current time', () => {
+		it('should create caveat context with user attributes and current time', () => {
 			const userContext: UserSubjectContext = {
 				userId: 'user-123',
 				tenantId: 'tenant-456',
@@ -102,26 +102,29 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 
 			expect(caveatContext.fields.user_context).toBeDefined();
 			expect(caveatContext.fields.user_context.kind?.oneofKind).toBe('structValue');
-			
-			const structValue = caveatContext.fields.user_context.kind?.oneofKind === 'structValue' ? caveatContext.fields.user_context.kind.structValue : undefined;
+
+			const structValue =
+				caveatContext.fields.user_context.kind?.oneofKind === 'structValue'
+					? caveatContext.fields.user_context.kind.structValue
+					: undefined;
 			expect(structValue?.fields.now).toBeDefined();
 			expect(structValue?.fields.now.kind?.oneofKind).toBe('stringValue');
 			if (structValue?.fields.now.kind?.oneofKind === 'stringValue') {
 				expect(structValue.fields.now.kind.stringValue).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/);
 			}
-			
+
 			expect(structValue?.fields.department).toBeDefined();
 			expect(structValue?.fields.department.kind?.oneofKind).toBe('stringValue');
 			if (structValue?.fields.department.kind?.oneofKind === 'stringValue') {
 				expect(structValue.fields.department.kind.stringValue).toBe('engineering');
 			}
-			
+
 			expect(structValue?.fields.role).toBeDefined();
 			expect(structValue?.fields.role.kind?.oneofKind).toBe('stringValue');
 			if (structValue?.fields.role.kind?.oneofKind === 'stringValue') {
 				expect(structValue.fields.role.kind.stringValue).toBe('admin');
 			}
-			
+
 			expect(structValue?.fields.level).toBeDefined();
 			expect(structValue?.fields.level.kind?.oneofKind).toBe('stringValue');
 			if (structValue?.fields.level.kind?.oneofKind === 'stringValue') {
@@ -140,7 +143,10 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			const caveatContext = queryClient.testCreateCaveatContext(userContext);
 
 			expect(caveatContext.fields.user_context).toBeDefined();
-			const structValue = caveatContext.fields.user_context.kind?.oneofKind === 'structValue' ? caveatContext.fields.user_context.kind.structValue : undefined;
+			const structValue =
+				caveatContext.fields.user_context.kind?.oneofKind === 'structValue'
+					? caveatContext.fields.user_context.kind.structValue
+					: undefined;
 			expect(structValue?.fields.now).toBeDefined();
 			expect(Object.keys(structValue?.fields || {}).length).toBe(1); // Only 'now' field
 		});
@@ -156,7 +162,10 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			const caveatContext = queryClient.testCreateCaveatContext(userContext);
 
 			expect(caveatContext.fields.user_context).toBeDefined();
-			const structValue = caveatContext.fields.user_context.kind?.oneofKind === 'structValue' ? caveatContext.fields.user_context.kind.structValue : undefined;
+			const structValue =
+				caveatContext.fields.user_context.kind?.oneofKind === 'structValue'
+					? caveatContext.fields.user_context.kind.structValue
+					: undefined;
 			expect(structValue?.fields.now).toBeDefined();
 			expect(Object.keys(structValue?.fields || {}).length).toBe(1); // Only 'now' field
 		});
