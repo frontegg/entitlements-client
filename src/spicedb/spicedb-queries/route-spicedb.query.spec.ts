@@ -46,7 +46,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				{
 					relationship: {
 						resource: {
-							objectType: 'route',
+							objectType: 'frontegg_route',
 							objectId: 'route-1'
 						},
 						relation: 'access',
@@ -107,7 +107,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				{
 					relationship: {
 						resource: {
-							objectType: 'route',
+							objectType: 'frontegg_route',
 							objectId: 'route-1'
 						},
 						relation: 'access',

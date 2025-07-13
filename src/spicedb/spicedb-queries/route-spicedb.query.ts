@@ -16,13 +16,13 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	}
 
 	async query({
-		subjectContext,
-		requestContext
-	}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
+					subjectContext,
+					requestContext
+				}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
 		const request = v1.ReadRelationshipsRequest.create({
 			relationshipFilter: {
-				resourceType: 'route'
+				resourceType: 'frontegg_route'
 			}
 		});
 		const relations = await this.cache.wrap(
@@ -54,7 +54,10 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			})) as { objectType: string; objectId: string }[];
 
 		const bulkRequests = objects.map((object) =>
-			this.createBulkPermissionsRequest(object.objectType, object.objectId, context, caveatContext)
+			this.createBulkPermissionsRequest(object.objectType, object.objectId, context, caveatContext, {
+				hashSubjectId: true,
+				hashResourceId: false
+			})
 		);
 		const items = bulkRequests.flatMap((request) => request.items);
 		const res = await this.client.checkBulkPermissions(v1.CheckBulkPermissionsRequest.create({ items }));

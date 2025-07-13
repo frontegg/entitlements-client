@@ -209,7 +209,7 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 
 			const caveatContext = queryClient.testCreateCaveatContext(userContext);
 			const bulkRequest = queryClient.testCreateBulkPermissionsRequest(
-				'feature',
+				'frontegg_feature',
 				'test-feature',
 				userContext,
 				caveatContext
@@ -248,7 +248,7 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 
 			// Check tenant item
 			const tenantItem = bulkRequest.items[0];
-			expect(tenantItem.subject?.object?.objectType).toBe('tenant');
+			expect(tenantItem.subject?.object?.objectType).toBe('frontegg_tenant');
 			expect(tenantItem.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('tenant-456'));
 		});
 	});

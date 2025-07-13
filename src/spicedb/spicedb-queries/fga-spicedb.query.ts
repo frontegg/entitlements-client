@@ -19,14 +19,14 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		const request = v1.CheckPermissionRequest.create({
 			subject: {
 				object: {
-					objectType: requestContext.entityType,
-					objectId: this.normalizeObjectId(requestContext.key)
+					objectType: context.entityType,
+					objectId: this.normalizeObjectId(context.key)
 				},
 				optionalRelation: ''
 			},
 			resource: {
-				objectType: context.entityType,
-				objectId: this.normalizeObjectId(context.key)
+				objectType: requestContext.entityType,
+				objectId: this.normalizeObjectId(requestContext.key)
 			},
 			permission: requestContext.action
 		});

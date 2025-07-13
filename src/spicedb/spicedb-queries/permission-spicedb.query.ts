@@ -15,6 +15,6 @@ export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		subjectContext
 	}: EntitlementsDynamicQuery<RequestContextType.Permission>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
-		return this.executeCommonQuery('custom_permission', requestContext.permissionKey, context);
+		return this.executeCommonQuery('frontegg_permission', requestContext.permissionKey, context);
 	}
 }
