@@ -181,17 +181,17 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			});
 
 			const requestItem = queryClient.testCreateBulkPermissionRequestItem(
-				'feature',
+				'frontegg_feature',
 				'test-feature',
-				'user',
+				'frontegg_user',
 				'user-123',
 				caveatContext
 			);
 
-			expect(requestItem.resource?.objectType).toBe('feature');
+			expect(requestItem.resource?.objectType).toBe('frontegg_feature');
 			expect(requestItem.resource?.objectId).toBe(queryClient.testNormalizeObjectId('test-feature'));
 			expect(requestItem.permission).toBe('access');
-			expect(requestItem.subject?.object?.objectType).toBe('user');
+			expect(requestItem.subject?.object?.objectType).toBe('frontegg_user');
 			expect(requestItem.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('user-123'));
 			expect(requestItem.subject?.optionalRelation).toBe('');
 			expect(requestItem.context).toBe(caveatContext);
@@ -218,12 +218,12 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			expect(bulkRequest.items).toHaveLength(2);
 
 			// Check tenant item
-			const tenantItem = bulkRequest.items.find((item) => item.subject?.object?.objectType === 'tenant');
+			const tenantItem = bulkRequest.items.find((item) => item.subject?.object?.objectType === 'frontegg_tenant');
 			expect(tenantItem).toBeDefined();
 			expect(tenantItem?.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('tenant-456'));
 
 			// Check user item
-			const userItem = bulkRequest.items.find((item) => item.subject?.object?.objectType === 'user');
+			const userItem = bulkRequest.items.find((item) => item.subject?.object?.objectType === 'frontegg_user');
 			expect(userItem).toBeDefined();
 			expect(userItem?.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('user-123'));
 		});
@@ -238,7 +238,7 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 
 			const caveatContext = queryClient.testCreateCaveatContext(userContext);
 			const bulkRequest = queryClient.testCreateBulkPermissionsRequest(
-				'feature',
+				'frontegg_feature',
 				'test-feature',
 				userContext,
 				caveatContext
