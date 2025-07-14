@@ -40,7 +40,7 @@ export function getRequestContext(type: RequestContextType): RequestContext {
 }
 
 export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceDBQuery, T extends RequestContextType>(
-	ctor: new (spiceDBEndpoint: string, spiceDBToken: string) => R,
+	ctor: new (client: v1.ZedPromiseClientInterface) => R,
 	objectType: string,
 	objectId: (requestContext: EntitlementsDynamicQueryRequestContext<T>) => string,
 	contextProvider: () => {
@@ -59,10 +59,8 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			mockSpiceDBEndpoint = 'mock-endpoint';
 			mockSpiceDBToken = 'mock-token';
 
-			// Create a new instance of the query class
-			queryClient = new ctor(mockSpiceDBEndpoint, mockSpiceDBToken);
-			// Replace the client with our mock
-			(queryClient as any).client = mockClient;
+			// Create a new instance of the query class with the mock client
+			queryClient = new ctor(mockClient);
 		});
 
 		beforeEach(() => {

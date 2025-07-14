@@ -14,10 +14,8 @@ describe(RouteSpiceDBQuery.name, () => {
 		mockSpiceDBEndpoint = 'mock-endpoint';
 		mockSpiceDBToken = 'mock-token';
 
-		// Create a new instance of the query class
-		queryClient = new RouteSpiceDBQuery(mockSpiceDBEndpoint, mockSpiceDBToken);
-		// Replace the client with our mock
-		(queryClient as any).client = mockClient;
+		// Create a new instance of the query class with the mock client
+		queryClient = new RouteSpiceDBQuery(mockClient);
 	});
 
 	beforeEach(() => {

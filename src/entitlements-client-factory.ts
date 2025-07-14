@@ -1,7 +1,6 @@
 import { ClientConfiguration } from './client-configuration';
 import { LoggingClient, SimpleLoggingClient } from './logging';
 import { ConfigurationInputIsMissingException } from './exceptions/configuration-input-is-missing.exception';
-import { SpiceDBQueryClient } from './spicedb/spicedb-queries/spicedb-query.client';
 import { SpiceDBEntitlementsClient } from './spicedb/spicedb-entitlements.client';
 
 export class EntitlementsClientFactory {
@@ -14,11 +13,10 @@ export class EntitlementsClientFactory {
 			throw new ConfigurationInputIsMissingException('spiceDBToken is required');
 		}
 
-		const queryClient = new SpiceDBQueryClient(configuration.spiceDBEndpoint, configuration.spiceDBToken);
 		const { loggingClient, logResults } = this.configureLoggingClient(configuration.logging);
 
 		return new SpiceDBEntitlementsClient(
-			queryClient,
+			configuration,
 			loggingClient,
 			logResults,
 			configuration.fallbackConfiguration
