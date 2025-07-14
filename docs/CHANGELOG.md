@@ -1,3 +1,10 @@
+# [3.0.0-alpha.4](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.3...3.0.0-alpha.4) (2025-07-14)
+
+
+### Features
+
+* **spicedb:** fixes ([4921511](https://github.com/frontegg/entitlements-client/commit/4921511e58fc253d16af8095fba7232d26635d2f))
+
 # [3.0.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.2...3.0.0-alpha.3) (2025-07-14)
 
 
