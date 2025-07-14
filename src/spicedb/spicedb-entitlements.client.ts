@@ -1,5 +1,4 @@
-import { EntitlementsSpiceDBQuery } from './spicedb-queries/entitlements-spicedb.query';
-import { FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
+import { ClientConfiguration, FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
 import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
@@ -12,14 +11,25 @@ import {
 } from '../types';
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
+import { v1 } from '@authzed/authzed-node';
 
 export class SpiceDBEntitlementsClient {
+	public readonly spiceClient: v1.ZedPromiseClientInterface;
+	private readonly spiceDBQueryClient: SpiceDBQueryClient;
 	constructor(
-		private readonly spiceDBQueryClient: SpiceDBQueryClient,
+		private readonly configuration: ClientConfiguration,
 		private readonly loggingClient: LoggingClient,
 		private readonly logResults = false,
 		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
-	) {}
+	) {
+		this.spiceClient = v1.NewClient(
+			this.configuration.spiceDBToken,
+			this.configuration.spiceDBEndpoint,
+			v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
+		).promises;
+
+		this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
+	}
 
 	public async isEntitledTo(
 		subjectContext: SubjectContext,

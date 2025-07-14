@@ -1,13 +1,13 @@
 import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
 import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
+import { v1 } from '@authzed/authzed-node';
 
 export class FeaturesSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
-		protected readonly spiceDBEndpoint: string,
-		protected readonly spiceDBToken: string
+		protected readonly client: v1.ZedPromiseClientInterface,
 	) {
-		super(spiceDBEndpoint, spiceDBToken);
+		super(client);
 	}
 
 	async query({

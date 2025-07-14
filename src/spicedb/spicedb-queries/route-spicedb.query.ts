@@ -8,10 +8,9 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	private readonly cache: Cache;
 
 	constructor(
-		protected readonly spiceDBEndpoint: string,
-		protected readonly spiceDBToken: string
+		protected readonly client: v1.ZedPromiseClientInterface,
 	) {
-		super(spiceDBEndpoint, spiceDBToken);
+		super(client);
 		this.cache = createCache();
 	}
 

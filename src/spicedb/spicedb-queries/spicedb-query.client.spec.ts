@@ -6,14 +6,11 @@ import { getRequestContext } from './entitlements-spicedb.query.spec-helper';
 
 describe(SpiceDBQueryClient.name, () => {
 	let queryClient: SpiceDBQueryClient;
-	let mockSpiceDBEndpoint: string;
-	let mockSpiceDBToken: string;
+	let mockClient: MockProxy<v1.ZedPromiseClientInterface>;
 
 	beforeAll(() => {
-		mockSpiceDBEndpoint = 'mock-endpoint';
-		mockSpiceDBToken = 'mock-token';
-
-		queryClient = new SpiceDBQueryClient(mockSpiceDBEndpoint, mockSpiceDBToken);
+		mockClient = mock<v1.ZedPromiseClientInterface>();
+		queryClient = new SpiceDBQueryClient(mockClient);
 	});
 
 	it.each([

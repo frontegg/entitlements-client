@@ -6,8 +6,8 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 
 // Create a concrete test implementation to test the abstract class
 class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	constructor(spiceDBEndpoint: string, spiceDBToken: string) {
-		super(spiceDBEndpoint, spiceDBToken);
+	constructor(client: v1.ZedPromiseClientInterface) {
+		super(client);
 	}
 
 	async query(
@@ -75,10 +75,8 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 		mockSpiceDBEndpoint = 'mock-endpoint';
 		mockSpiceDBToken = 'mock-token';
 
-		// Create a new instance of the test query class
-		queryClient = new TestEntitlementsSpiceDBQuery(mockSpiceDBEndpoint, mockSpiceDBToken);
-		// Replace the client with our mock
-		(queryClient as any).client = mockClient;
+		// Create a new instance of the test query class with the mock client
+		queryClient = new TestEntitlementsSpiceDBQuery(mockClient);
 	});
 
 	beforeEach(() => {

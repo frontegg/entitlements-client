@@ -8,19 +8,9 @@ export interface HashOptions {
 }
 
 export abstract class EntitlementsSpiceDBQuery {
-	protected client: v1.ZedPromiseClientInterface;
-
 	protected constructor(
-		protected readonly spiceDBEndpoint: string,
-		protected readonly spiceDBToken: string
+		protected readonly client: v1.ZedPromiseClientInterface,
 	) {
-		const spiceClient = v1.NewClient(
-			this.spiceDBToken,
-			this.spiceDBEndpoint,
-			v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
-		);
-
-		this.client = spiceClient.promises;
 	}
 
 	abstract query(

@@ -5,10 +5,9 @@ import { v1 } from '@authzed/authzed-node';
 
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
-		protected readonly spiceDBEndpoint: string,
-		protected readonly spiceDBToken: string
+		protected readonly client: v1.ZedPromiseClientInterface,
 	) {
-		super(spiceDBEndpoint, spiceDBToken);
+		super(client);
 	}
 
 	async query({
