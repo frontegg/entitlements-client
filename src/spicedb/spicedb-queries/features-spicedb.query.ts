@@ -15,6 +15,6 @@ export class FeaturesSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		requestContext
 	}: EntitlementsDynamicQuery<RequestContextType.Feature>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
-		return this.executeCommonQuery('feature', requestContext.featureKey, context);
+		return this.executeCommonQuery('frontegg_feature', requestContext.featureKey, context);
 	}
 }

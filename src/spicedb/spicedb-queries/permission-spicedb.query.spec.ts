@@ -5,7 +5,7 @@ import { PermissionSpiceDBQuery } from './permission-spicedb.query';
 describe(PermissionSpiceDBQuery.name, () => {
 	EntitlementsSpiceDBQueryCommonTests<PermissionSpiceDBQuery, RequestContextType.Permission>(
 		PermissionSpiceDBQuery,
-		'permission',
+		'frontegg_permission',
 		(requestContext) => requestContext.permissionKey,
 		() => ({
 			requestContext: { type: RequestContextType.Permission, permissionKey: 'mock-permission-key' }

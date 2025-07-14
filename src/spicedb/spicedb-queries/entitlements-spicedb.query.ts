@@ -2,6 +2,11 @@ import { v1 } from '@authzed/authzed-node';
 import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 
+export interface HashOptions {
+	hashResourceId: boolean;
+	hashSubjectId: boolean;
+}
+
 export abstract class EntitlementsSpiceDBQuery {
 	protected client: v1.ZedPromiseClientInterface;
 
@@ -60,18 +65,19 @@ export abstract class EntitlementsSpiceDBQuery {
 		resourceObjectId: string,
 		subjectObjectType: string,
 		subjectObjectId: string,
-		caveatContext: v1.PbStruct
+		caveatContext: v1.PbStruct,
+		hashOptions: HashOptions = { hashSubjectId: true, hashResourceId: true }
 	): v1.CheckBulkPermissionsRequestItem {
 		return {
 			resource: {
 				objectType: resourceObjectType,
-				objectId: this.normalizeObjectId(resourceObjectId)
+				objectId: hashOptions.hashResourceId ? this.normalizeObjectId(resourceObjectId) : resourceObjectId
 			},
 			permission: 'access',
 			subject: {
 				object: {
 					objectType: subjectObjectType,
-					objectId: this.normalizeObjectId(subjectObjectId)
+					objectId: hashOptions.hashSubjectId ? this.normalizeObjectId(subjectObjectId) : subjectObjectId
 				},
 				optionalRelation: ''
 			},
@@ -83,14 +89,16 @@ export abstract class EntitlementsSpiceDBQuery {
 		objectType: string,
 		objectId: string,
 		context: UserSubjectContext,
-		caveatContext: v1.PbStruct
+		caveatContext: v1.PbStruct,
+		hashOptions: HashOptions = { hashSubjectId: true, hashResourceId: true }
 	): v1.CheckBulkPermissionsRequest {
 		const tenantRequest = this.createBulkPermissionRequestItem(
 			objectType,
 			objectId,
-			'tenant',
+			'frontegg_tenant',
 			context.tenantId,
-			caveatContext
+			caveatContext,
+			hashOptions
 		);
 
 		return v1.CheckBulkPermissionsRequest.create({
@@ -100,7 +108,7 @@ export abstract class EntitlementsSpiceDBQuery {
 						this.createBulkPermissionRequestItem(
 							objectType,
 							objectId,
-							'user',
+							'frontegg_user',
 							context.userId,
 							caveatContext
 						)
