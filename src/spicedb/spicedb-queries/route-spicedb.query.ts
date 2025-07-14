@@ -7,9 +7,7 @@ import { Cache, createCache } from 'cache-manager';
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	private readonly cache: Cache;
 
-	constructor(
-		protected readonly client: v1.ZedPromiseClientInterface,
-	) {
+	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
 		super(client);
 		this.cache = createCache();
 	}

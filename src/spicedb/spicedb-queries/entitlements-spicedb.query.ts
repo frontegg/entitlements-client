@@ -8,10 +8,7 @@ export interface HashOptions {
 }
 
 export abstract class EntitlementsSpiceDBQuery {
-	protected constructor(
-		protected readonly client: v1.ZedPromiseClientInterface,
-	) {
-	}
+	protected constructor(protected readonly client: v1.ZedPromiseClientInterface) {}
 
 	abstract query(
 		entitlementsQuery: EntitlementsDynamicQuery<RequestContextType>

@@ -10,9 +10,7 @@ import { v1 } from '@authzed/authzed-node';
 export class SpiceDBQueryClient {
 	private readonly strategy: Record<RequestContextType, EntitlementsSpiceDBQuery>;
 
-	constructor(
-		private readonly client: v1.ZedPromiseClientInterface,
-	) {
+	constructor(private readonly client: v1.ZedPromiseClientInterface) {
 		this.strategy = {
 			[RequestContextType.Permission]: new PermissionSpiceDBQuery(client),
 			[RequestContextType.Feature]: new FeaturesSpiceDBQuery(client),

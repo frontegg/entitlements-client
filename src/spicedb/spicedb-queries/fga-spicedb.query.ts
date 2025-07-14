@@ -4,9 +4,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	constructor(
-		protected readonly client: v1.ZedPromiseClientInterface,
-	) {
+	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
 		super(client);
 	}
 

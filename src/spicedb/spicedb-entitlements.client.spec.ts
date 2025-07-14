@@ -150,14 +150,9 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			});
 
 			it('should log error and return configured fallback of true', async () => {
-				const cut = new SpiceDBEntitlementsClient(
-					mockClientConfig,
-					mockLoggingClient,
-					false,
-					{
-						defaultFallback: true
-					}
-				);
+				const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false, {
+					defaultFallback: true
+				});
 				// Replace the internal spiceDBQueryClient with our mock
 				(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
 
@@ -371,12 +366,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 		it('should create instance with all parameters', () => {
 			const fallbackConfig: FallbackConfiguration = { defaultFallback: true };
-			const cut = new SpiceDBEntitlementsClient(
-				mockClientConfig,
-				mockLoggingClient,
-				true,
-				fallbackConfig
-			);
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true, fallbackConfig);
 			expect(cut).toBeInstanceOf(SpiceDBEntitlementsClient);
 		});
 	});
