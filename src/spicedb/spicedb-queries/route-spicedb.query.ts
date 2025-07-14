@@ -16,9 +16,9 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	}
 
 	async query({
-					subjectContext,
-					requestContext
-				}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
+		subjectContext,
+		requestContext
+	}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
 		const request = v1.ReadRelationshipsRequest.create({
 			relationshipFilter: {

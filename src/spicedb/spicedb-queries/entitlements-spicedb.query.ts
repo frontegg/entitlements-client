@@ -104,15 +104,15 @@ export abstract class EntitlementsSpiceDBQuery {
 		return v1.CheckBulkPermissionsRequest.create({
 			items: context.userId
 				? [
-					tenantRequest,
-					this.createBulkPermissionRequestItem(
-						objectType,
-						objectId,
-						'frontegg_user',
-						context.userId,
-						caveatContext
-					)
-				]
+						tenantRequest,
+						this.createBulkPermissionRequestItem(
+							objectType,
+							objectId,
+							'frontegg_user',
+							context.userId,
+							caveatContext
+						)
+					]
 				: [tenantRequest]
 		});
 	}
