@@ -3,6 +3,7 @@ import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserS
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { Cache, createCache } from 'cache-manager';
+import { SpiceDBEntities } from '../../types/spicedb-consts';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	private readonly cache: Cache;
@@ -19,7 +20,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		const context = subjectContext as UserSubjectContext;
 		const request = v1.ReadRelationshipsRequest.create({
 			relationshipFilter: {
-				resourceType: 'frontegg_route'
+				resourceType: SpiceDBEntities.Route
 			}
 		});
 		const relations = await this.cache.wrap(

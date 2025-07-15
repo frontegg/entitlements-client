@@ -71,7 +71,7 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			const defaultSubjectContext: UserSubjectContext = {
 				userId: 'mock-user-id',
 				tenantId: 'mock-tenant-id',
-				permissions: ['mock-permission'],
+				permissions: ['mock-permission-key'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
 			const { requestContext, subjectContext } = contextProvider();
@@ -103,7 +103,7 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			const defaultSubjectContext: UserSubjectContext = {
 				userId: 'mock-user-id',
 				tenantId: 'mock-tenant-id',
-				permissions: ['mock-permission'],
+				permissions: ['mock-permission-key'],
 				attributes: { mockAttribute: 'mock-value' }
 			};
 			const { requestContext, subjectContext } = contextProvider();
