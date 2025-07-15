@@ -3,5 +3,5 @@ export enum SpiceDBEntities {
 	Tenant = 'frontegg_tenant',
 	Permission = 'frontegg_permission',
 	Feature = 'frontegg_feature',
-	Route = 'frontegg_route',
+	Route = 'frontegg_route'
 }
