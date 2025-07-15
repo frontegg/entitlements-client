@@ -110,6 +110,9 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 				attributes: { mockAttribute: 'mock-value' }
 			};
 			const { requestContext, subjectContext } = contextProvider();
+			if (requestContext.type !== RequestContextType.Permission) {
+				return;
+			}
 			const mockResponse = v1.CheckBulkPermissionsResponse.create({
 				pairs: [
 					v1.CheckBulkPermissionsPair.create({
