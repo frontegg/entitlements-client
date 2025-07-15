@@ -65,6 +65,8 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 
 		beforeEach(() => {
 			mockReset(mockClient);
+			// Mock lookupSubjects to return an empty array
+			mockClient.lookupSubjects.mockResolvedValue([]);
 		});
 
 		it('should call client.checkBulkPermissions with correct arguments', async () => {
@@ -89,6 +91,7 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 				]
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
+			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
 
 			const result = await queryClient.query({
 				subjectContext: subjectContext || defaultSubjectContext,
@@ -96,6 +99,41 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			});
 
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
+			expect(result.result.result).toBe(true);
+		});
+
+		it('should result true when no features linked to requested permission', async () => {
+			const defaultSubjectContext: UserSubjectContext = {
+				userId: 'mock-user-id',
+				tenantId: 'mock-tenant-id',
+				permissions: ['mock-permission-key'],
+				attributes: { mockAttribute: 'mock-value' }
+			};
+			const { requestContext, subjectContext } = contextProvider();
+			if (requestContext.type !== RequestContextType.Permission) {
+				return;
+			}
+			const mockResponse = v1.CheckBulkPermissionsResponse.create({
+				pairs: [
+					v1.CheckBulkPermissionsPair.create({
+						request: v1.CheckBulkPermissionsRequestItem.create({}),
+						response: {
+							oneofKind: 'item',
+							item: v1.CheckPermissionResponse.create({
+								permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+							})
+						}
+					})
+				]
+			});
+			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
+
+			const result = await queryClient.query({
+				subjectContext: subjectContext || defaultSubjectContext,
+				requestContext
+			});
+
+			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
 		});
 
@@ -109,6 +147,7 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			const { requestContext, subjectContext } = contextProvider();
 			const mockError = new Error('mock-error');
 			mockClient.checkBulkPermissions.mockRejectedValue(mockError);
+			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
 
 			await expect(
 				queryClient.query({
