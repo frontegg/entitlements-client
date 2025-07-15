@@ -1,6 +1,7 @@
 import { v1 } from '@authzed/authzed-node';
 import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
+import { SpiceDBEntities } from '../../types/spicedb-consts';
 
 export interface HashOptions {
 	hashResourceId: boolean;
@@ -82,7 +83,7 @@ export abstract class EntitlementsSpiceDBQuery {
 		const tenantRequest = this.createBulkPermissionRequestItem(
 			objectType,
 			objectId,
-			'frontegg_tenant',
+			SpiceDBEntities.Tenant,
 			context.tenantId,
 			caveatContext,
 			hashOptions
@@ -95,7 +96,7 @@ export abstract class EntitlementsSpiceDBQuery {
 						this.createBulkPermissionRequestItem(
 							objectType,
 							objectId,
-							'frontegg_user',
+							SpiceDBEntities.User,
 							context.userId,
 							caveatContext
 						)
