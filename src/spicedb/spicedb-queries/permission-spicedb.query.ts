@@ -22,6 +22,22 @@ export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				}
 			};
 		}
+		const lookupRequest = v1.LookupSubjectsRequest.create({
+			permission: 'parent',
+			resource: {
+				objectType: SpiceDBEntities.Permission,
+				objectId: this.normalizeObjectId(requestContext.permissionKey)
+			},
+			subjectObjectType: SpiceDBEntities.Feature
+		});
+		const lookUpRes = await this.client.lookupSubjects(lookupRequest);
+		if (!lookUpRes.length) {
+			return {
+				result: {
+					result: true
+				}
+			};
+		}
 
 		return this.executeCommonQuery(SpiceDBEntities.Permission, requestContext.permissionKey, context);
 	}
