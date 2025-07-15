@@ -1,3 +1,10 @@
+# [3.0.0-alpha.5](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.4...3.0.0-alpha.5) (2025-07-15)
+
+
+### Features
+
+* **spicedb:** fixed permissions check ([7304280](https://github.com/frontegg/entitlements-client/commit/7304280a93e50572689ecc02ebaeb610df60b214))
+
 # [3.0.0-alpha.4](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.3...3.0.0-alpha.4) (2025-07-14)
 
 
