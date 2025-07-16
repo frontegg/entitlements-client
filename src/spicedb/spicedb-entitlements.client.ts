@@ -14,8 +14,10 @@ import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { v1 } from '@authzed/authzed-node';
 
 export class SpiceDBEntitlementsClient {
+	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
 	public readonly spiceClient: v1.ZedPromiseClientInterface;
 	private readonly spiceDBQueryClient: SpiceDBQueryClient;
+
 	constructor(
 		private readonly configuration: ClientConfiguration,
 		private readonly loggingClient: LoggingClient,
@@ -37,8 +39,12 @@ export class SpiceDBEntitlementsClient {
 	): Promise<EntitlementsResult> {
 		try {
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
-			if (this.logResults) {
+			if (res.result.monitoring || this.logResults) {
 				await this.loggingClient.log(subjectContext, requestContext, res);
+			}
+
+			if (res.result.monitoring) {
+				return SpiceDBEntitlementsClient.MONITORING_RESULT;
 			}
 			return res.result;
 		} catch (err) {
