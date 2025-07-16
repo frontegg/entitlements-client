@@ -18,6 +18,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		requestContext
 	}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
+		let isMonitoringEnabled = false;
 		const request = v1.ReadRelationshipsRequest.create({
 			relationshipFilter: {
 				resourceType: SpiceDBEntities.Route
@@ -36,9 +37,11 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				const objectType = relation.relationship?.resource?.objectType;
 				const objectId = relation.relationship?.resource?.objectId;
 				const pattern = relation.relationship?.optionalCaveat?.context?.fields['pattern'];
+				const monitoring = relation.relationship?.optionalCaveat?.context?.fields['monitoring'];
 				if (!objectId || !objectType || !pattern) {
 					return false;
 				}
+				isMonitoringEnabled = monitoring?.kind?.oneofKind === 'boolValue' ? monitoring.kind.boolValue : false;
 
 				if (pattern?.kind?.oneofKind === 'stringValue') {
 					return `${requestContext.method} ${requestContext.path}`.match(pattern.kind.stringValue);
@@ -59,10 +62,13 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		);
 		const items = bulkRequests.flatMap((request) => request.items);
 		const res = await this.client.checkBulkPermissions(v1.CheckBulkPermissionsRequest.create({ items }));
+		const result: EntitlementsResult = { result: this.processCheckBulkPermissionsResponse(res) };
+		if (isMonitoringEnabled) {
+			result.monitoring = true;
+		}
+
 		return {
-			result: {
-				result: this.processCheckBulkPermissionsResponse(res)
-			}
+			result
 		};
 	}
 }
