@@ -111,7 +111,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				// If we get an error, that's expected with the current implementation
 				expect(error).toBeDefined();
 				if (error instanceof Error) {
-					expect(error.message).toContain("Cannot read properties of undefined");
+					expect(error.message).toContain('Cannot read properties of undefined');
 				} else {
 					// If it's not an Error object, just pass the test
 					expect(true).toBe(true);
