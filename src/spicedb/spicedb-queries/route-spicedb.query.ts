@@ -13,6 +13,16 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		this.cache = createCache();
 	}
 
+	private createResult(allowed: boolean, isMonitoringEnabled: boolean): SpiceDBResponse<EntitlementsResult> {
+		const result: EntitlementsResult = { result: allowed };
+
+		if (isMonitoringEnabled) {
+			result.monitoring = true;
+		}
+
+		return { result };
+	}
+
 	async query({
 		subjectContext,
 		requestContext
@@ -65,19 +75,15 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				};
 			}) as { objectType: string; objectId: string; policyType: string; priority: number }[];
 
+		if (!objects.length) {
+			return this.createResult(false, isMonitoringEnabled);
+		}
+
 		objects.sort((a, b) => b.priority - a.priority);
 
 		const firstRule = objects[0];
 		if (firstRule.policyType === 'deny' || firstRule.policyType === 'allow') {
-			const result: EntitlementsResult = {
-				result: firstRule.policyType === 'allow'
-			};
-			if (isMonitoringEnabled) {
-				result.monitoring = true;
-			}
-			return {
-				result
-			};
+			return this.createResult(firstRule.policyType === 'allow', isMonitoringEnabled);
 		}
 
 		objects = objects.filter((rule) => rule.policyType === 'ruleBased');
@@ -90,13 +96,6 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		);
 		const items = bulkRequests.flatMap((request) => request.items);
 		const res = await this.client.checkBulkPermissions(v1.CheckBulkPermissionsRequest.create({ items }));
-		const result: EntitlementsResult = { result: this.processCheckBulkPermissionsResponse(res) };
-		if (isMonitoringEnabled) {
-			result.monitoring = true;
-		}
-
-		return {
-			result
-		};
+		return this.createResult(this.processCheckBulkPermissionsResponse(res), isMonitoringEnabled);
 	}
 }
