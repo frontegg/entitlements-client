@@ -32,12 +32,13 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			{ ttl: 30 * 1000 }
 		);
 		const caveatContext = this.createCaveatContext(context);
-		const objects = relations
+		let objects = relations
 			.filter((relation) => {
 				const objectType = relation.relationship?.resource?.objectType;
 				const objectId = relation.relationship?.resource?.objectId;
 				const pattern = relation.relationship?.optionalCaveat?.context?.fields['pattern'];
 				const monitoring = relation.relationship?.optionalCaveat?.context?.fields['monitoring'];
+
 				if (!objectId || !objectType || !pattern) {
 					return false;
 				}
@@ -49,10 +50,37 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 				return false;
 			})
-			.map((relation) => ({
-				objectType: relation.relationship?.resource?.objectType,
-				objectId: relation.relationship?.resource?.objectId
-			})) as { objectType: string; objectId: string }[];
+			.map((relation) => {
+				const policyTypeValue = relation.relationship?.optionalCaveat?.context?.fields['policy_type'];
+				const policyType =
+					policyTypeValue?.kind?.oneofKind === 'stringValue' ? policyTypeValue?.kind.stringValue : 'allow';
+				const priorityValue = relation.relationship?.optionalCaveat?.context?.fields['priority'];
+				const priority = priorityValue?.kind?.oneofKind === 'numberValue' ? priorityValue?.kind.numberValue : 0;
+
+				return {
+					objectType: relation.relationship?.resource?.objectType,
+					objectId: relation.relationship?.resource?.objectId,
+					policyType,
+					priority
+				};
+			}) as { objectType: string; objectId: string; policyType: string; priority: number }[];
+
+		objects.sort((a, b) => b.priority - a.priority);
+
+		const firstRule = objects[0];
+		if (firstRule.policyType === 'deny' || firstRule.policyType === 'allow') {
+			const result: EntitlementsResult = {
+				result: firstRule.policyType === 'allow'
+			};
+			if (isMonitoringEnabled) {
+				result.monitoring = true;
+			}
+			return {
+				result
+			};
+		}
+
+		objects = objects.filter((rule) => rule.policyType === 'ruleBased');
 
 		const bulkRequests = objects.map((object) =>
 			this.createBulkPermissionsRequest(object.objectType, object.objectId, context, caveatContext, {
