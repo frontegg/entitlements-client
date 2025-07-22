@@ -1,5 +1,11 @@
 import { v1 } from '@authzed/authzed-node';
-import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
+import {
+	EntitlementsDynamicQuery,
+	EntitlementsResult,
+	PermissionsEntitlementsContext,
+	RequestContextType,
+	UserSubjectContext
+} from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 
@@ -131,5 +137,33 @@ export abstract class EntitlementsSpiceDBQuery {
 
 	protected normalizeObjectId(objectId: string): string {
 		return Buffer.from(objectId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+	}
+
+	protected async isPermissionLinkedToFeatures(
+		requestContext: PermissionsEntitlementsContext,
+		hashResourceId: boolean = true
+	): Promise<boolean> {
+		const lookupRequest = v1.LookupSubjectsRequest.create({
+			permission: 'parent',
+			resource: {
+				objectType: SpiceDBEntities.Permission,
+				objectId: hashResourceId
+					? this.normalizeObjectId(requestContext.permissionKey)
+					: requestContext.permissionKey
+			},
+			subjectObjectType: SpiceDBEntities.Feature
+		});
+		const lookUpRes = await this.client.lookupSubjects(lookupRequest);
+		return !!lookUpRes.length;
+	}
+
+	protected hasPermission(permissionKey: string, permissions?: string[]): boolean {
+		return (
+			permissions?.some((permission) => {
+				const escapedPermission = permission.replace(/\./g, '\\.').replace(/\*/g, '.+');
+				const regex = new RegExp(`^${escapedPermission}$`);
+				return regex.test(permissionKey);
+			}) ?? false
+		);
 	}
 }
