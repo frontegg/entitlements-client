@@ -41,7 +41,6 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			},
 			{ ttl: 30 * 1000 }
 		);
-		const caveatContext = this.createCaveatContext(context);
 		let objects = relations
 			.filter((relation) => {
 				const objectType = relation.relationship?.resource?.objectType;
@@ -68,12 +67,21 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				const priority = priorityValue?.kind?.oneofKind === 'numberValue' ? priorityValue?.kind.numberValue : 0;
 
 				return {
-					objectType: relation.relationship?.resource?.objectType,
-					objectId: relation.relationship?.resource?.objectId,
+					relation: relation.relationship?.relation,
+					resourceType: relation.relationship?.resource?.objectType,
+					resourceId: relation.relationship?.resource?.objectId,
+					subjectId: relation.relationship?.subject?.object?.objectId,
 					policyType,
 					priority
 				};
-			}) as { objectType: string; objectId: string; policyType: string; priority: number }[];
+			}) as {
+			relation: string;
+			resourceType: string;
+			resourceId: string;
+			subjectId: string;
+			policyType: string;
+			priority: number;
+		}[];
 
 		if (!objects.length) {
 			return this.createResult(false, isMonitoringEnabled);
@@ -81,21 +89,36 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 		objects.sort((a, b) => b.priority - a.priority);
 
-		const firstRule = objects[0];
+		let firstRule = objects[0];
 		if (firstRule.policyType === 'deny' || firstRule.policyType === 'allow') {
 			return this.createResult(firstRule.policyType === 'allow', isMonitoringEnabled);
 		}
 
 		objects = objects.filter((rule) => rule.policyType === 'ruleBased');
+		firstRule = objects[0];
 
-		const bulkRequests = objects.map((object) =>
-			this.createBulkPermissionsRequest(object.objectType, object.objectId, context, caveatContext, {
+		for (const rule of objects) {
+			const hashedPermissions = context.permissions?.map((permission) => this.normalizeObjectId(permission));
+			if (rule.relation.includes('required_permission')) {
+				if (!this.hasPermission(rule.subjectId, hashedPermissions)) {
+					return this.createResult(false, isMonitoringEnabled);
+				}
+			}
+		}
+
+		const caveatContext = this.createCaveatContext(context);
+
+		const bulkRequest = this.createBulkPermissionsRequest(
+			firstRule.resourceType,
+			firstRule.resourceId,
+			context,
+			caveatContext,
+			{
 				hashSubjectId: true,
 				hashResourceId: false
-			})
+			}
 		);
-		const items = bulkRequests.flatMap((request) => request.items);
-		const res = await this.client.checkBulkPermissions(v1.CheckBulkPermissionsRequest.create({ items }));
+		const res = await this.client.checkBulkPermissions(bulkRequest);
 		return this.createResult(this.processCheckBulkPermissionsResponse(res), isMonitoringEnabled);
 	}
 }

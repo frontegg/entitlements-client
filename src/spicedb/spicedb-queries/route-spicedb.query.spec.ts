@@ -179,5 +179,380 @@ describe(RouteSpiceDBQuery.name, () => {
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
 		});
+
+		it('should handle monitoring flag when enabled', async () => {
+			// Mock the cache to return relations with monitoring enabled
+			const mockRelations = [
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-1'
+						},
+						relation: 'access',
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'ruleBased'
+										}
+									},
+									monitoring: {
+										kind: {
+											oneofKind: 'boolValue' as const,
+											boolValue: true
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			];
+
+			const mockCache = {
+				wrap: jest.fn().mockResolvedValue(mockRelations)
+			};
+			(queryClient as any).cache = mockCache;
+
+			const mockBulkResponse = v1.CheckBulkPermissionsResponse.create({
+				pairs: [
+					v1.CheckBulkPermissionsPair.create({
+						request: v1.CheckBulkPermissionsRequestItem.create({}),
+						response: {
+							oneofKind: 'item',
+							item: v1.CheckPermissionResponse.create({
+								permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+							})
+						}
+					})
+				]
+			});
+			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
+
+			const result = await queryClient.query({
+				subjectContext,
+				requestContext
+			});
+
+			expect(result.result.result).toBe(true);
+			expect(result.result.monitoring).toBe(true);
+		});
+
+		it('should handle allow policy type', async () => {
+			// Mock the cache to return relations with allow policy type
+			const mockRelations = [
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-1'
+						},
+						relation: 'access',
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'allow'
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			];
+
+			const mockCache = {
+				wrap: jest.fn().mockResolvedValue(mockRelations)
+			};
+			(queryClient as any).cache = mockCache;
+
+			// This shouldn't be called for allow policy type
+			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
+
+			const result = await queryClient.query({
+				subjectContext,
+				requestContext
+			});
+
+			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
+			expect(result.result.result).toBe(true);
+		});
+
+		it('should handle deny policy type', async () => {
+			// Mock the cache to return relations with deny policy type
+			const mockRelations = [
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-1'
+						},
+						relation: 'access',
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'deny'
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			];
+
+			const mockCache = {
+				wrap: jest.fn().mockResolvedValue(mockRelations)
+			};
+			(queryClient as any).cache = mockCache;
+
+			// This shouldn't be called for deny policy type
+			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
+
+			const result = await queryClient.query({
+				subjectContext,
+				requestContext
+			});
+
+			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
+			expect(result.result.result).toBe(false);
+		});
+
+		it('should sort rules by priority', async () => {
+			// Mock the cache to return relations with different priorities
+			const mockRelations = [
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-1'
+						},
+						relation: 'access',
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'allow'
+										}
+									},
+									priority: {
+										kind: {
+											oneofKind: 'numberValue' as const,
+											numberValue: 10
+										}
+									}
+								}
+							}
+						}
+					}
+				},
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-2'
+						},
+						relation: 'access',
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'deny'
+										}
+									},
+									priority: {
+										kind: {
+											oneofKind: 'numberValue' as const,
+											numberValue: 20
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			];
+
+			const mockCache = {
+				wrap: jest.fn().mockResolvedValue(mockRelations)
+			};
+			(queryClient as any).cache = mockCache;
+
+			// This shouldn't be called because the highest priority rule is deny
+			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
+
+			const result = await queryClient.query({
+				subjectContext,
+				requestContext
+			});
+
+			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
+			expect(result.result.result).toBe(false);
+		});
+
+		it('should handle required permissions', async () => {
+			// Mock the cache to return relations with required_permission
+			const mockRelations = [
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-1'
+						},
+						relation: 'required_permission',
+						subject: {
+							object: {
+								objectId: 'read'
+							}
+						},
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'ruleBased'
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			];
+
+			const mockCache = {
+				wrap: jest.fn().mockResolvedValue(mockRelations)
+			};
+			(queryClient as any).cache = mockCache;
+
+			// Mock hasPermission method
+			jest.spyOn(queryClient as any, 'hasPermission').mockReturnValue(true);
+
+			const mockBulkResponse = v1.CheckBulkPermissionsResponse.create({
+				pairs: [
+					v1.CheckBulkPermissionsPair.create({
+						request: v1.CheckBulkPermissionsRequestItem.create({}),
+						response: {
+							oneofKind: 'item',
+							item: v1.CheckPermissionResponse.create({
+								permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+							})
+						}
+					})
+				]
+			});
+			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
+
+			const result = await queryClient.query({
+				subjectContext,
+				requestContext
+			});
+
+			expect(result.result.result).toBe(true);
+		});
+
+		it('should deny access when required permission is missing', async () => {
+			// Mock the cache to return relations with required_permission
+			const mockRelations = [
+				{
+					relationship: {
+						resource: {
+							objectType: 'frontegg_route',
+							objectId: 'route-1'
+						},
+						relation: 'required_permission',
+						subject: {
+							object: {
+								objectId: 'admin'
+							}
+						},
+						optionalCaveat: {
+							context: {
+								fields: {
+									pattern: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'GET /api/users'
+										}
+									},
+									policy_type: {
+										kind: {
+											oneofKind: 'stringValue' as const,
+											stringValue: 'ruleBased'
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			];
+
+			const mockCache = {
+				wrap: jest.fn().mockResolvedValue(mockRelations)
+			};
+			(queryClient as any).cache = mockCache;
+
+			// Mock hasPermission method to return false (missing permission)
+			jest.spyOn(queryClient as any, 'hasPermission').mockReturnValue(false);
+
+			const result = await queryClient.query({
+				subjectContext,
+				requestContext
+			});
+
+			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
+			expect(result.result.result).toBe(false);
+		});
 	});
 });

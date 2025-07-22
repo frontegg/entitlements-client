@@ -15,38 +15,22 @@ export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	}: EntitlementsDynamicQuery<RequestContextType.Permission>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
 
-		if (context.permissions?.length && !this.hasPermission(context.permissions, requestContext.permissionKey)) {
+		if (!this.hasPermission(requestContext.permissionKey, context.permissions)) {
 			return {
 				result: {
 					result: false
 				}
 			};
 		}
-		const lookupRequest = v1.LookupSubjectsRequest.create({
-			permission: 'parent',
-			resource: {
-				objectType: SpiceDBEntities.Permission,
-				objectId: this.normalizeObjectId(requestContext.permissionKey)
-			},
-			subjectObjectType: SpiceDBEntities.Feature
-		});
-		const lookUpRes = await this.client.lookupSubjects(lookupRequest);
-		if (!lookUpRes.length) {
+
+		const isPermissionLinkedToFeatures = await this.isPermissionLinkedToFeatures(requestContext);
+		if (!isPermissionLinkedToFeatures) {
 			return {
 				result: {
 					result: true
 				}
 			};
 		}
-
 		return this.executeCommonQuery(SpiceDBEntities.Permission, requestContext.permissionKey, context);
-	}
-
-	private hasPermission(permissions: string[], permissionKey: string): boolean {
-		return permissions.some((permission) => {
-			const escapedPermission = permission.replace(/\./g, '\\.').replace(/\*/g, '.+');
-			const regex = new RegExp(`^${escapedPermission}$`);
-			return regex.test(permissionKey);
-		});
 	}
 }
