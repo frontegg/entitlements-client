@@ -2,15 +2,16 @@ import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
 import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
-import { Cache, createCache } from 'cache-manager';
+import { LRUCache } from 'lru-cache';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	private readonly cache: Cache;
+	private readonly cache: LRUCache<string, any>;
+	private static readonly CACHE_TTL = 30 * 1000;
 
 	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
 		super(client);
-		this.cache = createCache();
+		this.cache = new LRUCache({ max: 100, ttl: RouteSpiceDBQuery.CACHE_TTL });
 	}
 
 	private createResult(allowed: boolean, isMonitoringEnabled: boolean): SpiceDBResponse<EntitlementsResult> {
@@ -34,15 +35,14 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				resourceType: SpiceDBEntities.Route
 			}
 		});
-		const relations = await this.cache.wrap(
-			'routes-relations',
-			async () => {
-				return this.client.readRelationships(request);
-			},
-			{ ttl: 30 * 1000 }
-		);
+
+		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get('routes-relations');
+		if (!relations) {
+			relations = await this.client.readRelationships(request);
+			this.cache.set('routes-relations', relations);
+		}
 		let objects = relations
-			.filter((relation) => {
+			.filter((relation: v1.ReadRelationshipsResponse) => {
 				const objectType = relation.relationship?.resource?.objectType;
 				const objectId = relation.relationship?.resource?.objectId;
 				const pattern = relation.relationship?.optionalCaveat?.context?.fields['pattern'];
@@ -59,7 +59,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 				return false;
 			})
-			.map((relation) => {
+			.map((relation: v1.ReadRelationshipsResponse) => {
 				const policyTypeValue = relation.relationship?.optionalCaveat?.context?.fields['policy_type'];
 				const policyType =
 					policyTypeValue?.kind?.oneofKind === 'stringValue' ? policyTypeValue?.kind.stringValue : 'allow';

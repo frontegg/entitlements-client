@@ -71,7 +71,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -88,7 +89,8 @@ describe(RouteSpiceDBQuery.name, () => {
 		it('should handle empty relations array', async () => {
 			// Mock the cache to return empty relations
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue([])
+				get: jest.fn().mockReturnValue([]),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -152,7 +154,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -219,7 +222,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -280,7 +284,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -329,7 +334,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -417,7 +423,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -471,7 +478,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 
@@ -539,7 +547,8 @@ describe(RouteSpiceDBQuery.name, () => {
 			];
 
 			const mockCache = {
-				wrap: jest.fn().mockResolvedValue(mockRelations)
+				get: jest.fn().mockReturnValue(mockRelations),
+				set: jest.fn()
 			};
 			(queryClient as any).cache = mockCache;
 

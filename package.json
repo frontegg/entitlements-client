@@ -100,6 +100,6 @@
 	},
 	"dependencies": {
 		"@authzed/authzed-node": "^1.5.1",
-		"cache-manager": "^7.0.1"
+		"lru-cache": "^10.4.3"
 	}
 }
