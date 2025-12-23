@@ -1,0 +1,32 @@
+export type Permissionship = 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION';
+
+export interface LookupOptions {
+	limit?: number;
+	cursor?: string;
+}
+
+export interface LookupRequest {
+	permission: string;
+	options?: LookupOptions;
+}
+
+export interface LookupResponse {
+	cursor?: string;
+	totalReturned: number;
+}
+
+export interface LookupResourcesRequest extends LookupRequest {
+	subjectType: string;
+	subjectId: string;
+	resourceType: string;
+}
+
+export interface LookupResourceItem {
+	resourceType: string;
+	resourceId: string;
+	permissionship?: Permissionship;
+}
+
+export interface LookupResourcesResponse extends LookupResponse {
+	resources: LookupResourceItem[];
+}

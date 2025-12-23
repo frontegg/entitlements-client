@@ -3,6 +3,8 @@ import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
+	LookupResourcesRequest,
+	LookupResourcesResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
@@ -12,6 +14,8 @@ import {
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { v1 } from '@authzed/authzed-node';
+import { buildLookupResourcesRequest } from './spicedb-queries/lookup-request.builder';
+import { mapLookupResourcesResponse } from './spicedb-queries/lookup-response.mapper';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -51,6 +55,21 @@ export class SpiceDBEntitlementsClient {
 			await this.loggingClient.error(err);
 			return this.constructFallbackResult(requestContext);
 		}
+	}
+
+	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
+		const limit = req.options?.limit ?? 50;
+		const request = buildLookupResourcesRequest({
+			subjectType: req.subjectType,
+			subjectId: req.subjectId,
+			resourceType: req.resourceType,
+			permission: req.permission,
+			limit,
+			cursor: req.options?.cursor
+		});
+
+		const results = await this.spiceClient.lookupResources(request);
+		return mapLookupResourcesResponse(results, req.resourceType, limit);
 	}
 
 	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {
