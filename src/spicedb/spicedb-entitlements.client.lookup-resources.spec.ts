@@ -92,7 +92,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 		it('should use provided limit', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			await client.lookupResources({ ...defaultRequest, options: { limit: 100 } });
+			await client.lookupResources({ ...defaultRequest, limit: 100 });
 
 			expect(mockSpiceClient.lookupResources).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -181,7 +181,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 
 			await client.lookupResources({
 				...defaultRequest,
-				options: { cursor: 'existing-cursor-token' }
+				cursor: 'existing-cursor-token'
 			});
 
 			expect(mockSpiceClient.lookupResources).toHaveBeenCalledWith(

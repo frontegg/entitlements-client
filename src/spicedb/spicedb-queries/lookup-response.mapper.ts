@@ -6,18 +6,10 @@ import {
 	LookupSubjectsResponse,
 	Permissionship
 } from '../../types';
+import { permissionshipMap } from '../lookup.constants';
 
 export function mapPermissionship(permissionship: v1.LookupPermissionship): Permissionship | undefined {
-	switch (permissionship) {
-		case v1.LookupPermissionship.HAS_PERMISSION:
-			return 'HAS_PERMISSION';
-		case v1.LookupPermissionship.CONDITIONAL_PERMISSION:
-			return 'CONDITIONAL_PERMISSION';
-		case v1.LookupPermissionship.UNSPECIFIED:
-			return undefined;
-		default:
-			return undefined;
-	}
+	return permissionshipMap.get(permissionship);
 }
 
 export function mapLookupResourcesResponse(

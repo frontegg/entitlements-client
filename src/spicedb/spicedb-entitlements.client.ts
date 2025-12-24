@@ -1,4 +1,5 @@
 import { ClientConfiguration, FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
+import { DEFAULT_LOOKUP_LIMIT } from './lookup.constants';
 import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
@@ -61,15 +62,14 @@ export class SpiceDBEntitlementsClient {
 
 	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
 		try {
-			const DEFAULT_LIMIT = 50;
-			const limit = req.options?.limit || DEFAULT_LIMIT;
+			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
 			const request = buildLookupResourcesRequest({
 				subjectType: req.subjectType,
 				subjectId: req.subjectId,
 				resourceType: req.resourceType,
 				permission: req.permission,
 				limit,
-				cursor: req.options?.cursor
+				cursor: req.cursor
 			});
 
 			const results = await this.spiceClient.lookupResources(request);
