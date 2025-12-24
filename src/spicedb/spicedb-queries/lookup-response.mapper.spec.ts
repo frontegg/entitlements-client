@@ -1,22 +1,25 @@
 import { v1 } from '@authzed/authzed-node';
-import { mapLookupResourcesResponse, mapLookupSubjectsResponse, mapPermissionship } from './lookup-response.mapper';
+import { mapLookupResourcesResponse, mapLookupSubjectsResponse } from './lookup-response.mapper';
+import { permissionshipMap } from '../lookup.constants';
 
 describe('lookup-response.mapper', () => {
 	describe('mapPermissionship', () => {
 		it('should map HAS_PERMISSION', () => {
-			expect(mapPermissionship(v1.LookupPermissionship.HAS_PERMISSION)).toBe('HAS_PERMISSION');
+			expect(permissionshipMap.get(v1.LookupPermissionship.HAS_PERMISSION)).toBe('HAS_PERMISSION');
 		});
 
 		it('should map CONDITIONAL_PERMISSION', () => {
-			expect(mapPermissionship(v1.LookupPermissionship.CONDITIONAL_PERMISSION)).toBe('CONDITIONAL_PERMISSION');
+			expect(permissionshipMap.get(v1.LookupPermissionship.CONDITIONAL_PERMISSION)).toBe(
+				'CONDITIONAL_PERMISSION'
+			);
 		});
 
 		it('should map UNSPECIFIED to undefined', () => {
-			expect(mapPermissionship(v1.LookupPermissionship.UNSPECIFIED)).toBeUndefined();
+			expect(permissionshipMap.get(v1.LookupPermissionship.UNSPECIFIED)).toBeUndefined();
 		});
 
 		it('should map unknown values to undefined', () => {
-			expect(mapPermissionship(999 as v1.LookupPermissionship)).toBeUndefined();
+			expect(permissionshipMap.get(999 as v1.LookupPermissionship)).toBeUndefined();
 		});
 	});
 

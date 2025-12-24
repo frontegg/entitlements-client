@@ -8,10 +8,6 @@ import {
 } from '../../types';
 import { permissionshipMap } from '../lookup.constants';
 
-export function mapPermissionship(permissionship: v1.LookupPermissionship): Permissionship | undefined {
-	return permissionshipMap.get(permissionship);
-}
-
 export function mapLookupResourcesResponse(
 	results: v1.LookupResourcesResponse[],
 	resourceType: string,
@@ -20,7 +16,7 @@ export function mapLookupResourcesResponse(
 	const resources: LookupResourceItem[] = results.map((result) => ({
 		resourceType,
 		resourceId: result.resourceObjectId,
-		permissionship: mapPermissionship(result.permissionship)
+		permissionship: permissionshipMap.get(result.permissionship)
 	}));
 
 	const lastResult = results.length > 0 ? results[results.length - 1] : undefined;
@@ -40,7 +36,7 @@ export function mapLookupSubjectsResponse(
 	const subjects: LookupSubjectItem[] = results.map((result) => ({
 		subjectType,
 		subjectId: result.subject?.subjectObjectId ?? '',
-		permissionship: result.subject ? mapPermissionship(result.subject.permissionship) : undefined
+		permissionship: result.subject ? permissionshipMap.get(result.subject.permissionship) : undefined
 	}));
 
 	return {
