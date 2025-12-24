@@ -48,7 +48,7 @@ export function mapLookupSubjectsResponse(
 	const subjects: LookupSubjectItem[] = results.map((result) => ({
 		subjectType,
 		subjectId: result.subject?.subjectObjectId ?? '',
-		permissionship: mapPermissionship(result.permissionship)
+		permissionship: result.subject ? mapPermissionship(result.subject.permissionship) : undefined
 	}));
 
 	return {
