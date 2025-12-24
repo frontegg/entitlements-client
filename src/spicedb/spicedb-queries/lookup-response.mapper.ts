@@ -1,5 +1,11 @@
 import { v1 } from '@authzed/authzed-node';
-import { LookupResourceItem, LookupResourcesResponse, Permissionship } from '../../types';
+import {
+	LookupResourceItem,
+	LookupResourcesResponse,
+	LookupSubjectItem,
+	LookupSubjectsResponse,
+	Permissionship
+} from '../../types';
 
 export function mapPermissionship(permissionship: v1.LookupPermissionship): Permissionship | undefined {
 	switch (permissionship) {
@@ -32,5 +38,21 @@ export function mapLookupResourcesResponse(
 		resources,
 		cursor: shouldReturnCursor ? nextCursor : undefined,
 		totalReturned: resources.length
+	};
+}
+
+export function mapLookupSubjectsResponse(
+	results: v1.LookupSubjectsResponse[],
+	subjectType: string
+): LookupSubjectsResponse {
+	const subjects: LookupSubjectItem[] = results.map((result) => ({
+		subjectType,
+		subjectId: result.subject?.subjectObjectId ?? '',
+		permissionship: mapPermissionship(result.permissionship)
+	}));
+
+	return {
+		subjects,
+		totalReturned: subjects.length
 	};
 }

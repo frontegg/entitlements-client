@@ -30,3 +30,19 @@ export interface LookupResourceItem {
 export interface LookupResourcesResponse extends LookupResponse {
 	resources: LookupResourceItem[];
 }
+
+export interface LookupSubjectsRequest extends LookupRequest {
+	resourceType: string;
+	resourceId: string;
+	subjectType: string;
+}
+
+export interface LookupSubjectItem {
+	subjectType: string;
+	subjectId: string;
+	permissionship?: Permissionship;
+}
+
+export interface LookupSubjectsResponse extends LookupResponse {
+	subjects: LookupSubjectItem[];
+}

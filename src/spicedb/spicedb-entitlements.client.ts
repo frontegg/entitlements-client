@@ -5,6 +5,8 @@ import {
 	FeatureEntitlementsContext,
 	LookupResourcesRequest,
 	LookupResourcesResponse,
+	LookupSubjectsRequest,
+	LookupSubjectsResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
@@ -14,8 +16,8 @@ import {
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { v1 } from '@authzed/authzed-node';
-import { buildLookupResourcesRequest } from './spicedb-queries/lookup-request.builder';
-import { mapLookupResourcesResponse } from './spicedb-queries/lookup-response.mapper';
+import { buildLookupResourcesRequest, buildLookupSubjectsRequest } from './spicedb-queries/lookup-request.builder';
+import { mapLookupResourcesResponse, mapLookupSubjectsResponse } from './spicedb-queries/lookup-response.mapper';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -76,6 +78,27 @@ export class SpiceDBEntitlementsClient {
 				await this.loggingClient.logRequest(request, results);
 			}
 			return mapLookupResourcesResponse(results, req.resourceType, limit);
+		} catch (err) {
+			await this.loggingClient.error(err);
+			throw err;
+		}
+	}
+
+	public async lookupSubjects(req: LookupSubjectsRequest): Promise<LookupSubjectsResponse> {
+		try {
+			const request = buildLookupSubjectsRequest({
+				resourceType: req.resourceType,
+				resourceId: req.resourceId,
+				subjectType: req.subjectType,
+				permission: req.permission
+			});
+
+			const results = await this.spiceClient.lookupSubjects(request);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(request, results);
+			}
+			return mapLookupSubjectsResponse(results, req.subjectType);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;
