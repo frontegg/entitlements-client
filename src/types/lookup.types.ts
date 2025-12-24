@@ -1,60 +1,42 @@
 export type Permissionship = 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION';
 
-export interface LookupRequest {
+export interface LookupBaseRequest {
 	permission: string;
+	resourceType: string;
+	subjectType: string;
 }
 
-export interface LookupResponse {
+export interface LookupBaseResponse {
 	totalReturned: number;
 }
 
-export interface LookupResourcesRequest extends LookupRequest {
-	subjectType: string;
+export interface LookupBaseItem {
+	permissionship?: Permissionship;
+}
+export interface LookupResourcesRequest extends LookupBaseRequest {
 	subjectId: string;
-	resourceType: string;
 	limit?: number;
 	cursor?: string;
 }
 
-export interface LookupResourceItem {
+export interface LookupResourceItem extends LookupBaseItem {
 	resourceType: string;
 	resourceId: string;
-	permissionship?: Permissionship;
 }
 
-export interface LookupResourcesResponse extends LookupResponse {
+export interface LookupResourcesResponse extends LookupBaseResponse {
 	resources: LookupResourceItem[];
 	cursor?: string;
 }
 
-export interface LookupSubjectsRequest extends LookupRequest {
-	resourceType: string;
-	resourceId: string;
-	subjectType: string;
-}
-
-export interface LookupSubjectItem {
+export interface LookupSubjectItem extends LookupBaseItem {
 	subjectType: string;
 	subjectId: string;
-	permissionship?: Permissionship;
+}
+export interface LookupSubjectsRequest extends LookupBaseRequest {
+	resourceId: string;
 }
 
-export interface LookupSubjectsResponse extends LookupResponse {
+export interface LookupSubjectsResponse extends LookupBaseResponse {
 	subjects: LookupSubjectItem[];
-}
-
-export interface LookupResourcesParams {
-	subjectType: string;
-	subjectId: string;
-	resourceType: string;
-	permission: string;
-	limit: number;
-	cursor?: string;
-}
-
-export interface LookupSubjectsParams {
-	resourceType: string;
-	resourceId: string;
-	subjectType: string;
-	permission: string;
 }

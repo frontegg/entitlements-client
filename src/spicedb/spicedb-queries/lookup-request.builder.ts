@@ -1,7 +1,7 @@
 import { v1 } from '@authzed/authzed-node';
-import { LookupResourcesParams, LookupSubjectsParams } from '../../types/lookup.types';
+import { LookupResourcesRequest, LookupSubjectsRequest } from '../../types/lookup.types';
 
-export function buildLookupResourcesRequest(params: LookupResourcesParams): v1.LookupResourcesRequest {
+export function buildLookupResourcesRequest(params: LookupResourcesRequest): v1.LookupResourcesRequest {
 	const { subjectType, subjectId, resourceType, permission, limit, cursor } = params;
 
 	return v1.LookupResourcesRequest.create({
@@ -19,7 +19,7 @@ export function buildLookupResourcesRequest(params: LookupResourcesParams): v1.L
 	});
 }
 
-export function buildLookupSubjectsRequest(params: LookupSubjectsParams): v1.LookupSubjectsRequest {
+export function buildLookupSubjectsRequest(params: LookupSubjectsRequest): v1.LookupSubjectsRequest {
 	const { resourceType, resourceId, subjectType, permission } = params;
 
 	return v1.LookupSubjectsRequest.create({
