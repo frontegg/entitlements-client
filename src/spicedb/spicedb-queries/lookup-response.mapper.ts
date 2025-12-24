@@ -27,11 +27,7 @@ export function mapLookupResourcesResponse(
 
 	const lastResult = results.length > 0 ? results[results.length - 1] : undefined;
 	const nextCursor = lastResult?.afterResultCursor?.token;
-
-	// Only return cursor if we hit the limit (meaning there might be more results)
-	// If we returned fewer than limit, don't provide cursor since there are no more results
 	const shouldReturnCursor = results.length === limit;
-
 	return {
 		resources,
 		cursor: shouldReturnCursor ? nextCursor : undefined,

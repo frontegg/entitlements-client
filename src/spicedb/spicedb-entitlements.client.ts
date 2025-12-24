@@ -58,18 +58,28 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
-		const limit = req.options?.limit ?? 50;
-		const request = buildLookupResourcesRequest({
-			subjectType: req.subjectType,
-			subjectId: req.subjectId,
-			resourceType: req.resourceType,
-			permission: req.permission,
-			limit,
-			cursor: req.options?.cursor
-		});
+		try {
+			const DEFAULT_LIMIT = 50;
+			const limit = req.options?.limit || DEFAULT_LIMIT;
+			const request = buildLookupResourcesRequest({
+				subjectType: req.subjectType,
+				subjectId: req.subjectId,
+				resourceType: req.resourceType,
+				permission: req.permission,
+				limit,
+				cursor: req.options?.cursor
+			});
 
-		const results = await this.spiceClient.lookupResources(request);
-		return mapLookupResourcesResponse(results, req.resourceType, limit);
+			const results = await this.spiceClient.lookupResources(request);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(request, results);
+			}
+			return mapLookupResourcesResponse(results, req.resourceType, limit);
+		} catch (err) {
+			await this.loggingClient.error(err);
+			throw err;
+		}
 	}
 
 	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {
