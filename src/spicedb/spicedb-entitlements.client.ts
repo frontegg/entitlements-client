@@ -1,8 +1,13 @@
 import { ClientConfiguration, FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
+import { DEFAULT_LOOKUP_LIMIT } from './lookup.constants';
 import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
+	LookupResourcesRequest,
+	LookupResourcesResponse,
+	LookupSubjectsRequest,
+	LookupSubjectsResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
@@ -12,6 +17,8 @@ import {
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { v1 } from '@authzed/authzed-node';
+import { buildLookupResourcesRequest, buildLookupSubjectsRequest } from './spicedb-queries/lookup-request.builder';
+import { mapLookupResourcesResponse, mapLookupSubjectsResponse } from './spicedb-queries/lookup-response.mapper';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -50,6 +57,51 @@ export class SpiceDBEntitlementsClient {
 		} catch (err) {
 			await this.loggingClient.error(err);
 			return this.constructFallbackResult(requestContext);
+		}
+	}
+
+	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
+		try {
+			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
+			const request = buildLookupResourcesRequest({
+				subjectType: req.subjectType,
+				subjectId: req.subjectId,
+				resourceType: req.resourceType,
+				permission: req.permission,
+				limit,
+				cursor: req.cursor
+			});
+
+			const results = await this.spiceClient.lookupResources(request);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(request, results);
+			}
+			return mapLookupResourcesResponse(results, req.resourceType, limit);
+		} catch (err) {
+			await this.loggingClient.error(err);
+			throw err;
+		}
+	}
+
+	public async lookupSubjects(req: LookupSubjectsRequest): Promise<LookupSubjectsResponse> {
+		try {
+			const request = buildLookupSubjectsRequest({
+				resourceType: req.resourceType,
+				resourceId: req.resourceId,
+				subjectType: req.subjectType,
+				permission: req.permission
+			});
+
+			const results = await this.spiceClient.lookupSubjects(request);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(request, results);
+			}
+			return mapLookupSubjectsResponse(results, req.subjectType);
+		} catch (err) {
+			await this.loggingClient.error(err);
+			throw err;
 		}
 	}
 
