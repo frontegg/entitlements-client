@@ -1,3 +1,10 @@
+# [3.0.0-alpha.11](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.10...3.0.0-alpha.11) (2025-12-17)
+
+
+### Features
+
+* **spicedb:** replace cache-manager with lru-cache and update cache handling in RouteSpiceDBQuery ([2a6010b](https://github.com/frontegg/entitlements-client/commit/2a6010bedc27f40bbf2790b688cfe8a1d7b47fb1))
+
 # [3.0.0-alpha.10](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.9...3.0.0-alpha.10) (2025-07-22)
 
 
