@@ -1,13 +1,5 @@
 import { v1 } from '@authzed/authzed-node';
-
-export interface LookupResourcesParams {
-	subjectType: string;
-	subjectId: string;
-	resourceType: string;
-	permission: string;
-	limit: number;
-	cursor?: string;
-}
+import { LookupResourcesParams, LookupSubjectsParams } from '../../types/lookup.types';
 
 export function buildLookupResourcesRequest(params: LookupResourcesParams): v1.LookupResourcesRequest {
 	const { subjectType, subjectId, resourceType, permission, limit, cursor } = params;
@@ -25,13 +17,6 @@ export function buildLookupResourcesRequest(params: LookupResourcesParams): v1.L
 		optionalLimit: limit,
 		optionalCursor: cursor ? v1.Cursor.create({ token: cursor }) : undefined
 	});
-}
-
-export interface LookupSubjectsParams {
-	resourceType: string;
-	resourceId: string;
-	subjectType: string;
-	permission: string;
 }
 
 export function buildLookupSubjectsRequest(params: LookupSubjectsParams): v1.LookupSubjectsRequest {

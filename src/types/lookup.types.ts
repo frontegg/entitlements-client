@@ -46,3 +46,19 @@ export interface LookupSubjectItem {
 export interface LookupSubjectsResponse extends LookupResponse {
 	subjects: LookupSubjectItem[];
 }
+
+export interface LookupResourcesParams {
+	subjectType: string;
+	subjectId: string;
+	resourceType: string;
+	permission: string;
+	limit: number;
+	cursor?: string;
+}
+
+export interface LookupSubjectsParams {
+	resourceType: string;
+	resourceId: string;
+	subjectType: string;
+	permission: string;
+}
