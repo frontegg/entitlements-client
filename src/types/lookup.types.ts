@@ -5,7 +5,6 @@ export interface LookupRequest {
 }
 
 export interface LookupResponse {
-	cursor?: string;
 	totalReturned: number;
 }
 
@@ -25,6 +24,7 @@ export interface LookupResourceItem {
 
 export interface LookupResourcesResponse extends LookupResponse {
 	resources: LookupResourceItem[];
+	cursor?: string;
 }
 
 export interface LookupSubjectsRequest extends LookupRequest {
