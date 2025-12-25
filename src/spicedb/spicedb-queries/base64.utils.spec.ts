@@ -111,4 +111,3 @@ describe('base64.utils', () => {
 		});
 	});
 });
-
