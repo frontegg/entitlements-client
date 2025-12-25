@@ -4,6 +4,7 @@ import { LoggingClient } from '../logging';
 import { ClientConfiguration } from '../client-configuration';
 import { v1 } from '@authzed/authzed-node';
 import { LookupResourcesRequest } from '../types';
+import { encodeObjectId } from './spicedb-queries/base64.utils';
 
 describe('SpiceDBEntitlementsClient.lookupResources', () => {
 	let mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface>;
@@ -31,18 +32,19 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 	});
 
 	describe('successful lookups', () => {
-		it('should return resources with correct structure', async () => {
+		it('should return resources with correct structure (decoded from base64)', async () => {
+			// SpiceDB returns base64-encoded IDs
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
 				},
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-2',
+					resourceObjectId: encodeObjectId('resource-2'),
 					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
@@ -53,6 +55,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const result = await client.lookupResources(defaultRequest);
 
 			expect(result.resources).toHaveLength(2);
+			// Response should contain decoded IDs
 			expect(result.resources[0]).toEqual({
 				resourceType: 'document',
 				resourceId: 'resource-1',
@@ -101,7 +104,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			);
 		});
 
-		it('should build correct SpiceDB request', async () => {
+		it('should build correct SpiceDB request with base64-encoded subjectId', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
 			await client.lookupResources(defaultRequest);
@@ -113,7 +116,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 					subject: expect.objectContaining({
 						object: expect.objectContaining({
 							objectType: 'user',
-							objectId: 'user-123'
+							objectId: encodeObjectId('user-123') // Request should encode the ID
 						}),
 						optionalRelation: ''
 					})
@@ -127,7 +130,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			// Create 50 mock results (the default limit) with a cursor
 			const mockResults: v1.LookupResourcesResponse[] = Array.from({ length: 50 }, (_, i) => ({
 				lookedUpAt: undefined,
-				resourceObjectId: `resource-${i + 1}`,
+				resourceObjectId: encodeObjectId(`resource-${i + 1}`),
 				permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 				partialCaveatInfo: undefined,
 				afterResultCursor: i === 49 ? { token: 'next-page-token' } : undefined
@@ -144,7 +147,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: { token: 'next-page-token' }
@@ -162,7 +165,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined // No cursor
@@ -208,7 +211,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
@@ -225,7 +228,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
@@ -242,7 +245,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.UNSPECIFIED,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
@@ -270,21 +273,21 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'first',
+					resourceObjectId: encodeObjectId('first'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
 				},
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'second',
+					resourceObjectId: encodeObjectId('second'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
 				},
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'third',
+					resourceObjectId: encodeObjectId('third'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined

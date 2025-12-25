@@ -1,5 +1,6 @@
 import { v1 } from '@authzed/authzed-node';
 import { LookupResourcesRequest, LookupSubjectsRequest } from '../../types/lookup.types';
+import { encodeObjectId } from './base64.utils';
 
 export function buildLookupResourcesRequest(params: LookupResourcesRequest): v1.LookupResourcesRequest {
 	const { subjectType, subjectId, resourceType, permission, limit, cursor } = params;
@@ -10,7 +11,7 @@ export function buildLookupResourcesRequest(params: LookupResourcesRequest): v1.
 		subject: {
 			object: {
 				objectType: subjectType,
-				objectId: subjectId
+				objectId: encodeObjectId(subjectId)
 			},
 			optionalRelation: ''
 		},
@@ -25,7 +26,7 @@ export function buildLookupSubjectsRequest(params: LookupSubjectsRequest): v1.Lo
 	return v1.LookupSubjectsRequest.create({
 		resource: {
 			objectType: resourceType,
-			objectId: resourceId
+			objectId: encodeObjectId(resourceId)
 		},
 		permission: permission,
 		subjectObjectType: subjectType
