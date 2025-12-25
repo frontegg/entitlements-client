@@ -3,6 +3,7 @@ import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
 import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
+import { encodeObjectId } from './base64.utils';
 
 // Create a concrete test implementation to test the abstract class
 class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
@@ -57,10 +58,6 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		subjectContext: UserSubjectContext
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		return this.executeCommonQuery(objectType, objectId, subjectContext);
-	}
-
-	public testNormalizeObjectId(objectId: string): string {
-		return this.normalizeObjectId(objectId);
 	}
 }
 
@@ -187,10 +184,10 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			);
 
 			expect(requestItem.resource?.objectType).toBe('frontegg_feature');
-			expect(requestItem.resource?.objectId).toBe(queryClient.testNormalizeObjectId('test-feature'));
+			expect(requestItem.resource?.objectId).toBe(encodeObjectId('test-feature'));
 			expect(requestItem.permission).toBe('access');
 			expect(requestItem.subject?.object?.objectType).toBe('frontegg_user');
-			expect(requestItem.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('user-123'));
+			expect(requestItem.subject?.object?.objectId).toBe(encodeObjectId('user-123'));
 			expect(requestItem.subject?.optionalRelation).toBe('');
 			expect(requestItem.context).toBe(caveatContext);
 		});
@@ -218,12 +215,12 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			// Check tenant item
 			const tenantItem = bulkRequest.items.find((item) => item.subject?.object?.objectType === 'frontegg_tenant');
 			expect(tenantItem).toBeDefined();
-			expect(tenantItem?.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('tenant-456'));
+			expect(tenantItem?.subject?.object?.objectId).toBe(encodeObjectId('tenant-456'));
 
 			// Check user item
 			const userItem = bulkRequest.items.find((item) => item.subject?.object?.objectType === 'frontegg_user');
 			expect(userItem).toBeDefined();
-			expect(userItem?.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('user-123'));
+			expect(userItem?.subject?.object?.objectId).toBe(encodeObjectId('user-123'));
 		});
 
 		it('should create bulk permissions request with only tenant item when userId is undefined', () => {
@@ -247,7 +244,7 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			// Check tenant item
 			const tenantItem = bulkRequest.items[0];
 			expect(tenantItem.subject?.object?.objectType).toBe('frontegg_tenant');
-			expect(tenantItem.subject?.object?.objectId).toBe(queryClient.testNormalizeObjectId('tenant-456'));
+			expect(tenantItem.subject?.object?.objectId).toBe(encodeObjectId('tenant-456'));
 		});
 	});
 
@@ -366,10 +363,10 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 		});
 	});
 
-	describe('normalizeObjectId', () => {
-		it('should normalize object ID to base64 URL-safe format', () => {
+	describe('encode/decode objectId', () => {
+		it('should encode object ID to base64 URL-safe format', () => {
 			const objectId = 'test-feature-123';
-			const normalized = queryClient.testNormalizeObjectId(objectId);
+			const normalized = encodeObjectId(objectId);
 
 			// Should be base64 encoded and URL-safe
 			expect(normalized).not.toContain('+');
@@ -383,7 +380,7 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 
 		it('should handle special characters', () => {
 			const objectId = 'test+feature/with=special/chars';
-			const normalized = queryClient.testNormalizeObjectId(objectId);
+			const normalized = encodeObjectId(objectId);
 
 			// Should be URL-safe
 			expect(normalized).not.toContain('+');
@@ -393,14 +390,14 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 
 		it('should handle empty string', () => {
 			const objectId = '';
-			const normalized = queryClient.testNormalizeObjectId(objectId);
+			const normalized = encodeObjectId(objectId);
 
 			expect(normalized).toBe('');
 		});
 
 		it('should handle unicode characters', () => {
 			const objectId = 'test-功能-123';
-			const normalized = queryClient.testNormalizeObjectId(objectId);
+			const normalized = encodeObjectId(objectId);
 
 			// Should be URL-safe
 			expect(normalized).not.toContain('+');

@@ -4,6 +4,7 @@ import { LoggingClient } from '../logging';
 import { ClientConfiguration } from '../client-configuration';
 import { v1 } from '@authzed/authzed-node';
 import { LookupSubjectsRequest } from '../types';
+import { encodeObjectId } from './spicedb-queries/base64.utils';
 
 describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 	let mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface>;
@@ -31,16 +32,17 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 	});
 
 	describe('successful lookups', () => {
-		it('should return subjects with correct structure', async () => {
+		it('should return subjects with correct structure (decoded from base64)', async () => {
+			// SpiceDB returns base64-encoded IDs
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-1',
+						subjectObjectId: encodeObjectId('user-1'),
 						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -49,12 +51,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 				},
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-2',
+					subjectObjectId: encodeObjectId('user-2'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-2',
+						subjectObjectId: encodeObjectId('user-2'),
 						permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -67,6 +69,7 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const result = await client.lookupSubjects(defaultRequest);
 
 			expect(result.subjects).toHaveLength(2);
+			// Response should contain decoded IDs
 			expect(result.subjects[0]).toEqual({
 				subjectType: 'user',
 				subjectId: 'user-1',
@@ -89,7 +92,7 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			expect(result.totalReturned).toBe(0);
 		});
 
-		it('should build correct SpiceDB request', async () => {
+		it('should build correct SpiceDB request with base64-encoded resourceId', async () => {
 			mockSpiceClient.lookupSubjects.mockResolvedValue([]);
 
 			await client.lookupSubjects(defaultRequest);
@@ -98,7 +101,7 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 				expect.objectContaining({
 					resource: expect.objectContaining({
 						objectType: 'document',
-						objectId: 'doc-123'
+						objectId: encodeObjectId('doc-123') // Request should encode the ID
 					}),
 					permission: 'view',
 					subjectObjectType: 'user'
@@ -112,12 +115,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-1',
+						subjectObjectId: encodeObjectId('user-1'),
 						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -136,12 +139,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-1',
+						subjectObjectId: encodeObjectId('user-1'),
 						permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -160,12 +163,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.UNSPECIFIED,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-1',
+						subjectObjectId: encodeObjectId('user-1'),
 						permissionship: v1.LookupPermissionship.UNSPECIFIED,
 						partialCaveatInfo: undefined
 					},
@@ -184,7 +187,7 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
@@ -225,12 +228,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'first',
+					subjectObjectId: encodeObjectId('first'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'first',
+						subjectObjectId: encodeObjectId('first'),
 						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -239,12 +242,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 				},
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'second',
+					subjectObjectId: encodeObjectId('second'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'second',
+						subjectObjectId: encodeObjectId('second'),
 						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -253,12 +256,12 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 				},
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'third',
+					subjectObjectId: encodeObjectId('third'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'third',
+						subjectObjectId: encodeObjectId('third'),
 						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -297,4 +300,3 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 		});
 	});
 });
-

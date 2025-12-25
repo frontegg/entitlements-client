@@ -4,6 +4,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { LRUCache } from 'lru-cache';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
+import { encodeObjectId } from './base64.utils';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	private readonly cache: LRUCache<string, any>;
@@ -98,7 +99,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		firstRule = objects[0];
 
 		for (const rule of objects) {
-			const hashedPermissions = context.permissions?.map((permission) => this.normalizeObjectId(permission));
+			const hashedPermissions = context.permissions?.map((permission) => encodeObjectId(permission));
 			if (rule.relation.includes('required_permission')) {
 				if (!this.hasPermission(rule.subjectId, hashedPermissions)) {
 					return this.createResult(false, isMonitoringEnabled);

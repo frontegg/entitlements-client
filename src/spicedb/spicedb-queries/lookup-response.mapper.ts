@@ -7,6 +7,7 @@ import {
 	Permissionship
 } from '../../types';
 import { permissionshipMap } from '../lookup.constants';
+import { decodeObjectId } from './base64.utils';
 
 export function mapLookupResourcesResponse(
 	results: v1.LookupResourcesResponse[],
@@ -15,7 +16,7 @@ export function mapLookupResourcesResponse(
 ): LookupResourcesResponse {
 	const resources: LookupResourceItem[] = results.map((result) => ({
 		resourceType,
-		resourceId: result.resourceObjectId,
+		resourceId: decodeObjectId(result.resourceObjectId),
 		permissionship: permissionshipMap.get(result.permissionship)
 	}));
 
@@ -35,7 +36,7 @@ export function mapLookupSubjectsResponse(
 ): LookupSubjectsResponse {
 	const subjects: LookupSubjectItem[] = results.map((result) => ({
 		subjectType,
-		subjectId: result.subject?.subjectObjectId ?? '',
+		subjectId: decodeObjectId(result.subject?.subjectObjectId ?? ''),
 		permissionship: result.subject ? permissionshipMap.get(result.subject.permissionship) : undefined
 	}));
 

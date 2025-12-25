@@ -2,6 +2,7 @@ import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
 import { EntitlementsDynamicQuery, EntitlementsResult, FGASubjectContext, RequestContextType } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
+import { encodeObjectId } from './base64.utils';
 
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
@@ -17,13 +18,13 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			subject: {
 				object: {
 					objectType: context.entityType,
-					objectId: this.normalizeObjectId(context.key)
+					objectId: encodeObjectId(context.key)
 				},
 				optionalRelation: ''
 			},
 			resource: {
 				objectType: requestContext.entityType,
-				objectId: this.normalizeObjectId(requestContext.key)
+				objectId: encodeObjectId(requestContext.key)
 			},
 			permission: requestContext.action
 		});

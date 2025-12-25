@@ -1,6 +1,7 @@
 import { v1 } from '@authzed/authzed-node';
 import { mapLookupResourcesResponse, mapLookupSubjectsResponse } from './lookup-response.mapper';
 import { permissionshipMap } from '../lookup.constants';
+import { encodeObjectId } from './base64.utils';
 
 describe('lookup-response.mapper', () => {
 	describe('mapPermissionship', () => {
@@ -24,18 +25,19 @@ describe('lookup-response.mapper', () => {
 	});
 
 	describe('mapLookupResourcesResponse', () => {
-		it('should map resources correctly', () => {
+		it('should map resources correctly and decode base64 resourceIds', () => {
+			// SpiceDB returns base64 encoded IDs
 			const results: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
 				},
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-2',
+					resourceObjectId: encodeObjectId('resource-2'),
 					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: undefined
@@ -45,6 +47,7 @@ describe('lookup-response.mapper', () => {
 			const response = mapLookupResourcesResponse(results, 'document', 50);
 
 			expect(response.resources).toHaveLength(2);
+			// Should decode to original IDs
 			expect(response.resources[0]).toEqual({
 				resourceType: 'document',
 				resourceId: 'resource-1',
@@ -61,7 +64,7 @@ describe('lookup-response.mapper', () => {
 		it('should return cursor when results equal limit', () => {
 			const results: v1.LookupResourcesResponse[] = Array.from({ length: 10 }, (_, i) => ({
 				lookedUpAt: undefined,
-				resourceObjectId: `resource-${i}`,
+				resourceObjectId: encodeObjectId(`resource-${i}`),
 				permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 				partialCaveatInfo: undefined,
 				afterResultCursor: i === 9 ? { token: 'next-cursor' } : undefined
@@ -76,7 +79,7 @@ describe('lookup-response.mapper', () => {
 			const results: v1.LookupResourcesResponse[] = [
 				{
 					lookedUpAt: undefined,
-					resourceObjectId: 'resource-1',
+					resourceObjectId: encodeObjectId('resource-1'),
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					afterResultCursor: { token: 'cursor-token' }
@@ -95,19 +98,37 @@ describe('lookup-response.mapper', () => {
 			expect(response.totalReturned).toBe(0);
 			expect(response.cursor).toBeUndefined();
 		});
+
+		it('should decode base64 IDs with special characters correctly', () => {
+			const originalId = 'doc-1-aOD3DYIF';
+			const results: v1.LookupResourcesResponse[] = [
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId(originalId),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				}
+			];
+
+			const response = mapLookupResourcesResponse(results, 'document', 50);
+
+			expect(response.resources[0].resourceId).toBe(originalId);
+		});
 	});
 
 	describe('mapLookupSubjectsResponse', () => {
-		it('should map subjects correctly', () => {
+		it('should map subjects correctly and decode base64 subjectIds', () => {
+			// SpiceDB returns base64 encoded IDs
 			const results: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-1',
+						subjectObjectId: encodeObjectId('user-1'),
 						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -116,12 +137,12 @@ describe('lookup-response.mapper', () => {
 				},
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-2',
+					subjectObjectId: encodeObjectId('user-2'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 					partialCaveatInfo: undefined,
 					subject: {
-						subjectObjectId: 'user-2',
+						subjectObjectId: encodeObjectId('user-2'),
 						permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -133,6 +154,7 @@ describe('lookup-response.mapper', () => {
 			const response = mapLookupSubjectsResponse(results, 'user');
 
 			expect(response.subjects).toHaveLength(2);
+			// Should decode to original IDs
 			expect(response.subjects[0]).toEqual({
 				subjectType: 'user',
 				subjectId: 'user-1',
@@ -157,7 +179,7 @@ describe('lookup-response.mapper', () => {
 			const results: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
@@ -177,14 +199,14 @@ describe('lookup-response.mapper', () => {
 			const results: v1.LookupSubjectsResponse[] = [
 				{
 					lookedUpAt: undefined,
-					subjectObjectId: 'user-1',
+					subjectObjectId: encodeObjectId('user-1'),
 					excludedSubjectIds: [],
 					// Deprecated top-level field says HAS_PERMISSION
 					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
 					partialCaveatInfo: undefined,
 					// But subject field says CONDITIONAL_PERMISSION
 					subject: {
-						subjectObjectId: 'user-1',
+						subjectObjectId: encodeObjectId('user-1'),
 						permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
 						partialCaveatInfo: undefined
 					},
@@ -197,6 +219,31 @@ describe('lookup-response.mapper', () => {
 
 			// Should use the subject field value, not the deprecated top-level one
 			expect(response.subjects[0].permissionship).toBe('CONDITIONAL_PERMISSION');
+		});
+
+		it('should decode base64 IDs with real customer data format', () => {
+			// Simulating real data like: cust_user:dXNlci0xLURXZFRQQ29I
+			const originalUserId = 'user-1-DWdTPCoH';
+			const results: v1.LookupSubjectsResponse[] = [
+				{
+					lookedUpAt: undefined,
+					subjectObjectId: encodeObjectId(originalUserId),
+					excludedSubjectIds: [],
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					subject: {
+						subjectObjectId: encodeObjectId(originalUserId),
+						permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+						partialCaveatInfo: undefined
+					},
+					excludedSubjects: [],
+					afterResultCursor: undefined
+				}
+			];
+
+			const response = mapLookupSubjectsResponse(results, 'cust_user');
+
+			expect(response.subjects[0].subjectId).toBe(originalUserId);
 		});
 	});
 });
