@@ -80,4 +80,4 @@ export class EntitlementsClient {
 
 		return fallbackMapper[requestContext.type] ?? staticFallbackConfiguration.defaultFallback;
 	}
-}
+} 
