@@ -8,6 +8,7 @@ import {
 } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
+import { encodeObjectId } from './base64.utils';
 
 export interface HashOptions {
 	hashResourceId: boolean;
@@ -65,13 +66,13 @@ export abstract class EntitlementsSpiceDBQuery {
 		return {
 			resource: {
 				objectType: resourceObjectType,
-				objectId: hashOptions.hashResourceId ? this.normalizeObjectId(resourceObjectId) : resourceObjectId
+				objectId: hashOptions.hashResourceId ? encodeObjectId(resourceObjectId) : resourceObjectId
 			},
 			permission: 'access',
 			subject: {
 				object: {
 					objectType: subjectObjectType,
-					objectId: hashOptions.hashSubjectId ? this.normalizeObjectId(subjectObjectId) : subjectObjectId
+					objectId: hashOptions.hashSubjectId ? encodeObjectId(subjectObjectId) : subjectObjectId
 				},
 				optionalRelation: ''
 			},
@@ -134,11 +135,6 @@ export abstract class EntitlementsSpiceDBQuery {
 			result: { result } as EntitlementsResult
 		} as SpiceDBResponse<EntitlementsResult>;
 	}
-
-	protected normalizeObjectId(objectId: string): string {
-		return Buffer.from(objectId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-	}
-
 	protected async isPermissionLinkedToFeatures(
 		requestContext: PermissionsEntitlementsContext,
 		hashResourceId: boolean = true
@@ -147,9 +143,7 @@ export abstract class EntitlementsSpiceDBQuery {
 			permission: 'parent',
 			resource: {
 				objectType: SpiceDBEntities.Permission,
-				objectId: hashResourceId
-					? this.normalizeObjectId(requestContext.permissionKey)
-					: requestContext.permissionKey
+				objectId: hashResourceId ? encodeObjectId(requestContext.permissionKey) : requestContext.permissionKey
 			},
 			subjectObjectType: SpiceDBEntities.Feature
 		});

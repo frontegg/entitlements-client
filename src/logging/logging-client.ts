@@ -7,5 +7,6 @@ export interface LoggingClient {
 		requestContext: RequestContext,
 		queryResult: OpaResponse<EntitlementsResult> | SpiceDBResponse<EntitlementsResult>
 	): void | Promise<void>;
+	logRequest<TRequest, TResponse>(request: TRequest, response: TResponse): void | Promise<void>;
 	error(error: unknown): void | Promise<void>;
 }

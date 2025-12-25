@@ -10,6 +10,10 @@ export class SimpleLoggingClient implements LoggingClient {
 		console.log({ subjectContext, requestContext, queryResult: queryResult.result });
 	}
 
+	public logRequest<TRequest, TResponse>(request: TRequest, response: TResponse): void {
+		console.log(JSON.stringify({ request, response }, null, 2));
+	}
+
 	public error(error: unknown): void {
 		console.error(error);
 	}
