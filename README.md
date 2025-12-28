@@ -1,4 +1,5 @@
 <br />
+
 <div align="center">
 <img src="https://fronteggstuff.blob.core.windows.net/frongegg-logos/logo-transparent.png" alt="Frontegg Logo" width="400" height="90">
 
@@ -10,6 +11,7 @@
 -   [Installation](#installation)
 -   [Prerequisite](#prerequisite)
 -   [Usage](#usage)
+-   [Lookup Operations](#lookup-operations)
 -   [Justifications](#justifications)
 -   [Monitoring](#monitoring)
 
@@ -23,9 +25,13 @@ $ npm install @frontegg/e10s-client
 
 ## Prerequisite
 
-Since the Entitlements Client is interacting with the Entitlements Agent, it is required to setup and run the agent.
+The Entitlements Client connects directly to a SpiceDB instance for authorization queries.
 
-Look for instructions [here](https://docs.frontegg.com/docs/configuration)
+You need:
+
+-   A running SpiceDB instance
+-   SpiceDB endpoint URL (e.g., `localhost:50051`)
+-   SpiceDB authentication token
 
 ## Usage
 
@@ -35,7 +41,27 @@ Look for instructions [here](https://docs.frontegg.com/docs/configuration)
 import { EntitlementsClientFactory, RequestContextType } from '@frontegg/e10s-client';
 
 const e10sClient = EntitlementsClientFactory.create({
-	pdpHost: 'http://localhost:8181' // Entitlements Agent Host
+	spiceDBEndpoint: 'localhost:50051', // SpiceDB endpoint
+	spiceDBToken: 'your-spicedb-token' // SpiceDB authentication token
+});
+```
+
+### Configuration Options
+
+```typescript
+import { EntitlementsClientFactory } from '@frontegg/e10s-client';
+
+const e10sClient = EntitlementsClientFactory.create({
+	spiceDBEndpoint: 'localhost:50051',
+	spiceDBToken: 'your-spicedb-token',
+	logging: {
+		client: customLoggingClient, // Optional: custom logging client
+		logResults: true // Optional: log all query results
+	},
+	fallbackConfiguration: {
+		// Optional: fallback behavior on errors
+		defaultFallback: false
+	}
 });
 ```
 
@@ -53,18 +79,16 @@ const subjectContext: SubjectContext = {
 ```
 
 ### Query
+
 The Entitlements client allows you to query for a feature, permission or a route entitlement, each requires different context information.
 
 #### Query for Feature
 
 ```typescript
-const e10sResult = await e10sClient.isEntitledTo(
-	subjectContext,
-	{
-		type: RequestContextType.Feature,
-		featureKey: 'my-cool-feature'
-	}
-);
+const e10sResult = await e10sClient.isEntitledTo(subjectContext, {
+	type: RequestContextType.Feature,
+	featureKey: 'my-cool-feature'
+});
 
 if (!e10sResult.result) {
 	console.log(`User is not entitled to "my-cool-feature" feature, reason: ${e10sResult.justification}`);
@@ -74,13 +98,10 @@ if (!e10sResult.result) {
 #### Query for Permission
 
 ```typescript
-const e10sResult = await e10sClient.isEntitledTo(
-	subjectContext,
-	{
-		type: RequestContextType.Permission,
-		permissionKey: 'read'
-	}
-);
+const e10sResult = await e10sClient.isEntitledTo(subjectContext, {
+	type: RequestContextType.Permission,
+	permissionKey: 'read'
+});
 
 if (!e10sResult.result) {
 	console.log(`User is not entitled to "read" permission, reason: ${e10sResult.justification}`);
@@ -90,33 +111,30 @@ if (!e10sResult.result) {
 #### Query for Route
 
 ```typescript
-const e10sResult = await e10sClient.isEntitledTo(
-	subjectContext,
-	{
-		type: RequestContextType.Route,
-		method: "GET",
-        path: "/users"
-	}
-);
+const e10sResult = await e10sClient.isEntitledTo(subjectContext, {
+	type: RequestContextType.Route,
+	method: 'GET',
+	path: '/users'
+});
 
 if (!e10sResult.result) {
 	console.log(`User is not entitled to "GET /users" route, reason: ${e10sResult.justification}`);
 }
 ```
 
-#### Query for FGA
+#### Query for FGA (Fine-Grained Authorization)
 
 ```typescript
 const e10sResult = await e10sClient.isEntitledTo(
 	{
-		entityType: "user",
-		key: "some@user.com"
+		entityType: 'user',
+		key: 'some@user.com'
 	},
 	{
 		type: RequestContextType.Entity,
-		entityType: "document",
-        key: "README.md",
-		action: "read"
+		entityType: 'document',
+		key: 'README.md',
+		action: 'read'
 	}
 );
 
@@ -125,18 +143,72 @@ if (!e10sResult.result) {
 }
 ```
 
+## Lookup Operations
+
+The client provides lookup operations to query SpiceDB for resources and subjects.
+
+### Lookup Resources
+
+Find all resources of a given type that a subject has a specific permission on.
+
+```typescript
+const response = await e10sClient.lookupResources({
+	subjectType: 'user',
+	subjectId: 'user-123',
+	resourceType: 'document',
+	permission: 'read',
+	limit: 100, // Optional: limit number of results (default: 50, max: 1000)
+	cursor: undefined // Optional: pagination cursor
+});
+
+console.log(`Found ${response.totalReturned} resources`);
+
+response.resources.forEach((resource) => {
+	console.log(`${resource.resourceType}:${resource.resourceId}`);
+	// resource.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+});
+
+// For pagination, use the returned cursor
+if (response.cursor) {
+	const nextPage = await e10sClient.lookupResources({
+		// ... same params
+		cursor: response.cursor
+	});
+}
+```
+
+### Lookup Subjects
+
+Find all subjects of a given type that have a specific permission on a resource.
+
+```typescript
+const response = await e10sClient.lookupSubjects({
+	resourceType: 'document',
+	resourceId: 'doc-456',
+	subjectType: 'user',
+	permission: 'read'
+});
+
+console.log(`Found ${response.totalReturned} subjects`);
+
+response.subjects.forEach((subject) => {
+	console.log(`${subject.subjectType}:${subject.subjectId}`);
+	// subject.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+});
+```
+
 ## Justifications
 
 List of possible justifications
 
-| Justification      | Meaning                                                          |
-| ------------------ | ---------------------------------------------------------------- |
-| MISSING_FEATURE    | User is missing the feature                                      |
-| MISSING_PERMISSION | User is missing the permission                                   |
-| PLAN_EXPIRED       | User has a plan that covers the feature, but the plan is expired |
-| MISSING_ROUTE      | Requested route is not configured                                |
-| ROUTE_DENIED       | Requested route is configured to be blocked                      |
-| MISSING_RELATION   | Missing ReBAC relation that enables a subject-entity to perform a specified action on a target-entity                       |
+| Justification      | Meaning                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| MISSING_FEATURE    | User is missing the feature                                                                           |
+| MISSING_PERMISSION | User is missing the permission                                                                        |
+| PLAN_EXPIRED       | User has a plan that covers the feature, but the plan is expired                                      |
+| MISSING_ROUTE      | Requested route is not configured                                                                     |
+| ROUTE_DENIED       | Requested route is configured to be blocked                                                           |
+| MISSING_RELATION   | Missing ReBAC relation that enables a subject-entity to perform a specified action on a target-entity |
 
 ## Monitoring
 
