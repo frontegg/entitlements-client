@@ -40,7 +40,7 @@ export class SpiceDBEntitlementsClient {
 
 			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
 		} catch (initError) {
-			this.loggingClient.error({
+			void this.loggingClient.error({
 				action: 'SpiceDBClient:init:error',
 				endpoint: this.configuration.spiceDBEndpoint,
 				error: initError,
@@ -65,16 +65,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			await this.loggingClient.error({
-				action: 'SpiceDBClient:isEntitledTo:error',
-				endpoint: this.configuration.spiceDBEndpoint,
-				subjectContext,
-				requestContext,
-				error: err,
-				errorMessage: err instanceof Error ? err.message : String(err),
-				errorStack: err instanceof Error ? err.stack : undefined
-			});
-
+			await this.loggingClient.error(err);
 			return this.constructFallbackResult(requestContext);
 		}
 	}
@@ -98,14 +89,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return mapLookupResourcesResponse(results, req.resourceType, limit);
 		} catch (err) {
-			await this.loggingClient.error({
-				action: 'SpiceDBClient:lookupResources:error',
-				endpoint: this.configuration.spiceDBEndpoint,
-				request: req,
-				error: err,
-				errorMessage: err instanceof Error ? err.message : String(err),
-				errorStack: err instanceof Error ? err.stack : undefined
-			});
+			await this.loggingClient.error(err);
 			throw err;
 		}
 	}
@@ -126,14 +110,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return mapLookupSubjectsResponse(results, req.subjectType);
 		} catch (err) {
-			await this.loggingClient.error({
-				action: 'SpiceDBClient:lookupSubjects:error',
-				endpoint: this.configuration.spiceDBEndpoint,
-				request: req,
-				error: err,
-				errorMessage: err instanceof Error ? err.message : String(err),
-				errorStack: err instanceof Error ? err.stack : undefined
-			});
+			await this.loggingClient.error(err);
 			throw err;
 		}
 	}
