@@ -64,21 +64,18 @@ export class SpiceDBEntitlementsClient {
 		subjectContext: SubjectContext,
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
-		const startTime = Date.now();
-
 		// Log the incoming request
 		this.loggingClient.logRequest(
 			{ action: 'SpiceDBClient:isEntitledTo:start', subjectContext, requestContext },
-			{ endpoint: this.configuration.spiceDBEndpoint, timestamp: new Date().toISOString() }
+			{ endpoint: this.configuration.spiceDBEndpoint }
 		);
 
 		try {
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
-			const duration = Date.now() - startTime;
 
 			this.loggingClient.logRequest(
 				{ action: 'SpiceDBClient:isEntitledTo:success', subjectContext, requestContext },
-				{ result: res.result, duration: `${duration}ms` }
+				{ result: res.result }
 			);
 
 			if (res.result.monitoring || this.logResults) {
@@ -90,14 +87,11 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			const duration = Date.now() - startTime;
-
 			await this.loggingClient.error({
 				action: 'SpiceDBClient:isEntitledTo:error',
 				endpoint: this.configuration.spiceDBEndpoint,
 				subjectContext,
 				requestContext,
-				duration: `${duration}ms`,
 				error: err,
 				errorMessage: err instanceof Error ? err.message : String(err),
 				errorStack: err instanceof Error ? err.stack : undefined
@@ -108,11 +102,9 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
-		const startTime = Date.now();
-
 		this.loggingClient.logRequest(
 			{ action: 'SpiceDBClient:lookupResources:start', request: req },
-			{ endpoint: this.configuration.spiceDBEndpoint, timestamp: new Date().toISOString() }
+			{ endpoint: this.configuration.spiceDBEndpoint }
 		);
 
 		try {
@@ -127,11 +119,10 @@ export class SpiceDBEntitlementsClient {
 			});
 
 			const results = await this.spiceClient.lookupResources(request);
-			const duration = Date.now() - startTime;
 
 			this.loggingClient.logRequest(
 				{ action: 'SpiceDBClient:lookupResources:success', request: req },
-				{ resultsCount: results.length, duration: `${duration}ms` }
+				{ resultsCount: results.length }
 			);
 
 			if (this.logResults) {
@@ -139,13 +130,10 @@ export class SpiceDBEntitlementsClient {
 			}
 			return mapLookupResourcesResponse(results, req.resourceType, limit);
 		} catch (err) {
-			const duration = Date.now() - startTime;
-
 			await this.loggingClient.error({
 				action: 'SpiceDBClient:lookupResources:error',
 				endpoint: this.configuration.spiceDBEndpoint,
 				request: req,
-				duration: `${duration}ms`,
 				error: err,
 				errorMessage: err instanceof Error ? err.message : String(err),
 				errorStack: err instanceof Error ? err.stack : undefined
@@ -155,11 +143,9 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupSubjects(req: LookupSubjectsRequest): Promise<LookupSubjectsResponse> {
-		const startTime = Date.now();
-
 		this.loggingClient.logRequest(
 			{ action: 'SpiceDBClient:lookupSubjects:start', request: req },
-			{ endpoint: this.configuration.spiceDBEndpoint, timestamp: new Date().toISOString() }
+			{ endpoint: this.configuration.spiceDBEndpoint }
 		);
 
 		try {
@@ -171,11 +157,10 @@ export class SpiceDBEntitlementsClient {
 			});
 
 			const results = await this.spiceClient.lookupSubjects(request);
-			const duration = Date.now() - startTime;
 
 			this.loggingClient.logRequest(
 				{ action: 'SpiceDBClient:lookupSubjects:success', request: req },
-				{ resultsCount: results.length, duration: `${duration}ms` }
+				{ resultsCount: results.length }
 			);
 
 			if (this.logResults) {
@@ -183,13 +168,10 @@ export class SpiceDBEntitlementsClient {
 			}
 			return mapLookupSubjectsResponse(results, req.subjectType);
 		} catch (err) {
-			const duration = Date.now() - startTime;
-
 			await this.loggingClient.error({
 				action: 'SpiceDBClient:lookupSubjects:error',
 				endpoint: this.configuration.spiceDBEndpoint,
 				request: req,
-				duration: `${duration}ms`,
 				error: err,
 				errorMessage: err instanceof Error ? err.message : String(err),
 				errorStack: err instanceof Error ? err.stack : undefined
