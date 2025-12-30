@@ -31,11 +31,6 @@ export class SpiceDBEntitlementsClient {
 		private readonly logResults = false,
 		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
 	) {
-		this.loggingClient.logRequest(
-			{ action: 'SpiceDBClient:init', endpoint: this.configuration.spiceDBEndpoint },
-			{ status: 'initializing', securityMode: 'INSECURE_PLAINTEXT_CREDENTIALS' }
-		);
-
 		try {
 			this.spiceClient = v1.NewClient(
 				this.configuration.spiceDBToken,
@@ -44,14 +39,9 @@ export class SpiceDBEntitlementsClient {
 			).promises;
 
 			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
-
-			this.loggingClient.logRequest(
-				{ action: 'SpiceDBClient:init', endpoint: this.configuration.spiceDBEndpoint },
-				{ status: 'initialized', success: true }
-			);
 		} catch (initError) {
 			this.loggingClient.error({
-				action: 'SpiceDBClient:init',
+				action: 'SpiceDBClient:init:error',
 				endpoint: this.configuration.spiceDBEndpoint,
 				error: initError,
 				message: 'Failed to initialize SpiceDB client'
@@ -64,19 +54,8 @@ export class SpiceDBEntitlementsClient {
 		subjectContext: SubjectContext,
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
-		// Log the incoming request
-		this.loggingClient.logRequest(
-			{ action: 'SpiceDBClient:isEntitledTo:start', subjectContext, requestContext },
-			{ endpoint: this.configuration.spiceDBEndpoint }
-		);
-
 		try {
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
-
-			this.loggingClient.logRequest(
-				{ action: 'SpiceDBClient:isEntitledTo:success', subjectContext, requestContext },
-				{ result: res.result }
-			);
 
 			if (res.result.monitoring || this.logResults) {
 				await this.loggingClient.log(subjectContext, requestContext, res);
@@ -102,11 +81,6 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
-		this.loggingClient.logRequest(
-			{ action: 'SpiceDBClient:lookupResources:start', request: req },
-			{ endpoint: this.configuration.spiceDBEndpoint }
-		);
-
 		try {
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
 			const request = buildLookupResourcesRequest({
@@ -119,15 +93,6 @@ export class SpiceDBEntitlementsClient {
 			});
 
 			const results = await this.spiceClient.lookupResources(request);
-
-			this.loggingClient.logRequest(
-				{ action: 'SpiceDBClient:lookupResources:success', request: req },
-				{ resultsCount: results.length }
-			);
-
-			if (this.logResults) {
-				await this.loggingClient.logRequest(request, results);
-			}
 			return mapLookupResourcesResponse(results, req.resourceType, limit);
 		} catch (err) {
 			await this.loggingClient.error({
@@ -143,11 +108,6 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupSubjects(req: LookupSubjectsRequest): Promise<LookupSubjectsResponse> {
-		this.loggingClient.logRequest(
-			{ action: 'SpiceDBClient:lookupSubjects:start', request: req },
-			{ endpoint: this.configuration.spiceDBEndpoint }
-		);
-
 		try {
 			const request = buildLookupSubjectsRequest({
 				resourceType: req.resourceType,
@@ -157,15 +117,6 @@ export class SpiceDBEntitlementsClient {
 			});
 
 			const results = await this.spiceClient.lookupSubjects(request);
-
-			this.loggingClient.logRequest(
-				{ action: 'SpiceDBClient:lookupSubjects:success', request: req },
-				{ resultsCount: results.length }
-			);
-
-			if (this.logResults) {
-				await this.loggingClient.logRequest(request, results);
-			}
 			return mapLookupSubjectsResponse(results, req.subjectType);
 		} catch (err) {
 			await this.loggingClient.error({
