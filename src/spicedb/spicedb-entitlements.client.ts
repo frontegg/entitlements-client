@@ -34,7 +34,7 @@ export class SpiceDBEntitlementsClient {
 		this.spiceClient = v1.NewClient(
 			this.configuration.spiceDBToken,
 			this.configuration.spiceDBEndpoint,
-			v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
+			v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
 		).promises;
 
 		this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
