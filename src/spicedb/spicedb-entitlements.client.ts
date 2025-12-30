@@ -56,7 +56,6 @@ export class SpiceDBEntitlementsClient {
 	): Promise<EntitlementsResult> {
 		try {
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
-
 			if (res.result.monitoring || this.logResults) {
 				await this.loggingClient.log(subjectContext, requestContext, res);
 			}
@@ -93,6 +92,10 @@ export class SpiceDBEntitlementsClient {
 			});
 
 			const results = await this.spiceClient.lookupResources(request);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(request, results);
+			}
 			return mapLookupResourcesResponse(results, req.resourceType, limit);
 		} catch (err) {
 			await this.loggingClient.error({
@@ -117,6 +120,10 @@ export class SpiceDBEntitlementsClient {
 			});
 
 			const results = await this.spiceClient.lookupSubjects(request);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(request, results);
+			}
 			return mapLookupSubjectsResponse(results, req.subjectType);
 		} catch (err) {
 			await this.loggingClient.error({
