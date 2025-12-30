@@ -31,13 +31,23 @@ export class SpiceDBEntitlementsClient {
 		private readonly logResults = false,
 		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
 	) {
-		this.spiceClient = v1.NewClient(
-			this.configuration.spiceDBToken,
-			this.configuration.spiceDBEndpoint,
-			v1.ClientSecurity.INSECURE_LOCALHOST_ALLOWED
-		).promises;
+		try {
+			this.spiceClient = v1.NewClient(
+				this.configuration.spiceDBToken,
+				this.configuration.spiceDBEndpoint,
+				v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
+			).promises;
 
-		this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
+			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
+		} catch (initError) {
+			void this.loggingClient.error({
+				action: 'SpiceDBClient:init:error',
+				endpoint: this.configuration.spiceDBEndpoint,
+				error: initError,
+				message: 'Failed to initialize SpiceDB client'
+			});
+			throw initError;
+		}
 	}
 
 	public async isEntitledTo(
