@@ -161,12 +161,12 @@ console.log(`Found ${response.totalReturned} Target Entities`);
 
 response.targets.forEach((target) => {
 	console.log(`${target.TargetEntityType}:${target.TargetEntityId}`);
-	// resource.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+	// target.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
 });
 
 // For pagination, use the returned cursor
 if (response.cursor) {
-	const nextPage = await e10sClient.lookupResources({
+	const nextPage = await e10sClient.lookupTargetEntities({
 		// ... same params
 		cursor: response.cursor
 	});
@@ -189,7 +189,7 @@ console.log(`Found ${response.totalReturned} entities`);
 
 response.entities.forEach((entity) => {
 	console.log(`${entity.entityType}:${entity.entityId}`);
-	// subject.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+	// subentityject.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
 });
 ```
 
