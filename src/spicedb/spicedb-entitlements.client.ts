@@ -38,7 +38,7 @@ export class SpiceDBEntitlementsClient {
 				v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
 			).promises;
 
-			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient);
+			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient, this.loggingClient, this.logResults);
 		} catch (initError) {
 			void this.loggingClient.error({
 				action: 'SpiceDBClient:init:error',
@@ -55,7 +55,22 @@ export class SpiceDBEntitlementsClient {
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
 		try {
+			if (this.logResults) {
+				await this.loggingClient.logRequest(
+					{ action: 'SpiceDB:isEntitledTo:request', subjectContext, requestContext },
+					null
+				);
+			}
+
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(
+					{ action: 'SpiceDB:isEntitledTo:response', subjectContext, requestContext },
+					res
+				);
+			}
+
 			if (res.result.monitoring || this.logResults) {
 				await this.loggingClient.log(subjectContext, requestContext, res);
 			}
