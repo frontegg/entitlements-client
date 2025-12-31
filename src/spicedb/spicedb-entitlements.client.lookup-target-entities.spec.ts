@@ -301,4 +301,3 @@ describe('SpiceDBEntitlementsClient.lookupTargetEntities', () => {
 		});
 	});
 });
-
