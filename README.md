@@ -189,7 +189,7 @@ console.log(`Found ${response.totalReturned} entities`);
 
 response.entities.forEach((entity) => {
 	console.log(`${entity.entityType}:${entity.entityId}`);
-	// subentityject.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+	// entity.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
 });
 ```
 
