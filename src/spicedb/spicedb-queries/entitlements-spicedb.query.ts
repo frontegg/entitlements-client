@@ -135,14 +135,14 @@ export abstract class EntitlementsSpiceDBQuery {
 
 		await this.loggingClient?.logRequest(
 			{ action: 'SpiceDB:checkBulkPermissions:request', objectType, objectId, subjectContext },
-			{ request: JSON.stringify(request, null, 2) }
+			{ request }
 		);
 
 		const res = await this.client.checkBulkPermissions(request);
 
 		await this.loggingClient?.logRequest(
 			{ action: 'SpiceDB:checkBulkPermissions:response', objectType, objectId },
-			{ response: JSON.stringify(res, null, 2) }
+			{ response: res }
 		);
 
 		const result = this.processCheckBulkPermissionsResponse(res);
