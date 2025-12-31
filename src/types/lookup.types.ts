@@ -1,9 +1,9 @@
 export type Permissionship = 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION';
 
 export interface LookupBaseRequest {
-	permission: string;
-	resourceType: string;
-	subjectType: string;
+	action: string;
+	TargetEntityType: string;
+	entityType: string;
 }
 
 export interface LookupBaseResponse {
@@ -13,30 +13,32 @@ export interface LookupBaseResponse {
 export interface LookupBaseItem {
 	permissionship?: Permissionship;
 }
-export interface LookupResourcesRequest extends LookupBaseRequest {
-	subjectId: string;
+
+export interface LookupTargetEntitiesRequest extends LookupBaseRequest {
+	entityId: string;
 	limit?: number;
 	cursor?: string;
 }
 
-export interface LookupResourceItem extends LookupBaseItem {
-	resourceType: string;
-	resourceId: string;
+export interface TargetEntityItem extends LookupBaseItem {
+	TargetEntityType: string;
+	TargetEntityId: string;
 }
 
-export interface LookupResourcesResponse extends LookupBaseResponse {
-	resources: LookupResourceItem[];
+export interface LookupTargetEntitiesResponse extends LookupBaseResponse {
+	targets: TargetEntityItem[];
 	cursor?: string;
 }
 
-export interface LookupSubjectItem extends LookupBaseItem {
-	subjectType: string;
-	subjectId: string;
-}
-export interface LookupSubjectsRequest extends LookupBaseRequest {
-	resourceId: string;
+export interface EntityItem extends LookupBaseItem {
+	entityType: string;
+	entityId: string;
 }
 
-export interface LookupSubjectsResponse extends LookupBaseResponse {
-	subjects: LookupSubjectItem[];
+export interface LookupEntitiesRequest extends LookupBaseRequest {
+	TargetEntityId: string;
+}
+
+export interface LookupEntitiesResponse extends LookupBaseResponse {
+	entities: EntityItem[];
 }

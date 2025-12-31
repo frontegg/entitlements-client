@@ -3,10 +3,10 @@ import { mock, MockProxy } from 'jest-mock-extended';
 import { LoggingClient } from '../logging';
 import { ClientConfiguration } from '../client-configuration';
 import { v1 } from '@authzed/authzed-node';
-import { LookupResourcesRequest } from '../types';
+import { LookupTargetEntitiesRequest } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
 
-describe('SpiceDBEntitlementsClient.lookupResources', () => {
+describe('SpiceDBEntitlementsClient.lookupTargetEntities', () => {
 	let mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface>;
 	let mockLoggingClient: MockProxy<LoggingClient>;
 	let client: SpiceDBEntitlementsClient;
@@ -16,11 +16,11 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 		engineToken: 'mock-token'
 	};
 
-	const defaultRequest: LookupResourcesRequest = {
-		subjectType: 'user',
-		subjectId: 'user-123',
-		resourceType: 'document',
-		permission: 'read'
+	const defaultRequest: LookupTargetEntitiesRequest = {
+		entityType: 'user',
+		entityId: 'user-123',
+		TargetEntityType: 'document',
+		action: 'read'
 	};
 
 	beforeEach(() => {
@@ -32,7 +32,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 	});
 
 	describe('successful lookups', () => {
-		it('should return resources with correct structure (decoded from base64)', async () => {
+		it('should return targets with correct structure (decoded from base64)', async () => {
 			// SpiceDB returns base64-encoded IDs
 			const mockResults: v1.LookupResourcesResponse[] = [
 				{
@@ -52,30 +52,30 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
-			expect(result.resources).toHaveLength(2);
+			expect(result.targets).toHaveLength(2);
 			// Response should contain decoded IDs
-			expect(result.resources[0]).toEqual({
-				resourceType: 'document',
-				resourceId: 'resource-1',
+			expect(result.targets[0]).toEqual({
+				TargetEntityType: 'document',
+				TargetEntityId: 'resource-1',
 				permissionship: 'HAS_PERMISSION'
 			});
-			expect(result.resources[1]).toEqual({
-				resourceType: 'document',
-				resourceId: 'resource-2',
+			expect(result.targets[1]).toEqual({
+				TargetEntityType: 'document',
+				TargetEntityId: 'resource-2',
 				permissionship: 'CONDITIONAL_PERMISSION'
 			});
 			expect(result.totalReturned).toBe(2);
 			expect(result.cursor).toBeUndefined();
 		});
 
-		it('should return empty resources array when no results', async () => {
+		it('should return empty targets array when no results', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
-			expect(result.resources).toHaveLength(0);
+			expect(result.targets).toHaveLength(0);
 			expect(result.totalReturned).toBe(0);
 			expect(result.cursor).toBeUndefined();
 		});
@@ -83,7 +83,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 		it('should use default limit of 50 when not provided', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			await client.lookupResources(defaultRequest);
+			await client.lookupTargetEntities(defaultRequest);
 
 			expect(mockSpiceClient.lookupResources).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -95,7 +95,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 		it('should use provided limit', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			await client.lookupResources({ ...defaultRequest, limit: 100 });
+			await client.lookupTargetEntities({ ...defaultRequest, limit: 100 });
 
 			expect(mockSpiceClient.lookupResources).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -104,10 +104,10 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			);
 		});
 
-		it('should build correct SpiceDB request with base64-encoded subjectId', async () => {
+		it('should build correct SpiceDB request with base64-encoded entityId', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			await client.lookupResources(defaultRequest);
+			await client.lookupTargetEntities(defaultRequest);
 
 			expect(mockSpiceClient.lookupResources).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -137,7 +137,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			}));
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
 			expect(result.cursor).toBe('next-page-token'); // Returns cursor because results.length (50) === limit (50)
 			expect(result.totalReturned).toBe(50);
@@ -155,7 +155,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
 			expect(result.cursor).toBeUndefined(); // No cursor because results.length (1) < limit (50)
 			expect(result.totalReturned).toBe(1);
@@ -173,7 +173,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
 			expect(result.cursor).toBeUndefined();
 			expect(result.totalReturned).toBe(1);
@@ -182,7 +182,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 		it('should pass cursor to SpiceDB request when provided', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			await client.lookupResources({
+			await client.lookupTargetEntities({
 				...defaultRequest,
 				cursor: 'existing-cursor-token'
 			});
@@ -199,7 +199,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 		it('should not pass cursor when not provided', async () => {
 			mockSpiceClient.lookupResources.mockResolvedValue([]);
 
-			await client.lookupResources(defaultRequest);
+			await client.lookupTargetEntities(defaultRequest);
 
 			const callArg = mockSpiceClient.lookupResources.mock.calls[0][0];
 			expect(callArg.optionalCursor).toBeUndefined();
@@ -219,9 +219,9 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
-			expect(result.resources[0].permissionship).toBe('HAS_PERMISSION');
+			expect(result.targets[0].permissionship).toBe('HAS_PERMISSION');
 		});
 
 		it('should map CONDITIONAL_PERMISSION correctly', async () => {
@@ -236,9 +236,9 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
-			expect(result.resources[0].permissionship).toBe('CONDITIONAL_PERMISSION');
+			expect(result.targets[0].permissionship).toBe('CONDITIONAL_PERMISSION');
 		});
 
 		it('should map UNSPECIFIED to undefined', async () => {
@@ -253,9 +253,9 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
-			expect(result.resources[0].permissionship).toBeUndefined();
+			expect(result.targets[0].permissionship).toBeUndefined();
 		});
 	});
 
@@ -264,7 +264,7 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			const spiceDBError = new Error('SpiceDB error');
 			mockSpiceClient.lookupResources.mockRejectedValue(spiceDBError);
 
-			await expect(client.lookupResources(defaultRequest)).rejects.toThrow('SpiceDB error');
+			await expect(client.lookupTargetEntities(defaultRequest)).rejects.toThrow('SpiceDB error');
 		});
 	});
 
@@ -295,9 +295,10 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 			];
 			mockSpiceClient.lookupResources.mockResolvedValue(mockResults);
 
-			const result = await client.lookupResources(defaultRequest);
+			const result = await client.lookupTargetEntities(defaultRequest);
 
-			expect(result.resources.map((r) => r.resourceId)).toEqual(['first', 'second', 'third']);
+			expect(result.targets.map((r) => r.TargetEntityId)).toEqual(['first', 'second', 'third']);
 		});
 	});
 });
+

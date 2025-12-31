@@ -4,10 +4,10 @@ import {
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
-	LookupResourcesRequest,
-	LookupResourcesResponse,
-	LookupSubjectsRequest,
-	LookupSubjectsResponse,
+	LookupTargetEntitiesRequest,
+	LookupTargetEntitiesResponse,
+	LookupEntitiesRequest,
+	LookupEntitiesResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
@@ -17,8 +17,8 @@ import {
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { v1 } from '@authzed/authzed-node';
-import { buildLookupResourcesRequest, buildLookupSubjectsRequest } from './spicedb-queries/lookup-request.builder';
-import { mapLookupResourcesResponse, mapLookupSubjectsResponse } from './spicedb-queries/lookup-response.mapper';
+import { buildLookupTargetEntitiesRequest, buildLookupEntitiesRequest } from './spicedb-queries/lookup-request.builder';
+import { mapLookupTargetEntitiesResponse, mapLookupEntitiesResponse } from './spicedb-queries/lookup-response.mapper';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -85,14 +85,14 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	public async lookupResources(req: LookupResourcesRequest): Promise<LookupResourcesResponse> {
+	public async lookupTargetEntities(req: LookupTargetEntitiesRequest): Promise<LookupTargetEntitiesResponse> {
 		try {
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
-			const request = buildLookupResourcesRequest({
-				subjectType: req.subjectType,
-				subjectId: req.subjectId,
-				resourceType: req.resourceType,
-				permission: req.permission,
+			const request = buildLookupTargetEntitiesRequest({
+				entityType: req.entityType,
+				entityId: req.entityId,
+				TargetEntityType: req.TargetEntityType,
+				action: req.action,
 				limit,
 				cursor: req.cursor
 			});
@@ -102,20 +102,20 @@ export class SpiceDBEntitlementsClient {
 			if (this.logResults) {
 				await this.loggingClient.logRequest(request, results);
 			}
-			return mapLookupResourcesResponse(results, req.resourceType, limit);
+			return mapLookupTargetEntitiesResponse(results, req.TargetEntityType, limit);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;
 		}
 	}
 
-	public async lookupSubjects(req: LookupSubjectsRequest): Promise<LookupSubjectsResponse> {
+	public async lookupEntities(req: LookupEntitiesRequest): Promise<LookupEntitiesResponse> {
 		try {
-			const request = buildLookupSubjectsRequest({
-				resourceType: req.resourceType,
-				resourceId: req.resourceId,
-				subjectType: req.subjectType,
-				permission: req.permission
+			const request = buildLookupEntitiesRequest({
+				TargetEntityType: req.TargetEntityType,
+				TargetEntityId: req.TargetEntityId,
+				entityType: req.entityType,
+				action: req.action
 			});
 
 			const results = await this.spiceClient.lookupSubjects(request);
@@ -123,7 +123,7 @@ export class SpiceDBEntitlementsClient {
 			if (this.logResults) {
 				await this.loggingClient.logRequest(request, results);
 			}
-			return mapLookupSubjectsResponse(results, req.subjectType);
+			return mapLookupEntitiesResponse(results, req.entityType);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;

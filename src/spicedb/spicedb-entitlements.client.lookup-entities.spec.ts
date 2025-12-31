@@ -3,10 +3,10 @@ import { mock, MockProxy } from 'jest-mock-extended';
 import { LoggingClient } from '../logging';
 import { ClientConfiguration } from '../client-configuration';
 import { v1 } from '@authzed/authzed-node';
-import { LookupSubjectsRequest } from '../types';
+import { LookupEntitiesRequest } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
 
-describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
+describe('SpiceDBEntitlementsClient.lookupEntities', () => {
 	let mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface>;
 	let mockLoggingClient: MockProxy<LoggingClient>;
 	let client: SpiceDBEntitlementsClient;
@@ -16,11 +16,11 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 		engineToken: 'mock-token'
 	};
 
-	const defaultRequest: LookupSubjectsRequest = {
-		resourceType: 'document',
-		resourceId: 'doc-123',
-		subjectType: 'user',
-		permission: 'view'
+	const defaultRequest: LookupEntitiesRequest = {
+		TargetEntityType: 'document',
+		TargetEntityId: 'doc-123',
+		entityType: 'user',
+		action: 'view'
 	};
 
 	beforeEach(() => {
@@ -32,7 +32,7 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 	});
 
 	describe('successful lookups', () => {
-		it('should return subjects with correct structure (decoded from base64)', async () => {
+		it('should return entities with correct structure (decoded from base64)', async () => {
 			// SpiceDB returns base64-encoded IDs
 			const mockResults: v1.LookupSubjectsResponse[] = [
 				{
@@ -66,36 +66,36 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects).toHaveLength(2);
+			expect(result.entities).toHaveLength(2);
 			// Response should contain decoded IDs
-			expect(result.subjects[0]).toEqual({
-				subjectType: 'user',
-				subjectId: 'user-1',
+			expect(result.entities[0]).toEqual({
+				entityType: 'user',
+				entityId: 'user-1',
 				permissionship: 'HAS_PERMISSION'
 			});
-			expect(result.subjects[1]).toEqual({
-				subjectType: 'user',
-				subjectId: 'user-2',
+			expect(result.entities[1]).toEqual({
+				entityType: 'user',
+				entityId: 'user-2',
 				permissionship: 'CONDITIONAL_PERMISSION'
 			});
 			expect(result.totalReturned).toBe(2);
 		});
 
-		it('should return empty subjects array when no results', async () => {
+		it('should return empty entities array when no results', async () => {
 			mockSpiceClient.lookupSubjects.mockResolvedValue([]);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects).toHaveLength(0);
+			expect(result.entities).toHaveLength(0);
 			expect(result.totalReturned).toBe(0);
 		});
 
-		it('should build correct SpiceDB request with base64-encoded resourceId', async () => {
+		it('should build correct SpiceDB request with base64-encoded TargetEntityId', async () => {
 			mockSpiceClient.lookupSubjects.mockResolvedValue([]);
 
-			await client.lookupSubjects(defaultRequest);
+			await client.lookupEntities(defaultRequest);
 
 			expect(mockSpiceClient.lookupSubjects).toHaveBeenCalledWith(
 				expect.objectContaining({
@@ -130,9 +130,9 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects[0].permissionship).toBe('HAS_PERMISSION');
+			expect(result.entities[0].permissionship).toBe('HAS_PERMISSION');
 		});
 
 		it('should map CONDITIONAL_PERMISSION correctly', async () => {
@@ -154,9 +154,9 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects[0].permissionship).toBe('CONDITIONAL_PERMISSION');
+			expect(result.entities[0].permissionship).toBe('CONDITIONAL_PERMISSION');
 		});
 
 		it('should map UNSPECIFIED to undefined', async () => {
@@ -178,9 +178,9 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects[0].permissionship).toBeUndefined();
+			expect(result.entities[0].permissionship).toBeUndefined();
 		});
 
 		it('should handle missing subject gracefully', async () => {
@@ -198,10 +198,10 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects[0].subjectId).toBe('');
-			expect(result.subjects[0].permissionship).toBeUndefined();
+			expect(result.entities[0].entityId).toBe('');
+			expect(result.entities[0].permissionship).toBeUndefined();
 		});
 	});
 
@@ -210,14 +210,14 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const spiceDBError = new Error('SpiceDB error');
 			mockSpiceClient.lookupSubjects.mockRejectedValue(spiceDBError);
 
-			await expect(client.lookupSubjects(defaultRequest)).rejects.toThrow('SpiceDB error');
+			await expect(client.lookupEntities(defaultRequest)).rejects.toThrow('SpiceDB error');
 		});
 
 		it('should log error before throwing', async () => {
 			const spiceDBError = new Error('SpiceDB error');
 			mockSpiceClient.lookupSubjects.mockRejectedValue(spiceDBError);
 
-			await expect(client.lookupSubjects(defaultRequest)).rejects.toThrow();
+			await expect(client.lookupEntities(defaultRequest)).rejects.toThrow();
 
 			expect(mockLoggingClient.error).toHaveBeenCalledWith(spiceDBError);
 		});
@@ -271,9 +271,9 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			const result = await client.lookupSubjects(defaultRequest);
+			const result = await client.lookupEntities(defaultRequest);
 
-			expect(result.subjects.map((s) => s.subjectId)).toEqual(['first', 'second', 'third']);
+			expect(result.entities.map((s) => s.entityId)).toEqual(['first', 'second', 'third']);
 		});
 	});
 
@@ -285,7 +285,7 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			await clientWithLogging.lookupSubjects(defaultRequest);
+			await clientWithLogging.lookupEntities(defaultRequest);
 
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(expect.anything(), mockResults);
 		});
@@ -294,9 +294,10 @@ describe('SpiceDBEntitlementsClient.lookupSubjects', () => {
 			const mockResults: v1.LookupSubjectsResponse[] = [];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);
 
-			await client.lookupSubjects(defaultRequest);
+			await client.lookupEntities(defaultRequest);
 
 			expect(mockLoggingClient.logRequest).not.toHaveBeenCalled();
 		});
 	});
 });
+
