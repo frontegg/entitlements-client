@@ -1,3 +1,10 @@
+# [3.0.0-alpha.15](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.14...3.0.0-alpha.15) (2025-12-31)
+
+
+### Features
+
+* **spicedb:** new version with timebounds ([4c479b6](https://github.com/frontegg/entitlements-client/commit/4c479b65d0361eabadb4c8aab6b3fcdf4af41ed2))
+
 # [3.0.0-alpha.14](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.13...3.0.0-alpha.14) (2025-12-31)
 
 
