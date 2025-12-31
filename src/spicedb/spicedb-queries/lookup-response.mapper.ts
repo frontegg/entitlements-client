@@ -1,22 +1,16 @@
 import { v1 } from '@authzed/authzed-node';
-import {
-	LookupResourceItem,
-	LookupResourcesResponse,
-	LookupSubjectItem,
-	LookupSubjectsResponse,
-	Permissionship
-} from '../../types';
+import { TargetEntityItem, LookupTargetEntitiesResponse, EntityItem, LookupEntitiesResponse } from '../../types';
 import { permissionshipMap } from '../lookup.constants';
 import { decodeObjectId } from './base64.utils';
 
-export function mapLookupResourcesResponse(
+export function mapLookupTargetEntitiesResponse(
 	results: v1.LookupResourcesResponse[],
-	resourceType: string,
+	TargetEntityType: string,
 	limit: number
-): LookupResourcesResponse {
-	const resources: LookupResourceItem[] = results.map((result) => ({
-		resourceType,
-		resourceId: decodeObjectId(result.resourceObjectId),
+): LookupTargetEntitiesResponse {
+	const targets: TargetEntityItem[] = results.map((result) => ({
+		TargetEntityType,
+		TargetEntityId: decodeObjectId(result.resourceObjectId),
 		permissionship: permissionshipMap.get(result.permissionship)
 	}));
 
@@ -24,24 +18,24 @@ export function mapLookupResourcesResponse(
 	const nextCursor = lastResult?.afterResultCursor?.token;
 	const shouldReturnCursor = results.length === limit;
 	return {
-		resources,
+		targets,
 		cursor: shouldReturnCursor ? nextCursor : undefined,
-		totalReturned: resources.length
+		totalReturned: targets.length
 	};
 }
 
-export function mapLookupSubjectsResponse(
+export function mapLookupEntitiesResponse(
 	results: v1.LookupSubjectsResponse[],
-	subjectType: string
-): LookupSubjectsResponse {
-	const subjects: LookupSubjectItem[] = results.map((result) => ({
-		subjectType,
-		subjectId: decodeObjectId(result.subject?.subjectObjectId ?? ''),
+	entityType: string
+): LookupEntitiesResponse {
+	const entities: EntityItem[] = results.map((result) => ({
+		entityType,
+		entityId: decodeObjectId(result.subject?.subjectObjectId ?? ''),
 		permissionship: result.subject ? permissionshipMap.get(result.subject.permissionship) : undefined
 	}));
 
 	return {
-		subjects,
-		totalReturned: subjects.length
+		entities,
+		totalReturned: entities.length
 	};
 }

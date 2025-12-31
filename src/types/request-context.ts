@@ -23,6 +23,7 @@ export interface EntityEntitlementsContext {
 	entityType: string;
 	key: string;
 	action: string;
+	at?: string;
 }
 
 export type RequestContext =

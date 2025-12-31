@@ -1,4 +1,5 @@
 import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
+import { createActiveAtCaveatContext } from './caveat-context.utils';
 import { EntitlementsDynamicQuery, EntitlementsResult, FGASubjectContext, RequestContextType } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
@@ -19,6 +20,7 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		subjectContext
 	}: EntitlementsDynamicQuery<RequestContextType.Entity>): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as FGASubjectContext;
+		const caveatContext = createActiveAtCaveatContext(requestContext.at);
 		const request = v1.CheckPermissionRequest.create({
 			subject: {
 				object: {
@@ -31,7 +33,8 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				objectType: requestContext.entityType,
 				objectId: encodeObjectId(requestContext.key)
 			},
-			permission: requestContext.action
+			permission: requestContext.action,
+			context: caveatContext
 		});
 
 		const res = await this.client.checkPermission(request);

@@ -1,34 +1,39 @@
 import { v1 } from '@authzed/authzed-node';
-import { LookupResourcesRequest, LookupSubjectsRequest } from '../../types/lookup.types';
+import { LookupTargetEntitiesRequest, LookupEntitiesRequest } from '../../types/lookup.types';
 import { encodeObjectId } from './base64.utils';
+import { createActiveAtCaveatContext } from './caveat-context.utils';
 
-export function buildLookupResourcesRequest(params: LookupResourcesRequest): v1.LookupResourcesRequest {
-	const { subjectType, subjectId, resourceType, permission, limit, cursor } = params;
+export function buildLookupTargetEntitiesRequest(params: LookupTargetEntitiesRequest): v1.LookupResourcesRequest {
+	const { entityType, entityId, TargetEntityType, action, limit, cursor, at } = params;
+	const caveatContext = createActiveAtCaveatContext(at);
 
 	return v1.LookupResourcesRequest.create({
-		resourceObjectType: resourceType,
-		permission: permission,
+		resourceObjectType: TargetEntityType,
+		permission: action,
 		subject: {
 			object: {
-				objectType: subjectType,
-				objectId: encodeObjectId(subjectId)
+				objectType: entityType,
+				objectId: encodeObjectId(entityId)
 			},
 			optionalRelation: ''
 		},
 		optionalLimit: limit,
-		optionalCursor: cursor ? v1.Cursor.create({ token: cursor }) : undefined
+		optionalCursor: cursor ? v1.Cursor.create({ token: cursor }) : undefined,
+		context: caveatContext
 	});
 }
 
-export function buildLookupSubjectsRequest(params: LookupSubjectsRequest): v1.LookupSubjectsRequest {
-	const { resourceType, resourceId, subjectType, permission } = params;
+export function buildLookupEntitiesRequest(params: LookupEntitiesRequest): v1.LookupSubjectsRequest {
+	const { TargetEntityType, TargetEntityId, entityType, action, at } = params;
+	const caveatContext = createActiveAtCaveatContext(at);
 
 	return v1.LookupSubjectsRequest.create({
 		resource: {
-			objectType: resourceType,
-			objectId: encodeObjectId(resourceId)
+			objectType: TargetEntityType,
+			objectId: encodeObjectId(TargetEntityId)
 		},
-		permission: permission,
-		subjectObjectType: subjectType
+		permission: action,
+		subjectObjectType: entityType,
+		context: caveatContext
 	});
 }

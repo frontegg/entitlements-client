@@ -1,11 +1,12 @@
 import { LoggingClient } from './logging-client';
-import { EntitlementsResult, OpaResponse, RequestContext, SubjectContext } from '../types';
+import { EntitlementsResult, RequestContext, SubjectContext } from '../types';
+import { SpiceDBResponse } from '../types/spicedb.dto';
 
 export class SimpleLoggingClient implements LoggingClient {
 	public log(
 		subjectContext: SubjectContext,
 		requestContext: RequestContext,
-		queryResult: OpaResponse<EntitlementsResult>
+		queryResult: SpiceDBResponse<EntitlementsResult>
 	): void {
 		console.log({ subjectContext, requestContext, queryResult: queryResult.result });
 	}

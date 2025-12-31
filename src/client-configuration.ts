@@ -2,8 +2,8 @@ import { LoggingClient } from './logging';
 import { RequestContext, RequestContextType } from './types';
 
 export interface ClientConfiguration {
-	spiceDBEndpoint: string;
-	spiceDBToken: string;
+	engineEndpoint: string;
+	engineToken: string;
 	logging?: {
 		client?: LoggingClient;
 		logResults?: boolean;

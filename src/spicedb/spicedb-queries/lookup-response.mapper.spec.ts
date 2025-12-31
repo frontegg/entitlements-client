@@ -1,5 +1,5 @@
 import { v1 } from '@authzed/authzed-node';
-import { mapLookupResourcesResponse, mapLookupSubjectsResponse } from './lookup-response.mapper';
+import { mapLookupTargetEntitiesResponse, mapLookupEntitiesResponse } from './lookup-response.mapper';
 import { permissionshipMap } from '../lookup.constants';
 import { encodeObjectId } from './base64.utils';
 
@@ -24,8 +24,8 @@ describe('lookup-response.mapper', () => {
 		});
 	});
 
-	describe('mapLookupResourcesResponse', () => {
-		it('should map resources correctly and decode base64 resourceIds', () => {
+	describe('mapLookupTargetEntitiesResponse', () => {
+		it('should map targets correctly and decode base64 TargetEntityIds', () => {
 			// SpiceDB returns base64 encoded IDs
 			const results: v1.LookupResourcesResponse[] = [
 				{
@@ -44,18 +44,18 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupResourcesResponse(results, 'document', 50);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 50);
 
-			expect(response.resources).toHaveLength(2);
+			expect(response.targets).toHaveLength(2);
 			// Should decode to original IDs
-			expect(response.resources[0]).toEqual({
-				resourceType: 'document',
-				resourceId: 'resource-1',
+			expect(response.targets[0]).toEqual({
+				TargetEntityType: 'document',
+				TargetEntityId: 'resource-1',
 				permissionship: 'HAS_PERMISSION'
 			});
-			expect(response.resources[1]).toEqual({
-				resourceType: 'document',
-				resourceId: 'resource-2',
+			expect(response.targets[1]).toEqual({
+				TargetEntityType: 'document',
+				TargetEntityId: 'resource-2',
 				permissionship: 'CONDITIONAL_PERMISSION'
 			});
 			expect(response.totalReturned).toBe(2);
@@ -70,7 +70,7 @@ describe('lookup-response.mapper', () => {
 				afterResultCursor: i === 9 ? { token: 'next-cursor' } : undefined
 			}));
 
-			const response = mapLookupResourcesResponse(results, 'document', 10);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 10);
 
 			expect(response.cursor).toBe('next-cursor');
 		});
@@ -86,15 +86,15 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupResourcesResponse(results, 'document', 50);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 50);
 
 			expect(response.cursor).toBeUndefined();
 		});
 
 		it('should handle empty results', () => {
-			const response = mapLookupResourcesResponse([], 'document', 50);
+			const response = mapLookupTargetEntitiesResponse([], 'document', 50);
 
-			expect(response.resources).toHaveLength(0);
+			expect(response.targets).toHaveLength(0);
 			expect(response.totalReturned).toBe(0);
 			expect(response.cursor).toBeUndefined();
 		});
@@ -111,14 +111,14 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupResourcesResponse(results, 'document', 50);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 50);
 
-			expect(response.resources[0].resourceId).toBe(originalId);
+			expect(response.targets[0].TargetEntityId).toBe(originalId);
 		});
 	});
 
-	describe('mapLookupSubjectsResponse', () => {
-		it('should map subjects correctly and decode base64 subjectIds', () => {
+	describe('mapLookupEntitiesResponse', () => {
+		it('should map entities correctly and decode base64 entityIds', () => {
 			// SpiceDB returns base64 encoded IDs
 			const results: v1.LookupSubjectsResponse[] = [
 				{
@@ -151,27 +151,27 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupSubjectsResponse(results, 'user');
+			const response = mapLookupEntitiesResponse(results, 'user');
 
-			expect(response.subjects).toHaveLength(2);
+			expect(response.entities).toHaveLength(2);
 			// Should decode to original IDs
-			expect(response.subjects[0]).toEqual({
-				subjectType: 'user',
-				subjectId: 'user-1',
+			expect(response.entities[0]).toEqual({
+				entityType: 'user',
+				entityId: 'user-1',
 				permissionship: 'HAS_PERMISSION'
 			});
-			expect(response.subjects[1]).toEqual({
-				subjectType: 'user',
-				subjectId: 'user-2',
+			expect(response.entities[1]).toEqual({
+				entityType: 'user',
+				entityId: 'user-2',
 				permissionship: 'CONDITIONAL_PERMISSION'
 			});
 			expect(response.totalReturned).toBe(2);
 		});
 
 		it('should handle empty results', () => {
-			const response = mapLookupSubjectsResponse([], 'user');
+			const response = mapLookupEntitiesResponse([], 'user');
 
-			expect(response.subjects).toHaveLength(0);
+			expect(response.entities).toHaveLength(0);
 			expect(response.totalReturned).toBe(0);
 		});
 
@@ -189,10 +189,10 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupSubjectsResponse(results, 'user');
+			const response = mapLookupEntitiesResponse(results, 'user');
 
-			expect(response.subjects[0].subjectId).toBe('');
-			expect(response.subjects[0].permissionship).toBeUndefined();
+			expect(response.entities[0].entityId).toBe('');
+			expect(response.entities[0].permissionship).toBeUndefined();
 		});
 
 		it('should use subject.permissionship instead of deprecated top-level field', () => {
@@ -215,10 +215,10 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupSubjectsResponse(results, 'user');
+			const response = mapLookupEntitiesResponse(results, 'user');
 
 			// Should use the subject field value, not the deprecated top-level one
-			expect(response.subjects[0].permissionship).toBe('CONDITIONAL_PERMISSION');
+			expect(response.entities[0].permissionship).toBe('CONDITIONAL_PERMISSION');
 		});
 
 		it('should decode base64 IDs with real customer data format', () => {
@@ -241,9 +241,9 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupSubjectsResponse(results, 'cust_user');
+			const response = mapLookupEntitiesResponse(results, 'cust_user');
 
-			expect(response.subjects[0].subjectId).toBe(originalUserId);
+			expect(response.entities[0].entityId).toBe(originalUserId);
 		});
 	});
 });

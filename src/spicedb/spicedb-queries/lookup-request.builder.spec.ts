@@ -1,15 +1,15 @@
 import { v1 } from '@authzed/authzed-node';
-import { buildLookupResourcesRequest, buildLookupSubjectsRequest } from './lookup-request.builder';
+import { buildLookupTargetEntitiesRequest, buildLookupEntitiesRequest } from './lookup-request.builder';
 import { encodeObjectId } from './base64.utils';
 
 describe('lookup-request.builder', () => {
-	describe('buildLookupResourcesRequest', () => {
-		it('should build request with all parameters and encode subjectId', () => {
-			const result = buildLookupResourcesRequest({
-				subjectType: 'user',
-				subjectId: 'user-123',
-				resourceType: 'document',
-				permission: 'read',
+	describe('buildLookupTargetEntitiesRequest', () => {
+		it('should build request with all parameters and encode entityId', () => {
+			const result = buildLookupTargetEntitiesRequest({
+				entityType: 'user',
+				entityId: 'user-123',
+				TargetEntityType: 'document',
+				action: 'read',
 				limit: 100,
 				cursor: 'cursor-token'
 			});
@@ -17,7 +17,7 @@ describe('lookup-request.builder', () => {
 			expect(result.resourceObjectType).toBe('document');
 			expect(result.permission).toBe('read');
 			expect(result.subject?.object?.objectType).toBe('user');
-			// subjectId should be base64 encoded
+			// entityId should be base64 encoded
 			expect(result.subject?.object?.objectId).toBe(encodeObjectId('user-123'));
 			expect(result.subject?.optionalRelation).toBe('');
 			expect(result.optionalLimit).toBe(100);
@@ -25,11 +25,11 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should build request without cursor when not provided', () => {
-			const result = buildLookupResourcesRequest({
-				subjectType: 'user',
-				subjectId: 'user-123',
-				resourceType: 'document',
-				permission: 'read',
+			const result = buildLookupTargetEntitiesRequest({
+				entityType: 'user',
+				entityId: 'user-123',
+				TargetEntityType: 'document',
+				action: 'read',
 				limit: 50
 			});
 
@@ -37,11 +37,11 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should create valid v1.LookupResourcesRequest', () => {
-			const result = buildLookupResourcesRequest({
-				subjectType: 'user',
-				subjectId: 'user-123',
-				resourceType: 'document',
-				permission: 'read',
+			const result = buildLookupTargetEntitiesRequest({
+				entityType: 'user',
+				entityId: 'user-123',
+				TargetEntityType: 'document',
+				action: 'read',
 				limit: 50
 			});
 
@@ -52,12 +52,12 @@ describe('lookup-request.builder', () => {
 			expect(result).toHaveProperty('optionalLimit');
 		});
 
-		it('should encode subjectId to URL-safe base64', () => {
-			const result = buildLookupResourcesRequest({
-				subjectType: 'user',
-				subjectId: 'user+special/chars=test',
-				resourceType: 'document',
-				permission: 'read',
+		it('should encode entityId to URL-safe base64', () => {
+			const result = buildLookupTargetEntitiesRequest({
+				entityType: 'user',
+				entityId: 'user+special/chars=test',
+				TargetEntityType: 'document',
+				action: 'read',
 				limit: 50
 			});
 
@@ -69,28 +69,28 @@ describe('lookup-request.builder', () => {
 		});
 	});
 
-	describe('buildLookupSubjectsRequest', () => {
-		it('should build request with all parameters and encode resourceId', () => {
-			const result = buildLookupSubjectsRequest({
-				resourceType: 'document',
-				resourceId: 'doc-123',
-				subjectType: 'user',
-				permission: 'view'
+	describe('buildLookupEntitiesRequest', () => {
+		it('should build request with all parameters and encode TargetEntityId', () => {
+			const result = buildLookupEntitiesRequest({
+				TargetEntityType: 'document',
+				TargetEntityId: 'doc-123',
+				entityType: 'user',
+				action: 'view'
 			});
 
 			expect(result.resource?.objectType).toBe('document');
-			// resourceId should be base64 encoded
+			// TargetEntityId should be base64 encoded
 			expect(result.resource?.objectId).toBe(encodeObjectId('doc-123'));
 			expect(result.permission).toBe('view');
 			expect(result.subjectObjectType).toBe('user');
 		});
 
 		it('should create valid v1.LookupSubjectsRequest', () => {
-			const result = buildLookupSubjectsRequest({
-				resourceType: 'document',
-				resourceId: 'doc-123',
-				subjectType: 'user',
-				permission: 'view'
+			const result = buildLookupEntitiesRequest({
+				TargetEntityType: 'document',
+				TargetEntityId: 'doc-123',
+				entityType: 'user',
+				action: 'view'
 			});
 
 			// Verify it's a valid LookupSubjectsRequest structure
@@ -99,12 +99,12 @@ describe('lookup-request.builder', () => {
 			expect(result).toHaveProperty('subjectObjectType');
 		});
 
-		it('should handle different resource types and encode resourceId', () => {
-			const result = buildLookupSubjectsRequest({
-				resourceType: 'folder',
-				resourceId: 'folder-456',
-				subjectType: 'group',
-				permission: 'admin'
+		it('should handle different target entity types and encode TargetEntityId', () => {
+			const result = buildLookupEntitiesRequest({
+				TargetEntityType: 'folder',
+				TargetEntityId: 'folder-456',
+				entityType: 'group',
+				action: 'admin'
 			});
 
 			expect(result.resource?.objectType).toBe('folder');
@@ -113,12 +113,12 @@ describe('lookup-request.builder', () => {
 			expect(result.permission).toBe('admin');
 		});
 
-		it('should encode resourceId to URL-safe base64', () => {
-			const result = buildLookupSubjectsRequest({
-				resourceType: 'document',
-				resourceId: 'doc+special/chars=test',
-				subjectType: 'user',
-				permission: 'view'
+		it('should encode TargetEntityId to URL-safe base64', () => {
+			const result = buildLookupEntitiesRequest({
+				TargetEntityType: 'document',
+				TargetEntityId: 'doc+special/chars=test',
+				entityType: 'user',
+				action: 'view'
 			});
 
 			const encodedId = result.resource?.objectId;
