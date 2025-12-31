@@ -55,17 +55,21 @@ export class SpiceDBEntitlementsClient {
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
 		try {
-			await this.loggingClient.logRequest(
-				{ action: 'SpiceDB:isEntitledTo:request', subjectContext, requestContext },
-				null
-			);
+			if (this.logResults) {
+				await this.loggingClient.logRequest(
+					{ action: 'SpiceDB:isEntitledTo:request', subjectContext, requestContext },
+					null
+				);
+			}
 
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
 
-			await this.loggingClient.logRequest(
-				{ action: 'SpiceDB:isEntitledTo:response', subjectContext, requestContext },
-				res
-			);
+			if (this.logResults) {
+				await this.loggingClient.logRequest(
+					{ action: 'SpiceDB:isEntitledTo:response', subjectContext, requestContext },
+					res
+				);
+			}
 
 			if (res.result.monitoring || this.logResults) {
 				await this.loggingClient.log(subjectContext, requestContext, res);
