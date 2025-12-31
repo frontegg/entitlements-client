@@ -1,9 +1,11 @@
 import { v1 } from '@authzed/authzed-node';
 import { LookupTargetEntitiesRequest, LookupEntitiesRequest } from '../../types/lookup.types';
 import { encodeObjectId } from './base64.utils';
+import { createActiveAtCaveatContext } from './caveat-context.utils';
 
 export function buildLookupTargetEntitiesRequest(params: LookupTargetEntitiesRequest): v1.LookupResourcesRequest {
-	const { entityType, entityId, TargetEntityType, action, limit, cursor } = params;
+	const { entityType, entityId, TargetEntityType, action, limit, cursor, at } = params;
+	const caveatContext = createActiveAtCaveatContext(at);
 
 	return v1.LookupResourcesRequest.create({
 		resourceObjectType: TargetEntityType,
@@ -16,12 +18,14 @@ export function buildLookupTargetEntitiesRequest(params: LookupTargetEntitiesReq
 			optionalRelation: ''
 		},
 		optionalLimit: limit,
-		optionalCursor: cursor ? v1.Cursor.create({ token: cursor }) : undefined
+		optionalCursor: cursor ? v1.Cursor.create({ token: cursor }) : undefined,
+		context: caveatContext
 	});
 }
 
 export function buildLookupEntitiesRequest(params: LookupEntitiesRequest): v1.LookupSubjectsRequest {
-	const { TargetEntityType, TargetEntityId, entityType, action } = params;
+	const { TargetEntityType, TargetEntityId, entityType, action, at } = params;
+	const caveatContext = createActiveAtCaveatContext(at);
 
 	return v1.LookupSubjectsRequest.create({
 		resource: {
@@ -29,6 +33,7 @@ export function buildLookupEntitiesRequest(params: LookupEntitiesRequest): v1.Lo
 			objectId: encodeObjectId(TargetEntityId)
 		},
 		permission: action,
-		subjectObjectType: entityType
+		subjectObjectType: entityType,
+		context: caveatContext
 	});
 }

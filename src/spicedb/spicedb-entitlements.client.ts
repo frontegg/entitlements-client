@@ -94,7 +94,8 @@ export class SpiceDBEntitlementsClient {
 				TargetEntityType: req.TargetEntityType,
 				action: req.action,
 				limit,
-				cursor: req.cursor
+				cursor: req.cursor,
+				at: req.at
 			});
 
 			const results = await this.spiceClient.lookupResources(request);
@@ -115,7 +116,8 @@ export class SpiceDBEntitlementsClient {
 				TargetEntityType: req.TargetEntityType,
 				TargetEntityId: req.TargetEntityId,
 				entityType: req.entityType,
-				action: req.action
+				action: req.action,
+				at: req.at
 			});
 
 			const results = await this.spiceClient.lookupSubjects(request);

@@ -138,9 +138,44 @@ if (!e10sResult.result) {
 }
 ```
 
+#### Query for FGA with Time-Based Access (active_at caveat)
+
+For relationships that use the `active_at` caveat to control time-based access, you can specify the `at` parameter to evaluate access at a specific point in time.
+
+```typescript
+const e10sResult = await e10sClient.isEntitledTo(
+	{
+		entityType: 'user',
+		key: 'some@user.com'
+	},
+	{
+		type: RequestContextType.Entity,
+		entityType: 'document',
+		key: 'README.md',
+		action: 'read',
+		at: '2026-01-15T12:00:00Z'
+	}
+);
+
+if (!e10sResult.result) {
+	console.log(`User is not allowed to read document at the specified time`);
+}
+```
+
+The `at` parameter accepts ISO 8601 format strings:
+
+-   UTC format: `2025-12-31T23:59:59Z`
+-   Timezone offset: `2025-12-31T23:59:59+02:00`
+
+If not provided, `at` defaults to the current UTC time.
+
+> **Note:** The `at` parameter is also supported in [Lookup Operations](#lookup-operations) with the same format and behavior.
+
 ## Lookup Operations
 
 The client provides lookup operations that query the ReBAC authorization model to discover access relationships between entities.
+
+All lookup operations support the optional `at` parameter for time-based access control (see [Time-Based Access](#query-for-fga-with-time-based-access-active_at-caveat)).
 
 ### Lookup Target Entities
 
@@ -153,7 +188,8 @@ const response = await e10sClient.lookupTargetEntities({
 	TargetEntityType: 'document',
 	action: 'read',
 	limit: 100, // Optional: limit number of results (default: 50, max: 1000)
-	cursor: undefined // Optional: pagination cursor
+	cursor: undefined, // Optional: pagination cursor
+	at: '2026-01-15T12:00:00.000Z' // Optional: ISO 8601 timestamp for active_at caveat
 });
 
 console.log(`Found ${response.totalReturned} Target Entities`);
@@ -181,7 +217,8 @@ const response = await e10sClient.lookupEntities({
 	TargetEntityType: 'document',
 	TargetEntityId: 'doc-456',
 	entityType: 'user',
-	action: 'read'
+	action: 'read',
+	at: '2026-01-15T12:00:00Z'
 });
 
 console.log(`Found ${response.totalReturned} entities`);

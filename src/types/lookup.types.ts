@@ -4,6 +4,7 @@ export interface LookupBaseRequest {
 	action: string;
 	TargetEntityType: string;
 	entityType: string;
+	at?: string;
 }
 
 export interface LookupBaseResponse {
