@@ -1,3 +1,10 @@
+# [3.0.0-alpha.13](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.12...3.0.0-alpha.13) (2025-12-30)
+
+
+### Bug Fixes
+
+* **spicedb:** update client security setting to INSECURE_PLAINTEXT_CREDENTIALS ([2b8b6f6](https://github.com/frontegg/entitlements-client/commit/2b8b6f6d2f4353fda066205543c24813fc6efec4))
+
 # [3.0.0-alpha.12](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.11...3.0.0-alpha.12) (2025-12-25)
 
 
