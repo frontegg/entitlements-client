@@ -5,12 +5,12 @@ import { SpiceDBEntitlementsClient } from './spicedb/spicedb-entitlements.client
 
 export class EntitlementsClientFactory {
 	public static create(configuration: ClientConfiguration): SpiceDBEntitlementsClient {
-		if (!configuration.spiceDBEndpoint) {
-			throw new ConfigurationInputIsMissingException('spiceDBEndpoint is required');
+		if (!configuration.engineEndpoint) {
+			throw new ConfigurationInputIsMissingException('engineEndpoint is required');
 		}
 
-		if (!configuration.spiceDBToken) {
-			throw new ConfigurationInputIsMissingException('spiceDBToken is required');
+		if (!configuration.engineToken) {
+			throw new ConfigurationInputIsMissingException('engineToken is required');
 		}
 
 		const { loggingClient, logResults } = this.configureLoggingClient(configuration.logging);

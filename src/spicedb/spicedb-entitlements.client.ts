@@ -33,8 +33,8 @@ export class SpiceDBEntitlementsClient {
 	) {
 		try {
 			this.spiceClient = v1.NewClient(
-				this.configuration.spiceDBToken,
-				this.configuration.spiceDBEndpoint,
+				this.configuration.engineToken,
+				this.configuration.engineEndpoint,
 				v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
 			).promises;
 
@@ -42,7 +42,7 @@ export class SpiceDBEntitlementsClient {
 		} catch (initError) {
 			void this.loggingClient.error({
 				action: 'SpiceDBClient:init:error',
-				endpoint: this.configuration.spiceDBEndpoint,
+				endpoint: this.configuration.engineEndpoint,
 				error: initError,
 				message: 'Failed to initialize SpiceDB client'
 			});

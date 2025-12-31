@@ -5,7 +5,7 @@ import { ClientConfiguration } from './client-configuration';
 import { SpiceDBEntitlementsClient } from './spicedb/spicedb-entitlements.client';
 
 describe(EntitlementsClientFactory.name, () => {
-	it('should fail to create an EntitlementsClient when spiceDBEndpoint is missing', () => {
+	it('should fail to create an EntitlementsClient when engineEndpoint is missing', () => {
 		try {
 			EntitlementsClientFactory.create({} as unknown as ClientConfiguration);
 			fail();
@@ -14,9 +14,9 @@ describe(EntitlementsClientFactory.name, () => {
 		}
 	});
 
-	it('should fail to create an EntitlementsClient when spiceDBToken is missing', () => {
+	it('should fail to create an EntitlementsClient when engineToken is missing', () => {
 		try {
-			EntitlementsClientFactory.create({ spiceDBEndpoint: 'mock-host' } as ClientConfiguration);
+			EntitlementsClientFactory.create({ engineEndpoint: 'mock-host' } as ClientConfiguration);
 			fail();
 		} catch (e) {
 			expect(e).toBeInstanceOf(ConfigurationInputIsMissingException);
@@ -24,8 +24,8 @@ describe(EntitlementsClientFactory.name, () => {
 	});
 	it('should create an EntitlementsClient with default configuration', async () => {
 		const client = EntitlementsClientFactory.create({
-			spiceDBEndpoint: 'mock-host',
-			spiceDBToken: 'mock-token'
+			engineEndpoint: 'mock-host',
+			engineToken: 'mock-token'
 		});
 		expect(client).toBeInstanceOf(SpiceDBEntitlementsClient);
 	});
@@ -34,8 +34,8 @@ describe(EntitlementsClientFactory.name, () => {
 		'should create an EntitlementsClient and call isEntitledTo for request context of type `%s`',
 		async (requestContextType) => {
 			const client = EntitlementsClientFactory.create({
-				spiceDBEndpoint: 'mock-host',
-				spiceDBToken: 'mock-token'
+				engineEndpoint: 'mock-host',
+				engineToken: 'mock-token'
 			});
 
 			// Mock the spiceDBQuery method to avoid actual API calls

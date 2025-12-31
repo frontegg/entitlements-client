@@ -12,8 +12,8 @@ describe('SpiceDBEntitlementsClient.lookupResources', () => {
 	let client: SpiceDBEntitlementsClient;
 
 	const mockClientConfig: ClientConfiguration = {
-		spiceDBEndpoint: 'mock-endpoint',
-		spiceDBToken: 'mock-token'
+		engineEndpoint: 'mock-endpoint',
+		engineToken: 'mock-token'
 	};
 
 	const defaultRequest: LookupResourcesRequest = {

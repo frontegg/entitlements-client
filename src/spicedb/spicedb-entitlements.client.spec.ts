@@ -54,8 +54,8 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			mockSpiceDBQueryClient.spiceDBQuery.mockResolvedValue(spiceDBResult);
 
 			const mockClientConfig: ClientConfiguration = {
-				spiceDBEndpoint: 'mock-endpoint',
-				spiceDBToken: 'mock-token'
+				engineEndpoint: 'mock-endpoint',
+				engineToken: 'mock-token'
 			};
 
 			const subjectContext: SubjectContext = {
@@ -124,8 +124,8 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			mockSpiceDBQueryClient.spiceDBQuery.mockRejectedValue(error);
 
 			const mockClientConfig: ClientConfiguration = {
-				spiceDBEndpoint: 'mock-endpoint',
-				spiceDBToken: 'mock-token'
+				engineEndpoint: 'mock-endpoint',
+				engineToken: 'mock-token'
 			};
 
 			const subjectContext: SubjectContext = {
@@ -235,8 +235,8 @@ describe(SpiceDBEntitlementsClient.name, () => {
 		mockSpiceDBQueryClient.spiceDBQuery.mockRejectedValue(error);
 
 		const mockClientConfig: ClientConfiguration = {
-			spiceDBEndpoint: 'mock-endpoint',
-			spiceDBToken: 'mock-token'
+			engineEndpoint: 'mock-endpoint',
+			engineToken: 'mock-token'
 		};
 
 		const fallbackConfiguration: FallbackConfiguration = {
@@ -311,8 +311,8 @@ describe(SpiceDBEntitlementsClient.name, () => {
 		mockSpiceDBQueryClient.spiceDBQuery.mockRejectedValue(error);
 
 		const mockClientConfig: ClientConfiguration = {
-			spiceDBEndpoint: 'mock-endpoint',
-			spiceDBToken: 'mock-token'
+			engineEndpoint: 'mock-endpoint',
+			engineToken: 'mock-token'
 		};
 
 		const fallbackConfiguration: FallbackConfiguration = async (requestContext: RequestContext) => {
@@ -355,8 +355,8 @@ describe(SpiceDBEntitlementsClient.name, () => {
 	describe('Constructor parameter validation', () => {
 		const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
 		const mockClientConfig: ClientConfiguration = {
-			spiceDBEndpoint: 'mock-endpoint',
-			spiceDBToken: 'mock-token'
+			engineEndpoint: 'mock-endpoint',
+			engineToken: 'mock-token'
 		};
 
 		it('should create instance with minimal parameters', () => {
@@ -375,8 +375,8 @@ describe(SpiceDBEntitlementsClient.name, () => {
 		const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
 		const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
 		const mockClientConfig: ClientConfiguration = {
-			spiceDBEndpoint: 'mock-endpoint',
-			spiceDBToken: 'mock-token'
+			engineEndpoint: 'mock-endpoint',
+			engineToken: 'mock-token'
 		};
 
 		it('should handle undefined result gracefully', async () => {
