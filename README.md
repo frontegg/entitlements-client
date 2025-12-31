@@ -1,4 +1,5 @@
 <br />
+
 <div align="center">
 <img src="https://fronteggstuff.blob.core.windows.net/frongegg-logos/logo-transparent.png" alt="Frontegg Logo" width="400" height="90">
 
@@ -10,6 +11,7 @@
 -   [Installation](#installation)
 -   [Prerequisite](#prerequisite)
 -   [Usage](#usage)
+-   [Lookup Operations](#lookup-operations)
 -   [Justifications](#justifications)
 -   [Monitoring](#monitoring)
 
@@ -23,9 +25,9 @@ $ npm install @frontegg/e10s-client
 
 ## Prerequisite
 
-Since the Entitlements Client is interacting with the Entitlements Agent, it is required to setup and run the agent.
+The Entitlements Client interacts with Frontegg’s ReBAC authorization engine to evaluate permissions and query access relationships.
 
-Look for instructions [here](https://docs.frontegg.com/docs/configuration)
+Look for instructions [here](https://developers.frontegg.com/ciam/guides/authorization/entitlements/agent/setup)
 
 ## Usage
 
@@ -35,7 +37,27 @@ Look for instructions [here](https://docs.frontegg.com/docs/configuration)
 import { EntitlementsClientFactory, RequestContextType } from '@frontegg/e10s-client';
 
 const e10sClient = EntitlementsClientFactory.create({
-	pdpHost: 'http://localhost:8181' // Entitlements Agent Host
+	engineEndpoint: 'localhost:50051',
+	engineToken: 'your-engine-token'
+});
+```
+
+### Configuration Options
+
+```typescript
+import { EntitlementsClientFactory } from '@frontegg/e10s-client';
+
+const e10sClient = EntitlementsClientFactory.create({
+	engineEndpoint: 'localhost:50051',
+	engineToken: 'your-engine-token',
+	logging: {
+		client: customLoggingClient, // Optional: custom logging client
+		logResults: true // Optional: log all query results
+	},
+	fallbackConfiguration: {
+		// Optional: fallback behavior on errors
+		defaultFallback: false
+	}
 });
 ```
 
@@ -53,90 +75,123 @@ const subjectContext: SubjectContext = {
 ```
 
 ### Query
+
 The Entitlements client allows you to query for a feature, permission or a route entitlement, each requires different context information.
 
 #### Query for Feature
 
 ```typescript
-const e10sResult = await e10sClient.isEntitledTo(
-	subjectContext,
-	{
-		type: RequestContextType.Feature,
-		featureKey: 'my-cool-feature'
-	}
-);
+const e10sResult = await e10sClient.isEntitledTo(subjectContext, {
+	type: RequestContextType.Feature,
+	featureKey: 'my-cool-feature'
+});
 
 if (!e10sResult.result) {
-	console.log(`User is not entitled to "my-cool-feature" feature, reason: ${e10sResult.justification}`);
+	console.log(`User is not entitled to "my-cool-feature" feature`);
 }
 ```
 
 #### Query for Permission
 
 ```typescript
-const e10sResult = await e10sClient.isEntitledTo(
-	subjectContext,
-	{
-		type: RequestContextType.Permission,
-		permissionKey: 'read'
-	}
-);
+const e10sResult = await e10sClient.isEntitledTo(subjectContext, {
+	type: RequestContextType.Permission,
+	permissionKey: 'read'
+});
 
 if (!e10sResult.result) {
-	console.log(`User is not entitled to "read" permission, reason: ${e10sResult.justification}`);
+	console.log(`User is not entitled to "read" permission`);
 }
 ```
 
 #### Query for Route
 
 ```typescript
-const e10sResult = await e10sClient.isEntitledTo(
-	subjectContext,
-	{
-		type: RequestContextType.Route,
-		method: "GET",
-        path: "/users"
-	}
-);
+const e10sResult = await e10sClient.isEntitledTo(subjectContext, {
+	type: RequestContextType.Route,
+	method: 'GET',
+	path: '/users'
+});
 
 if (!e10sResult.result) {
-	console.log(`User is not entitled to "GET /users" route, reason: ${e10sResult.justification}`);
+	console.log(`User is not entitled to "GET /users" route`);
 }
 ```
 
-#### Query for FGA
+#### Query for FGA (Fine-Grained Authorization)
 
 ```typescript
 const e10sResult = await e10sClient.isEntitledTo(
 	{
-		entityType: "user",
-		key: "some@user.com"
+		entityType: 'user',
+		key: 'some@user.com'
 	},
 	{
 		type: RequestContextType.Entity,
-		entityType: "document",
-        key: "README.md",
-		action: "read"
+		entityType: 'document',
+		key: 'README.md',
+		action: 'read'
 	}
 );
 
 if (!e10sResult.result) {
-	console.log(`User is not allowed to read document, reason: ${e10sResult.justification}`);
+	console.log(`User is not allowed to read document`);
 }
 ```
 
-## Justifications
+## Lookup Operations
 
-List of possible justifications
+The client provides lookup operations that query the ReBAC authorization model to discover access relationships between entities.
 
-| Justification      | Meaning                                                          |
-| ------------------ | ---------------------------------------------------------------- |
-| MISSING_FEATURE    | User is missing the feature                                      |
-| MISSING_PERMISSION | User is missing the permission                                   |
-| PLAN_EXPIRED       | User has a plan that covers the feature, but the plan is expired |
-| MISSING_ROUTE      | Requested route is not configured                                |
-| ROUTE_DENIED       | Requested route is configured to be blocked                      |
-| MISSING_RELATION   | Missing ReBAC relation that enables a subject-entity to perform a specified action on a target-entity                       |
+### Lookup Target Entities
+
+Find all TargetEntity instances (i.e. documents) of a given type that an entity (i.e user) is entitled to perform a specific action on.
+
+```typescript
+const response = await e10sClient.lookupTargetEntities({
+	entityType: 'user',
+	entityId: 'user-123',
+	TargetEntityType: 'document',
+	action: 'read',
+	limit: 100, // Optional: limit number of results (default: 50, max: 1000)
+	cursor: undefined // Optional: pagination cursor
+});
+
+console.log(`Found ${response.totalReturned} Target Entities`);
+
+response.targets.forEach((target) => {
+	console.log(`${target.TargetEntityType}:${target.TargetEntityId}`);
+	// resource.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+});
+
+// For pagination, use the returned cursor
+if (response.cursor) {
+	const nextPage = await e10sClient.lookupResources({
+		// ... same params
+		cursor: response.cursor
+	});
+}
+```
+
+### Lookup Entities
+
+Find all entities (i.e. users) of a given type that are entitled to perform a specific action on a given entity instance (i.e. documents)
+
+```typescript
+const response = await e10sClient.lookupEntities({
+	TargetEntityType: 'document',
+	TargetEntityId: 'doc-456',
+	entityType: 'user',
+	action: 'read'
+});
+
+console.log(`Found ${response.totalReturned} entities`);
+
+response.entities.forEach((entity) => {
+	console.log(`${entity.entityType}:${entity.entityId}`);
+	// subject.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+});
+```
 
 ## Monitoring
 
