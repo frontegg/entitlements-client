@@ -1,4 +1,3 @@
-export * from './entitlements-justifications.enum';
 export * from './entitlements-query';
 export * from './entitlements-result';
 export * from './lookup.types';
