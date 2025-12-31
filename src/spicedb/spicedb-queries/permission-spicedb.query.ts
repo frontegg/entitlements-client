@@ -3,10 +3,14 @@ import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserS
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
+import { LoggingClient } from '../../logging';
 
 export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
-		super(client);
+	constructor(
+		protected readonly client: v1.ZedPromiseClientInterface,
+		loggingClient?: LoggingClient
+	) {
+		super(client, loggingClient);
 	}
 
 	public async query({

@@ -6,16 +6,20 @@ import { FeaturesSpiceDBQuery } from './features-spicedb.query';
 import { FgaSpiceDBQuery } from './fga-spicedb.query';
 import { RouteSpiceDBQuery } from './route-spicedb.query';
 import { v1 } from '@authzed/authzed-node';
+import { LoggingClient } from '../../logging';
 
 export class SpiceDBQueryClient {
 	private readonly strategy: Record<RequestContextType, EntitlementsSpiceDBQuery>;
 
-	constructor(private readonly client: v1.ZedPromiseClientInterface) {
+	constructor(
+		private readonly client: v1.ZedPromiseClientInterface,
+		loggingClient?: LoggingClient
+	) {
 		this.strategy = {
-			[RequestContextType.Permission]: new PermissionSpiceDBQuery(client),
-			[RequestContextType.Feature]: new FeaturesSpiceDBQuery(client),
-			[RequestContextType.Entity]: new FgaSpiceDBQuery(client),
-			[RequestContextType.Route]: new RouteSpiceDBQuery(client)
+			[RequestContextType.Permission]: new PermissionSpiceDBQuery(client, loggingClient),
+			[RequestContextType.Feature]: new FeaturesSpiceDBQuery(client, loggingClient),
+			[RequestContextType.Entity]: new FgaSpiceDBQuery(client, loggingClient),
+			[RequestContextType.Route]: new RouteSpiceDBQuery(client, loggingClient)
 		};
 	}
 

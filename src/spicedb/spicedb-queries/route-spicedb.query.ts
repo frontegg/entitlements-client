@@ -5,13 +5,17 @@ import { v1 } from '@authzed/authzed-node';
 import { LRUCache } from 'lru-cache';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { encodeObjectId } from './base64.utils';
+import { LoggingClient } from '../../logging';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	private readonly cache: LRUCache<string, any>;
 	private static readonly CACHE_TTL = 30 * 1000;
 
-	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
-		super(client);
+	constructor(
+		protected readonly client: v1.ZedPromiseClientInterface,
+		loggingClient?: LoggingClient
+	) {
+		super(client, loggingClient);
 		this.cache = new LRUCache({ max: 100, ttl: RouteSpiceDBQuery.CACHE_TTL });
 	}
 

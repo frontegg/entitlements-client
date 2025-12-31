@@ -3,10 +3,14 @@ import { EntitlementsDynamicQuery, EntitlementsResult, FGASubjectContext, Reques
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { encodeObjectId } from './base64.utils';
+import { LoggingClient } from '../../logging';
 
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	constructor(protected readonly client: v1.ZedPromiseClientInterface) {
-		super(client);
+	constructor(
+		protected readonly client: v1.ZedPromiseClientInterface,
+		loggingClient?: LoggingClient
+	) {
+		super(client, loggingClient);
 	}
 
 	async query({
