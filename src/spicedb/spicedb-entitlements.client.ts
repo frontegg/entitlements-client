@@ -38,7 +38,7 @@ export class SpiceDBEntitlementsClient {
 				v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
 			).promises;
 
-			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient, this.loggingClient);
+			this.spiceDBQueryClient = new SpiceDBQueryClient(this.spiceClient, this.loggingClient, this.logResults);
 		} catch (initError) {
 			void this.loggingClient.error({
 				action: 'SpiceDBClient:init:error',

@@ -8,9 +8,10 @@ import { LoggingClient } from '../../logging';
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
 		protected readonly client: v1.ZedPromiseClientInterface,
-		loggingClient?: LoggingClient
+		loggingClient?: LoggingClient,
+		logResults: boolean = false
 	) {
-		super(client, loggingClient);
+		super(client, loggingClient, logResults);
 	}
 
 	async query({

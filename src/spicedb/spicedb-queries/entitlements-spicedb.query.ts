@@ -19,7 +19,8 @@ export interface HashOptions {
 export abstract class EntitlementsSpiceDBQuery {
 	protected constructor(
 		protected readonly client: v1.ZedPromiseClientInterface,
-		protected readonly loggingClient?: LoggingClient
+		protected readonly loggingClient?: LoggingClient,
+		protected readonly logResults: boolean = false
 	) {}
 
 	abstract query(
@@ -133,17 +134,21 @@ export abstract class EntitlementsSpiceDBQuery {
 		const caveatContext = this.createCaveatContext(context);
 		const request = this.createBulkPermissionsRequest(objectType, objectId, context, caveatContext);
 
-		await this.loggingClient?.logRequest(
-			{ action: 'SpiceDB:checkBulkPermissions:request', objectType, objectId, subjectContext },
-			{ request }
-		);
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{ action: 'SpiceDB:checkBulkPermissions:request', objectType, objectId, subjectContext },
+				{ request }
+			);
+		}
 
 		const res = await this.client.checkBulkPermissions(request);
 
-		await this.loggingClient?.logRequest(
-			{ action: 'SpiceDB:checkBulkPermissions:response', objectType, objectId },
-			{ response: res }
-		);
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{ action: 'SpiceDB:checkBulkPermissions:response', objectType, objectId },
+				{ response: res }
+			);
+		}
 
 		const result = this.processCheckBulkPermissionsResponse(res);
 

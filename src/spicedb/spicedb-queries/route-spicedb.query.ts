@@ -13,9 +13,10 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 	constructor(
 		protected readonly client: v1.ZedPromiseClientInterface,
-		loggingClient?: LoggingClient
+		loggingClient?: LoggingClient,
+		logResults: boolean = false
 	) {
-		super(client, loggingClient);
+		super(client, loggingClient, logResults);
 		this.cache = new LRUCache({ max: 100, ttl: RouteSpiceDBQuery.CACHE_TTL });
 	}
 

@@ -13,13 +13,14 @@ export class SpiceDBQueryClient {
 
 	constructor(
 		private readonly client: v1.ZedPromiseClientInterface,
-		loggingClient?: LoggingClient
+		loggingClient?: LoggingClient,
+		logResults: boolean = false
 	) {
 		this.strategy = {
-			[RequestContextType.Permission]: new PermissionSpiceDBQuery(client, loggingClient),
-			[RequestContextType.Feature]: new FeaturesSpiceDBQuery(client, loggingClient),
-			[RequestContextType.Entity]: new FgaSpiceDBQuery(client, loggingClient),
-			[RequestContextType.Route]: new RouteSpiceDBQuery(client, loggingClient)
+			[RequestContextType.Permission]: new PermissionSpiceDBQuery(client, loggingClient, logResults),
+			[RequestContextType.Feature]: new FeaturesSpiceDBQuery(client, loggingClient, logResults),
+			[RequestContextType.Entity]: new FgaSpiceDBQuery(client, loggingClient, logResults),
+			[RequestContextType.Route]: new RouteSpiceDBQuery(client, loggingClient, logResults)
 		};
 	}
 
