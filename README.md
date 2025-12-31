@@ -12,7 +12,6 @@
 -   [Prerequisite](#prerequisite)
 -   [Usage](#usage)
 -   [Lookup Operations](#lookup-operations)
--   [Justifications](#justifications)
 -   [Monitoring](#monitoring)
 
 ## Installation
