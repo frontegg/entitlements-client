@@ -167,7 +167,7 @@ The `at` parameter accepts ISO 8601 format strings:
 -   UTC format: `2025-12-31T23:59:59Z`
 -   Timezone offset: `2025-12-31T23:59:59+02:00`
 
-If not provided, `at` defaults to the current UTC time.
+If `at` not provided, it defaults to the current UTC time.
 
 > **Note:** The `at` parameter is also supported in [Lookup Operations](#lookup-operations) with the same format and behavior.
 
@@ -189,7 +189,7 @@ const response = await e10sClient.lookupTargetEntities({
 	action: 'read',
 	limit: 100, // Optional: limit number of results (default: 50, max: 1000)
 	cursor: undefined, // Optional: pagination cursor
-	at: '2026-01-15T12:00:00.000Z' // Optional: ISO 8601 timestamp for active_at caveat
+	at: '2026-01-15T12:00:00Z' // Optional: ISO 8601 timestamp for active_at caveat
 });
 
 console.log(`Found ${response.totalReturned} Target Entities`);
