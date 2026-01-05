@@ -1,3 +1,123 @@
+# [3.0.0-alpha.15](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.14...3.0.0-alpha.15) (2025-12-31)
+
+
+### Features
+
+* **spicedb:** new version with timebounds ([4c479b6](https://github.com/frontegg/entitlements-client/commit/4c479b65d0361eabadb4c8aab6b3fcdf4af41ed2))
+
+# [3.0.0-alpha.14](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.13...3.0.0-alpha.14) (2025-12-31)
+
+
+### Features
+
+* **spicedb:** release ([4954ac1](https://github.com/frontegg/entitlements-client/commit/4954ac1c769149813fa757a289148677c36c71e6))
+
+# [3.0.0-alpha.13](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.12...3.0.0-alpha.13) (2025-12-30)
+
+
+### Bug Fixes
+
+* **spicedb:** update client security setting to INSECURE_PLAINTEXT_CREDENTIALS ([2b8b6f6](https://github.com/frontegg/entitlements-client/commit/2b8b6f6d2f4353fda066205543c24813fc6efec4))
+
+# [3.0.0-alpha.12](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.11...3.0.0-alpha.12) (2025-12-25)
+
+
+### Features
+
+* **spicedb:** release ([607f49e](https://github.com/frontegg/entitlements-client/commit/607f49e122917fe2cf009da5411f515c304df84a))
+* **spicedb:** test release ([be23ad6](https://github.com/frontegg/entitlements-client/commit/be23ad6ffa860248f3e94b7324a13cf26678ce1d))
+
+# [3.0.0-alpha.12](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.11...3.0.0-alpha.12) (2025-12-25)
+
+
+### Features
+
+* **spicedb:** release ([607f49e](https://github.com/frontegg/entitlements-client/commit/607f49e122917fe2cf009da5411f515c304df84a))
+
+# [3.0.0-alpha.11](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.10...3.0.0-alpha.11) (2025-12-17)
+
+
+### Features
+
+* **spicedb:** replace cache-manager with lru-cache and update cache handling in RouteSpiceDBQuery ([2a6010b](https://github.com/frontegg/entitlements-client/commit/2a6010bedc27f40bbf2790b688cfe8a1d7b47fb1))
+
+# [3.0.0-alpha.10](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.9...3.0.0-alpha.10) (2025-07-22)
+
+
+### Features
+
+* **spicedb:** fixed api permissions ([49f0edf](https://github.com/frontegg/entitlements-client/commit/49f0edfb9bdac71c8bc73fd6711e1aa6d7d304ea))
+
+# [3.0.0-alpha.9](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.8...3.0.0-alpha.9) (2025-07-17)
+
+
+### Features
+
+* **spicedb:** fixed api permissions ([772f2d8](https://github.com/frontegg/entitlements-client/commit/772f2d86f4ca8eeac70cf6def2ff7437523326f3))
+
+# [3.0.0-alpha.8](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.7...3.0.0-alpha.8) (2025-07-17)
+
+
+### Features
+
+* **spicedb:** fixed api permissions ([59edc60](https://github.com/frontegg/entitlements-client/commit/59edc601efd90ab392fd2dd58f859eca0ed77b4b))
+* **spicedb:** fixed api permissions ([ac11d68](https://github.com/frontegg/entitlements-client/commit/ac11d68e06745a61aeba2efc7d9dfc42770da553))
+
+# [3.0.0-alpha.7](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.6...3.0.0-alpha.7) (2025-07-16)
+
+
+### Features
+
+* **spicedb:** fixed api permissions ([a265fe7](https://github.com/frontegg/entitlements-client/commit/a265fe74885243b1a87a15c5206ccec8188e2585))
+
+# [3.0.0-alpha.6](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.5...3.0.0-alpha.6) (2025-07-15)
+
+
+### Features
+
+* **spicedb:** fixed permission check ([334afa6](https://github.com/frontegg/entitlements-client/commit/334afa6367b9184b6bca33c25c7e2cd844bc9a23))
+* **spicedb:** fixed permission test ([efccef6](https://github.com/frontegg/entitlements-client/commit/efccef6187699ed39c4cb0dbb60de3e89bae539d))
+
+# [3.0.0-alpha.5](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.4...3.0.0-alpha.5) (2025-07-15)
+
+
+### Features
+
+* **spicedb:** fixed permissions check ([7304280](https://github.com/frontegg/entitlements-client/commit/7304280a93e50572689ecc02ebaeb610df60b214))
+
+# [3.0.0-alpha.4](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.3...3.0.0-alpha.4) (2025-07-14)
+
+
+### Features
+
+* **spicedb:** fixes ([4921511](https://github.com/frontegg/entitlements-client/commit/4921511e58fc253d16af8095fba7232d26635d2f))
+
+# [3.0.0-alpha.3](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.2...3.0.0-alpha.3) (2025-07-14)
+
+
+### Features
+
+* **spicedb:** fixes ([dab079f](https://github.com/frontegg/entitlements-client/commit/dab079f746e3dc85d6235af0b3e33d3a09cfcafe))
+
+# [3.0.0-alpha.2](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.1...3.0.0-alpha.2) (2025-07-10)
+
+
+### Bug Fixes
+
+* **spicedb:** spicedb api fix ([8830d0e](https://github.com/frontegg/entitlements-client/commit/8830d0e11ffd3b58bbf973e5bb33254caa321ad9))
+
+# [3.0.0-alpha.1](https://github.com/frontegg/entitlements-client/compare/2.0.0...3.0.0-alpha.1) (2025-07-10)
+
+
+### Features
+
+* **spicedb:** migrate to spicedb ([3dd3de4](https://github.com/frontegg/entitlements-client/commit/3dd3de423e27f237e0050df8cb8787795c62a3d9))
+
+
+### BREAKING CHANGES
+
+* **spicedb:** Changing engine to spicedb
+
 # [2.0.0](https://github.com/frontegg/entitlements-client/compare/1.2.0...2.0.0) (2025-06-29)
 
 
