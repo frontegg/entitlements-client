@@ -37,7 +37,33 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			context: caveatContext
 		});
 
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{
+					action: 'SpiceDB:checkPermission:request',
+					objectType: requestContext.entityType,
+					objectId: requestContext.key,
+					subjectContext: context,
+					entityContext: requestContext
+				},
+				{ request }
+			);
+		}
+
 		const res = await this.client.checkPermission(request);
+
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{
+					action: 'SpiceDB:checkPermission:response',
+					objectType: requestContext.entityType,
+					objectId: requestContext.key,
+					entityContext: requestContext
+				},
+				{ response: res }
+			);
+		}
+
 		return {
 			result: {
 				result: res.permissionship === v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION

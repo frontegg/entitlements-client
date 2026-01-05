@@ -124,7 +124,34 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				hashResourceId: false
 			}
 		);
+
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{
+					action: 'SpiceDB:checkBulkPermissions:request',
+					objectType: firstRule.resourceType,
+					objectId: firstRule.resourceId,
+					subjectContext: context,
+					routeContext: requestContext
+				},
+				{ request: bulkRequest }
+			);
+		}
+
 		const res = await this.client.checkBulkPermissions(bulkRequest);
+
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{
+					action: 'SpiceDB:checkBulkPermissions:response',
+					objectType: firstRule.resourceType,
+					objectId: firstRule.resourceId,
+					routeContext: requestContext
+				},
+				{ response: res }
+			);
+		}
+
 		return this.createResult(this.processCheckBulkPermissionsResponse(res), isMonitoringEnabled);
 	}
 }
