@@ -1,3 +1,11 @@
+# [3.0.0-alpha.16](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.15...3.0.0-alpha.16) (2026-01-05)
+
+
+### Features
+
+* **spicedb:** add logging for permission check requests and responses ([d4160d5](https://github.com/frontegg/entitlements-client/commit/d4160d5233762746243e6c57da666244be73de89))
+* **spicedb:** add logs for routes ([43d9da6](https://github.com/frontegg/entitlements-client/commit/43d9da63fbb537835a05b83f43a00b770fca1f8b))
+
 # [3.0.0-alpha.15](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.14...3.0.0-alpha.15) (2025-12-31)
 
 
