@@ -10,7 +10,7 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@authzed/authzed-node@^1.6.1":
+"@authzed/authzed-node@1.6.1":
   version "1.6.1"
   resolved "https://registry.yarnpkg.com/@authzed/authzed-node/-/authzed-node-1.6.1.tgz#b7e4930bd6ccf4499092a54e094f7104a80fc628"
   integrity sha512-Rj3rMtWOjo3igxY/2fpPrIedCTfDq3e+weykuxNBzV/y6azBCoXp8SzpjCEJXVcWyBD8bu/EKY3cye3kOLsKpQ==

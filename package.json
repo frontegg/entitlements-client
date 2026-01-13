@@ -99,7 +99,7 @@
 		}
 	},
 	"dependencies": {
-		"@authzed/authzed-node": "^1.6.1",
+		"@authzed/authzed-node": "1.6.1",
 		"lru-cache": "^10.4.3"
 	}
 }
