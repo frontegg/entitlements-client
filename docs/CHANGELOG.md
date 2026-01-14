@@ -1,3 +1,39 @@
+# [3.0.0](https://github.com/frontegg/entitlements-client/compare/2.0.0...3.0.0) (2026-01-14)
+
+
+### Features
+
+* **spicedb:** add logging for permission check requests and responses ([d4160d5](https://github.com/frontegg/entitlements-client/commit/d4160d5233762746243e6c57da666244be73de89))
+* **spicedb:** add logs for routes ([43d9da6](https://github.com/frontegg/entitlements-client/commit/43d9da63fbb537835a05b83f43a00b770fca1f8b))
+* **spicedb:** fixed api permissions ([49f0edf](https://github.com/frontegg/entitlements-client/commit/49f0edfb9bdac71c8bc73fd6711e1aa6d7d304ea))
+* **spicedb:** fixed api permissions ([772f2d8](https://github.com/frontegg/entitlements-client/commit/772f2d86f4ca8eeac70cf6def2ff7437523326f3))
+* **spicedb:** fixed api permissions ([59edc60](https://github.com/frontegg/entitlements-client/commit/59edc601efd90ab392fd2dd58f859eca0ed77b4b))
+* **spicedb:** fixed api permissions ([ac11d68](https://github.com/frontegg/entitlements-client/commit/ac11d68e06745a61aeba2efc7d9dfc42770da553))
+* **spicedb:** fixed api permissions ([a265fe7](https://github.com/frontegg/entitlements-client/commit/a265fe74885243b1a87a15c5206ccec8188e2585))
+* **spicedb:** fixed permission check ([334afa6](https://github.com/frontegg/entitlements-client/commit/334afa6367b9184b6bca33c25c7e2cd844bc9a23))
+* **spicedb:** fixed permission test ([efccef6](https://github.com/frontegg/entitlements-client/commit/efccef6187699ed39c4cb0dbb60de3e89bae539d))
+* **spicedb:** fixed permissions check ([7304280](https://github.com/frontegg/entitlements-client/commit/7304280a93e50572689ecc02ebaeb610df60b214))
+* **spicedb:** fixes ([4921511](https://github.com/frontegg/entitlements-client/commit/4921511e58fc253d16af8095fba7232d26635d2f))
+* **spicedb:** fixes ([dab079f](https://github.com/frontegg/entitlements-client/commit/dab079f746e3dc85d6235af0b3e33d3a09cfcafe))
+* **spicedb:** freezed authzed/authzed-node version ([4609f52](https://github.com/frontegg/entitlements-client/commit/4609f52230125a736fcad473f793d376325ef4fd))
+* **spicedb:** migrate to spicedb ([3dd3de4](https://github.com/frontegg/entitlements-client/commit/3dd3de423e27f237e0050df8cb8787795c62a3d9))
+* **spicedb:** new version with timebounds ([4c479b6](https://github.com/frontegg/entitlements-client/commit/4c479b65d0361eabadb4c8aab6b3fcdf4af41ed2))
+* **spicedb:** release ([4954ac1](https://github.com/frontegg/entitlements-client/commit/4954ac1c769149813fa757a289148677c36c71e6))
+* **spicedb:** release ([607f49e](https://github.com/frontegg/entitlements-client/commit/607f49e122917fe2cf009da5411f515c304df84a))
+* **spicedb:** replace cache-manager with lru-cache and update cache handling in RouteSpiceDBQuery ([2a6010b](https://github.com/frontegg/entitlements-client/commit/2a6010bedc27f40bbf2790b688cfe8a1d7b47fb1))
+* **spicedb:** test release ([be23ad6](https://github.com/frontegg/entitlements-client/commit/be23ad6ffa860248f3e94b7324a13cf26678ce1d))
+
+
+### Bug Fixes
+
+* **spicedb:** spicedb api fix ([8830d0e](https://github.com/frontegg/entitlements-client/commit/8830d0e11ffd3b58bbf973e5bb33254caa321ad9))
+* **spicedb:** update client security setting to INSECURE_PLAINTEXT_CREDENTIALS ([2b8b6f6](https://github.com/frontegg/entitlements-client/commit/2b8b6f6d2f4353fda066205543c24813fc6efec4))
+
+
+### BREAKING CHANGES
+
+* **spicedb:** Changing engine to spicedb
+
 # [3.0.0-alpha.17](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.16...3.0.0-alpha.17) (2026-01-14)
 
 
