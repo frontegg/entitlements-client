@@ -1,3 +1,10 @@
+# [3.0.0-alpha.17](https://github.com/frontegg/entitlements-client/compare/3.0.0-alpha.16...3.0.0-alpha.17) (2026-01-14)
+
+
+### Features
+
+* **spicedb:** freezed authzed/authzed-node version ([4609f52](https://github.com/frontegg/entitlements-client/commit/4609f52230125a736fcad473f793d376325ef4fd))
+
 # [2.0.0](https://github.com/frontegg/entitlements-client/compare/1.2.0...2.0.0) (2025-06-29)
 
 ### Bug Fixes
