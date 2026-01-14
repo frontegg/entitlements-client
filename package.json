@@ -97,5 +97,9 @@
 		"hooks": {
 			"prepare-commit-msg": "exec < /dev/tty && npx cz --hook || true"
 		}
+	},
+	"dependencies": {
+		"@authzed/authzed-node": "1.6.1",
+		"lru-cache": "^10.4.3"
 	}
 }

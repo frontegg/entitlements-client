@@ -1,14 +1,11 @@
 import { EntitlementsClientFactory } from './entitlements-client-factory';
 import { ConfigurationInputIsMissingException } from './exceptions/configuration-input-is-missing.exception';
-import { EntitlementsClient } from './entitlements.client';
-import { AxiosInstance } from 'axios';
-import { mock, MockProxy } from 'jest-mock-extended';
 import { RequestContext, RequestContextType, SubjectContext } from './types';
 import { ClientConfiguration } from './client-configuration';
-import { ConfigurationInputIsInvalidException } from './exceptions/configuration-input-is-invalid.exception';
+import { SpiceDBEntitlementsClient } from './spicedb/spicedb-entitlements.client';
 
 describe(EntitlementsClientFactory.name, () => {
-	it('should fail to create an EntitlementsClient when pdpHost is missing', () => {
+	it('should fail to create an EntitlementsClient when engineEndpoint is missing', () => {
 		try {
 			EntitlementsClientFactory.create({} as unknown as ClientConfiguration);
 			fail();
@@ -17,31 +14,42 @@ describe(EntitlementsClientFactory.name, () => {
 		}
 	});
 
-	it('should fail to create an EntitlementsClient when timeout is not positive number', () => {
+	it('should fail to create an EntitlementsClient when engineToken is missing', () => {
 		try {
-			EntitlementsClientFactory.create({ pdpHost: 'mock-host', timeout: -1 });
+			EntitlementsClientFactory.create({ engineEndpoint: 'mock-host' } as ClientConfiguration);
 			fail();
 		} catch (e) {
-			expect(e).toBeInstanceOf(ConfigurationInputIsInvalidException);
+			expect(e).toBeInstanceOf(ConfigurationInputIsMissingException);
 		}
 	});
 	it('should create an EntitlementsClient with default configuration', async () => {
-		const client = EntitlementsClientFactory.create({ pdpHost: 'mock-host' });
-		expect(client).toBeInstanceOf(EntitlementsClient);
+		const client = EntitlementsClientFactory.create({
+			engineEndpoint: 'mock-host',
+			engineToken: 'mock-token'
+		});
+		expect(client).toBeInstanceOf(SpiceDBEntitlementsClient);
 	});
 
 	it.each(Object.values(RequestContextType))(
-		'should create an EntitlementsClient with custom axios instance for request context of type `%s`',
+		'should create an EntitlementsClient and call isEntitledTo for request context of type `%s`',
 		async (requestContextType) => {
-			const mockAxiosInstance: MockProxy<AxiosInstance> = mock<AxiosInstance>();
-			mockAxiosInstance.post.mockResolvedValue({ data: { result: {} } });
-			const client = EntitlementsClientFactory.create({ pdpHost: 'mock-host', axiosInstance: mockAxiosInstance });
+			const client = EntitlementsClientFactory.create({
+				engineEndpoint: 'mock-host',
+				engineToken: 'mock-token'
+			});
 
-			await client.isEntitledTo(
+			// Mock the spiceDBQuery method to avoid actual API calls
+			jest.spyOn(client['spiceDBQueryClient'], 'spiceDBQuery').mockResolvedValue({
+				result: { result: true }
+			});
+
+			const result = await client.isEntitledTo(
 				{} as unknown as SubjectContext,
 				{ type: requestContextType } as unknown as RequestContext
 			);
-			expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+
+			expect(result).toEqual({ result: true });
+			expect(client['spiceDBQueryClient'].spiceDBQuery).toHaveBeenCalledTimes(1);
 		}
 	);
 });

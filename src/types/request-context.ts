@@ -23,17 +23,11 @@ export interface EntityEntitlementsContext {
 	entityType: string;
 	key: string;
 	action: string;
-}
-
-export interface CompositeEntitlementsContext {
-	type: RequestContextType.Composite;
-	[RequestContextType.Permission]: Nullable<PermissionsEntitlementsContext>;
-	[RequestContextType.Entity]: Nullable<EntityEntitlementsContext>;
+	at?: string;
 }
 
 export type RequestContext =
 	| FeatureEntitlementsContext
 	| PermissionsEntitlementsContext
 	| RouteEntitlementsContext
-	| EntityEntitlementsContext
-	| CompositeEntitlementsContext;
+	| EntityEntitlementsContext;
