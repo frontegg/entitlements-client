@@ -1,6 +1,7 @@
 import { ClientConfiguration, FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
 import { DEFAULT_LOOKUP_LIMIT } from './lookup.constants';
 import {
+	EntitlementsBatchResult,
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
@@ -12,7 +13,8 @@ import {
 	RequestContext,
 	RequestContextType,
 	RouteEntitlementsContext,
-	SubjectContext
+	SubjectContext,
+	UserSubjectContext
 } from '../types';
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
@@ -85,6 +87,44 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
+	public async isEntitledToMany(
+		subjectContext: UserSubjectContext,
+		entitlementKeys: string[]
+	): Promise<EntitlementsBatchResult> {
+		try {
+			const uniqueEntitlementKeys = Array.from(new Set(entitlementKeys));
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(
+					{
+						action: 'SpiceDB:isEntitledToMany:request',
+						subjectContext,
+						entitlementKeys: uniqueEntitlementKeys
+					},
+					null
+				);
+			}
+
+			const res = await this.spiceDBQueryClient.spiceDBBatchFeatureQuery(subjectContext, uniqueEntitlementKeys);
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(
+					{
+						action: 'SpiceDB:isEntitledToMany:response',
+						subjectContext,
+						entitlementKeys: uniqueEntitlementKeys
+					},
+					res
+				);
+			}
+
+			return res.result;
+		} catch (err) {
+			await this.loggingClient.error(err);
+			return this.constructManyFallbackResult(entitlementKeys);
+		}
+	}
+
 	public async lookupTargetEntities(req: LookupTargetEntitiesRequest): Promise<LookupTargetEntitiesResponse> {
 		try {
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
@@ -130,6 +170,26 @@ export class SpiceDBEntitlementsClient {
 			await this.loggingClient.error(err);
 			throw err;
 		}
+	}
+
+	private async constructManyFallbackResult(entitlementKeys: string[]): Promise<EntitlementsBatchResult> {
+		const uniqueEntitlementKeys = Array.from(new Set(entitlementKeys));
+		const results = await Promise.all(
+			uniqueEntitlementKeys.map(async (entitlementKey) => {
+				const requestContext: FeatureEntitlementsContext = {
+					type: RequestContextType.Feature,
+					featureKey: entitlementKey
+				};
+				const fallback =
+					this.fallbackConfiguration instanceof Function
+						? await this.fallbackConfiguration(requestContext)
+						: this.getStaticFallback(requestContext);
+
+				return [entitlementKey, { result: fallback }] as const;
+			})
+		);
+
+		return Object.fromEntries(results);
 	}
 
 	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {
