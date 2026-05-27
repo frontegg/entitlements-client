@@ -174,7 +174,10 @@ export class SpiceDBEntitlementsClient {
 		const logPerItem = this.logResults && logAction != null;
 		try {
 			if (logPerItem) {
-				await this.loggingClient.logRequest({ action: `${logAction}:request`, subjectContext, requestContext }, null);
+				await this.loggingClient.logRequest(
+					{ action: `${logAction}:request`, subjectContext, requestContext },
+					null
+				);
 			}
 
 			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
