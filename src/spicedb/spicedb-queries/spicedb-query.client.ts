@@ -1,5 +1,12 @@
 import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
-import { EntitlementsResult, RequestContext, RequestContextType, SubjectContext } from '../../types';
+import {
+	EntitlementsBatchResult,
+	EntitlementsResult,
+	RequestContext,
+	RequestContextType,
+	SubjectContext,
+	UserSubjectContext
+} from '../../types';
 import { PermissionSpiceDBQuery } from './permission-spicedb.query';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { FeaturesSpiceDBQuery } from './features-spicedb.query';
@@ -29,5 +36,15 @@ export class SpiceDBQueryClient {
 		requestContext: RequestContext
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		return this.strategy[requestContext.type].query({ requestContext, subjectContext });
+	}
+
+	async spiceDBBatchFeatureQuery(
+		subjectContext: UserSubjectContext,
+		featureKeys: string[]
+	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
+		return (this.strategy[RequestContextType.Feature] as FeaturesSpiceDBQuery).queryMany(
+			subjectContext,
+			featureKeys
+		);
 	}
 }

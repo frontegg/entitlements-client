@@ -1,7 +1,13 @@
 import { v1 } from '@authzed/authzed-node';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { EntitlementsSpiceDBQuery } from './entitlements-spicedb.query';
-import { EntitlementsDynamicQuery, EntitlementsResult, RequestContextType, UserSubjectContext } from '../../types';
+import {
+	EntitlementsBatchResult,
+	EntitlementsDynamicQuery,
+	EntitlementsResult,
+	RequestContextType,
+	UserSubjectContext
+} from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { encodeObjectId } from './base64.utils';
 
@@ -48,8 +54,24 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		return this.createBulkPermissionsRequest(objectType, objectId, context, caveatContext);
 	}
 
+	public testCreateManyBulkPermissionsRequest(
+		objectType: string,
+		objectIds: string[],
+		context: UserSubjectContext,
+		caveatContext: v1.PbStruct
+	): v1.CheckBulkPermissionsRequest {
+		return this.createManyBulkPermissionsRequest(objectType, objectIds, context, caveatContext);
+	}
+
 	public testProcessCheckBulkPermissionsResponse(res: v1.CheckBulkPermissionsResponse): boolean {
 		return this.processCheckBulkPermissionsResponse(res);
+	}
+
+	public testProcessManyCheckBulkPermissionsResponse(
+		res: v1.CheckBulkPermissionsResponse,
+		objectIds: string[]
+	): EntitlementsBatchResult {
+		return this.processManyCheckBulkPermissionsResponse(res, objectIds);
 	}
 
 	public testExecuteCommonQuery(
@@ -58,6 +80,14 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		subjectContext: UserSubjectContext
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		return this.executeCommonQuery(objectType, objectId, subjectContext);
+	}
+
+	public testExecuteManyCommonQuery(
+		objectType: string,
+		objectIds: string[],
+		subjectContext: UserSubjectContext
+	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
+		return this.executeManyCommonQuery(objectType, objectIds, subjectContext);
 	}
 }
 
@@ -248,6 +278,39 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 		});
 	});
 
+	describe('createManyBulkPermissionsRequest', () => {
+		it('should create tenant and user items for every object id', () => {
+			const userContext: UserSubjectContext = {
+				userId: 'user-123',
+				tenantId: 'tenant-456',
+				permissions: ['read'],
+				attributes: {}
+			};
+
+			const caveatContext = queryClient.testCreateCaveatContext(userContext);
+			const bulkRequest = queryClient.testCreateManyBulkPermissionsRequest(
+				'frontegg_feature',
+				['feature-a', 'feature-b'],
+				userContext,
+				caveatContext
+			);
+
+			expect(bulkRequest.items).toHaveLength(4);
+			expect(bulkRequest.items.map((item) => item.resource?.objectId)).toEqual([
+				encodeObjectId('feature-a'),
+				encodeObjectId('feature-a'),
+				encodeObjectId('feature-b'),
+				encodeObjectId('feature-b')
+			]);
+			expect(bulkRequest.items.map((item) => item.subject?.object?.objectType)).toEqual([
+				'frontegg_tenant',
+				'frontegg_user',
+				'frontegg_tenant',
+				'frontegg_user'
+			]);
+		});
+	});
+
 	describe('processCheckBulkPermissionsResponse', () => {
 		it('should return true when any pair has HAS_PERMISSION', () => {
 			const response = v1.CheckBulkPermissionsResponse.create({
@@ -315,6 +378,53 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 		});
 	});
 
+	describe('processManyCheckBulkPermissionsResponse', () => {
+		it('should group permission responses by object id', () => {
+			const response = v1.CheckBulkPermissionsResponse.create({
+				pairs: [
+					v1.CheckBulkPermissionsPair.create({
+						request: v1.CheckBulkPermissionsRequestItem.create({
+							resource: {
+								objectType: 'frontegg_feature',
+								objectId: encodeObjectId('feature-a')
+							}
+						}),
+						response: {
+							oneofKind: 'item',
+							item: v1.CheckPermissionResponse.create({
+								permissionship: v1.CheckPermissionResponse_Permissionship.NO_PERMISSION
+							})
+						}
+					}),
+					v1.CheckBulkPermissionsPair.create({
+						request: v1.CheckBulkPermissionsRequestItem.create({
+							resource: {
+								objectType: 'frontegg_feature',
+								objectId: encodeObjectId('feature-b')
+							}
+						}),
+						response: {
+							oneofKind: 'item',
+							item: v1.CheckPermissionResponse.create({
+								permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+							})
+						}
+					})
+				]
+			});
+
+			const result = queryClient.testProcessManyCheckBulkPermissionsResponse(response, [
+				'feature-a',
+				'feature-b'
+			]);
+
+			expect(result).toEqual({
+				'feature-a': { result: false },
+				'feature-b': { result: true }
+			});
+		});
+	});
+
 	describe('executeCommonQuery', () => {
 		it('should execute common query and return result', async () => {
 			const userContext: UserSubjectContext = {
@@ -360,6 +470,51 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			await expect(queryClient.testExecuteCommonQuery('feature', 'test-feature', userContext)).rejects.toThrow(
 				error
 			);
+		});
+	});
+
+	describe('executeManyCommonQuery', () => {
+		it('should execute one bulk query for multiple object ids', async () => {
+			const userContext: UserSubjectContext = {
+				userId: 'user-123',
+				tenantId: 'tenant-456',
+				permissions: ['read'],
+				attributes: {}
+			};
+
+			const mockResponse = v1.CheckBulkPermissionsResponse.create({
+				pairs: [
+					v1.CheckBulkPermissionsPair.create({
+						request: v1.CheckBulkPermissionsRequestItem.create({
+							resource: {
+								objectType: 'frontegg_feature',
+								objectId: encodeObjectId('feature-a')
+							}
+						}),
+						response: {
+							oneofKind: 'item',
+							item: v1.CheckPermissionResponse.create({
+								permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+							})
+						}
+					})
+				]
+			});
+
+			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
+
+			const result = await queryClient.testExecuteManyCommonQuery(
+				'frontegg_feature',
+				['feature-a', 'feature-b'],
+				userContext
+			);
+
+			expect(mockClient.checkBulkPermissions).toHaveBeenCalledTimes(1);
+			expect(mockClient.checkBulkPermissions.mock.calls[0][0].items).toHaveLength(4);
+			expect(result.result).toEqual({
+				'feature-a': { result: true },
+				'feature-b': { result: false }
+			});
 		});
 	});
 

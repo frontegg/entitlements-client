@@ -2,10 +2,17 @@ import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { LoggingClient } from '../logging';
-import { EntitlementsResult, RequestContext, RequestContextType, SubjectContext } from '../types';
+import {
+	EntitlementsBatchResult,
+	EntitlementsResult,
+	FGASubjectContext,
+	RequestContext,
+	RequestContextType,
+	SubjectContext,
+	UserSubjectContext
+} from '../types';
 import { SpiceDBResponse } from '../types/spicedb.dto';
 import { ClientConfiguration, FallbackConfiguration } from '../client-configuration';
-import { v1 } from '@authzed/authzed-node';
 
 // Helper function to create request contexts for each type
 function getRequestContext(type: RequestContextType): RequestContext {
@@ -38,12 +45,15 @@ function getRequestContext(type: RequestContextType): RequestContext {
 	}
 }
 
+function setSpiceDBQueryClient(client: SpiceDBEntitlementsClient, spiceDBQueryClient: SpiceDBQueryClient): void {
+	(client as unknown as { spiceDBQueryClient: SpiceDBQueryClient }).spiceDBQueryClient = spiceDBQueryClient;
+}
+
 describe(SpiceDBEntitlementsClient.name, () => {
 	describe.each(Object.values(RequestContextType))(
 		'Given successful SpiceDB query for `%s` request context type',
 		(requestContextType) => {
 			// GIVEN
-			const mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface> = mock<v1.ZedPromiseClientInterface>();
 			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
 			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
 			const spiceDBResult: SpiceDBResponse<EntitlementsResult> = {
@@ -71,7 +81,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				// WHEN logging: false
 				const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 				// Replace the internal spiceDBQueryClient with our mock
-				(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+				setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -85,7 +95,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				// WHEN logging: true
 				const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
 				// Replace the internal spiceDBQueryClient with our mock
-				(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+				setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -104,7 +114,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 				const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 				// Replace the internal spiceDBQueryClient with our mock
-				(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+				setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -140,7 +150,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			it('should log error and return default fallback of false', async () => {
 				const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 				// Replace the internal spiceDBQueryClient with our mock
-				(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+				setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -154,7 +164,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 					defaultFallback: true
 				});
 				// Replace the internal spiceDBQueryClient with our mock
-				(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+				setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -164,6 +174,165 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			});
 		}
 	);
+
+	describe(SpiceDBEntitlementsClient.prototype.isEntitledToMany.name, () => {
+		const mockClientConfig: ClientConfiguration = {
+			engineEndpoint: 'mock-endpoint',
+			engineToken: 'mock-token'
+		};
+
+		const subjectContext: UserSubjectContext = {
+			userId: 'mock-user-id',
+			tenantId: 'mock-tenant-id',
+			permissions: ['mock-permission'],
+			attributes: { mockAttribute: 'mock-value' }
+		};
+
+		it('should return entitlement results in request order for every request context type', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const spiceDBResult: SpiceDBResponse<EntitlementsBatchResult> = {
+				result: {
+					'feature-a': { result: true },
+					'feature-b': { result: false }
+				}
+			};
+			mockSpiceDBQueryClient.spiceDBBatchFeatureQuery.mockResolvedValue(spiceDBResult);
+			mockSpiceDBQueryClient.spiceDBQuery
+				.mockResolvedValueOnce({ result: { result: true } })
+				.mockResolvedValueOnce({ result: { result: false } })
+				.mockResolvedValueOnce({ result: { result: true } });
+
+			const permissionContext: RequestContext = {
+				type: RequestContextType.Permission,
+				permissionKey: 'permission-a'
+			};
+			const routeContext: RequestContext = {
+				type: RequestContextType.Route,
+				method: 'GET',
+				path: '/users'
+			};
+			const entityContext: RequestContext = {
+				type: RequestContextType.Entity,
+				entityType: 'document',
+				key: 'document-1',
+				action: 'read'
+			};
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+
+			const result = await cut.isEntitledToMany(subjectContext, [
+				{ type: RequestContextType.Feature, featureKey: 'feature-a' },
+				permissionContext,
+				{ type: RequestContextType.Feature, featureKey: 'feature-b' },
+				routeContext,
+				entityContext
+			]);
+
+			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).toHaveBeenCalledWith(subjectContext, [
+				'feature-a',
+				'feature-b'
+			]);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, permissionContext);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, routeContext);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, entityContext);
+			expect(result).toEqual([
+				{ result: true },
+				{ result: true },
+				{ result: false },
+				{ result: false },
+				{ result: true }
+			]);
+			expect(mockLoggingClient.logRequest).not.toHaveBeenCalled();
+		});
+
+		it('should log request and response when logResults is enabled', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const spiceDBResult: SpiceDBResponse<EntitlementsBatchResult> = {
+				result: {
+					'feature-a': { result: true }
+				}
+			};
+			mockSpiceDBQueryClient.spiceDBBatchFeatureQuery.mockResolvedValue(spiceDBResult);
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+			const requestContexts: RequestContext[] = [{ type: RequestContextType.Feature, featureKey: 'feature-a' }];
+
+			await cut.isEntitledToMany(subjectContext, requestContexts);
+
+			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
+				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, requestContexts },
+				null
+			);
+			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
+				{ action: 'SpiceDB:isEntitledToMany:response', subjectContext, requestContexts },
+				[{ result: true }]
+			);
+		});
+
+		it('should return feature fallbacks when batch query throws', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const error = new Error('SpiceDB Error');
+			mockSpiceDBQueryClient.spiceDBBatchFeatureQuery.mockRejectedValue(error);
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false, {
+				defaultFallback: false,
+				[RequestContextType.Feature]: {
+					'feature-a': true
+				}
+			});
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+
+			const result = await cut.isEntitledToMany(subjectContext, [
+				{ type: RequestContextType.Feature, featureKey: 'feature-a' },
+				{ type: RequestContextType.Feature, featureKey: 'feature-b' }
+			]);
+
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+			expect(result).toEqual([{ result: true }, { result: false }]);
+		});
+
+		it('should reject feature requests with FGA subject context before any queries fire', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const fgaSubjectContext: FGASubjectContext = {
+				entityType: 'team',
+				key: 'team-1'
+			};
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+
+			await expect(
+				cut.isEntitledToMany(fgaSubjectContext, [
+					{ type: RequestContextType.Feature, featureKey: 'feature-a' },
+					{ type: RequestContextType.Entity, entityType: 'doc', key: 'doc-1', action: 'read' }
+				])
+			).rejects.toThrow('Feature entitlement requests require user subject context');
+			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).not.toHaveBeenCalled();
+			expect(mockSpiceDBQueryClient.spiceDBQuery).not.toHaveBeenCalled();
+		});
+
+		it('should propagate batch logging failures', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const error = new Error('Logging failed');
+			mockLoggingClient.logRequest.mockRejectedValue(error);
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+
+			await expect(
+				cut.isEntitledToMany(subjectContext, [{ type: RequestContextType.Feature, featureKey: 'feature-a' }])
+			).rejects.toThrow('Logging failed');
+			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).not.toHaveBeenCalled();
+			expect(mockLoggingClient.error).not.toHaveBeenCalled();
+		});
+	});
 
 	describe.each<[RequestContext, EntitlementsResult]>([
 		[
@@ -262,7 +431,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				fallbackConfiguration
 			);
 			// Replace the internal spiceDBQueryClient with our mock
-			(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 			const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -342,7 +511,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				fallbackConfiguration
 			);
 			// Replace the internal spiceDBQueryClient with our mock
-			(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 			const result = await cut.isEntitledTo(subjectContext, requestContext);
 
@@ -388,7 +557,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 			// Replace the internal spiceDBQueryClient with our mock
-			(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 			const result = await cut.isEntitledTo(
 				{ userId: 'test', tenantId: 'test', permissions: [], attributes: {} },
@@ -410,7 +579,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
 			// Replace the internal spiceDBQueryClient with our mock
-			(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 			const result = await cut.isEntitledTo(
 				{ userId: 'test', tenantId: 'test', permissions: [], attributes: {} },
@@ -430,7 +599,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 			// Replace the internal spiceDBQueryClient with our mock
-			(cut as any).spiceDBQueryClient = mockSpiceDBQueryClient;
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
 			// If error logging fails, the entire operation should fail
 			await expect(
