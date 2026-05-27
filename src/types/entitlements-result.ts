@@ -4,3 +4,4 @@ export type EntitlementsResult = {
 };
 
 export type EntitlementsBatchResult = Record<string, EntitlementsResult>;
+export type EntitlementsManyResult = EntitlementsResult[];

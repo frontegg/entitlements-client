@@ -1,7 +1,7 @@
 import { ClientConfiguration, FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
 import { DEFAULT_LOOKUP_LIMIT } from './lookup.constants';
 import {
-	EntitlementsBatchResult,
+	EntitlementsManyResult,
 	EntitlementsResult,
 	EntityEntitlementsContext,
 	FeatureEntitlementsContext,
@@ -14,7 +14,8 @@ import {
 	RequestContextType,
 	RouteEntitlementsContext,
 	SubjectContext,
-	UserSubjectContext
+	UserSubjectContext,
+	isFGASubjectContext
 } from '../types';
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
@@ -56,73 +57,66 @@ export class SpiceDBEntitlementsClient {
 		subjectContext: SubjectContext,
 		requestContext: RequestContext
 	): Promise<EntitlementsResult> {
-		try {
-			if (this.logResults) {
-				await this.loggingClient.logRequest(
-					{ action: 'SpiceDB:isEntitledTo:request', subjectContext, requestContext },
-					null
-				);
-			}
-
-			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
-
-			if (this.logResults) {
-				await this.loggingClient.logRequest(
-					{ action: 'SpiceDB:isEntitledTo:response', subjectContext, requestContext },
-					res
-				);
-			}
-
-			if (res.result.monitoring || this.logResults) {
-				await this.loggingClient.log(subjectContext, requestContext, res);
-			}
-
-			if (res.result.monitoring) {
-				return SpiceDBEntitlementsClient.MONITORING_RESULT;
-			}
-			return res.result;
-		} catch (err) {
-			await this.loggingClient.error(err);
-			return this.constructFallbackResult(requestContext);
-		}
+		return this.executeEntitlementQuery(subjectContext, requestContext, 'SpiceDB:isEntitledTo');
 	}
 
 	public async isEntitledToMany(
-		subjectContext: UserSubjectContext,
-		entitlementKeys: string[]
-	): Promise<EntitlementsBatchResult> {
-		try {
-			const uniqueEntitlementKeys = Array.from(new Set(entitlementKeys));
-
-			if (this.logResults) {
-				await this.loggingClient.logRequest(
-					{
-						action: 'SpiceDB:isEntitledToMany:request',
-						subjectContext,
-						entitlementKeys: uniqueEntitlementKeys
-					},
-					null
-				);
-			}
-
-			const res = await this.spiceDBQueryClient.spiceDBBatchFeatureQuery(subjectContext, uniqueEntitlementKeys);
-
-			if (this.logResults) {
-				await this.loggingClient.logRequest(
-					{
-						action: 'SpiceDB:isEntitledToMany:response',
-						subjectContext,
-						entitlementKeys: uniqueEntitlementKeys
-					},
-					res
-				);
-			}
-
-			return res.result;
-		} catch (err) {
-			await this.loggingClient.error(err);
-			return this.constructManyFallbackResult(entitlementKeys);
+		subjectContext: SubjectContext,
+		requestContexts: RequestContext[]
+	): Promise<EntitlementsManyResult> {
+		if (this.logResults) {
+			await this.loggingClient.logRequest(
+				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, requestContexts },
+				null
+			);
 		}
+
+		const featureRequests = requestContexts
+			.map((requestContext, index) => ({ requestContext, index }))
+			.filter(
+				(
+					request
+				): request is {
+					requestContext: FeatureEntitlementsContext;
+					index: number;
+				} => request.requestContext.type === RequestContextType.Feature
+			);
+
+		if (featureRequests.length && isFGASubjectContext(subjectContext)) {
+			throw new Error('Feature entitlement requests require user subject context');
+		}
+
+		const [featureResults, nonFeatureResults] = await Promise.all([
+			this.resolveFeatureEntitlements(subjectContext, featureRequests),
+			Promise.all(
+				requestContexts.map(async (requestContext, index) => {
+					if (requestContext.type === RequestContextType.Feature) {
+						return null;
+					}
+
+					return {
+						index,
+						result: await this.executeEntitlementQuery(subjectContext, requestContext)
+					};
+				})
+			)
+		]);
+
+		const results: EntitlementsManyResult = new Array(requestContexts.length);
+		for (const item of [...featureResults, ...nonFeatureResults]) {
+			if (item) {
+				results[item.index] = item.result;
+			}
+		}
+
+		if (this.logResults) {
+			await this.loggingClient.logRequest(
+				{ action: 'SpiceDB:isEntitledToMany:response', subjectContext, requestContexts },
+				results
+			);
+		}
+
+		return results;
 	}
 
 	public async lookupTargetEntities(req: LookupTargetEntitiesRequest): Promise<LookupTargetEntitiesResponse> {
@@ -172,24 +166,70 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	private async constructManyFallbackResult(entitlementKeys: string[]): Promise<EntitlementsBatchResult> {
-		const uniqueEntitlementKeys = Array.from(new Set(entitlementKeys));
-		const results = await Promise.all(
-			uniqueEntitlementKeys.map(async (entitlementKey) => {
-				const requestContext: FeatureEntitlementsContext = {
-					type: RequestContextType.Feature,
-					featureKey: entitlementKey
-				};
-				const fallback =
-					this.fallbackConfiguration instanceof Function
-						? await this.fallbackConfiguration(requestContext)
-						: this.getStaticFallback(requestContext);
+	private async executeEntitlementQuery(
+		subjectContext: SubjectContext,
+		requestContext: RequestContext,
+		logAction?: string
+	): Promise<EntitlementsResult> {
+		const logPerItem = this.logResults && logAction != null;
+		try {
+			if (logPerItem) {
+				await this.loggingClient.logRequest({ action: `${logAction}:request`, subjectContext, requestContext }, null);
+			}
 
-				return [entitlementKey, { result: fallback }] as const;
-			})
+			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
+
+			if (logPerItem) {
+				await this.loggingClient.logRequest(
+					{ action: `${logAction}:response`, subjectContext, requestContext },
+					res
+				);
+			}
+
+			if (res.result.monitoring || this.logResults) {
+				await this.loggingClient.log(subjectContext, requestContext, res);
+			}
+
+			if (res.result.monitoring) {
+				return SpiceDBEntitlementsClient.MONITORING_RESULT;
+			}
+			return res.result;
+		} catch (err) {
+			await this.loggingClient.error(err);
+			return this.constructFallbackResult(requestContext);
+		}
+	}
+
+	private async resolveFeatureEntitlements(
+		subjectContext: SubjectContext,
+		featureRequests: { requestContext: FeatureEntitlementsContext; index: number }[]
+	): Promise<{ index: number; result: EntitlementsResult }[]> {
+		if (!featureRequests.length) {
+			return [];
+		}
+
+		const uniqueFeatureKeys = Array.from(
+			new Set(featureRequests.map(({ requestContext }) => requestContext.featureKey))
 		);
 
-		return Object.fromEntries(results);
+		try {
+			const res = await this.spiceDBQueryClient.spiceDBBatchFeatureQuery(
+				subjectContext as UserSubjectContext,
+				uniqueFeatureKeys
+			);
+			return featureRequests.map(({ requestContext, index }) => ({
+				index,
+				result: res.result[requestContext.featureKey] ?? { result: false }
+			}));
+		} catch (err) {
+			await this.loggingClient.error(err);
+			return Promise.all(
+				featureRequests.map(async ({ requestContext, index }) => ({
+					index,
+					result: await this.constructFallbackResult(requestContext)
+				}))
+			);
+		}
 	}
 
 	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {

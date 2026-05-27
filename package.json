@@ -101,6 +101,5 @@
 	"dependencies": {
 		"@authzed/authzed-node": "1.6.1",
 		"lru-cache": "^10.4.3"
-	},
-	"packageManager": "yarn@1.22.22"
+	}
 }

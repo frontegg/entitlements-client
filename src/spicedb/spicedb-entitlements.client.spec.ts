@@ -5,6 +5,7 @@ import { LoggingClient } from '../logging';
 import {
 	EntitlementsBatchResult,
 	EntitlementsResult,
+	FGASubjectContext,
 	RequestContext,
 	RequestContextType,
 	SubjectContext,
@@ -187,7 +188,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			attributes: { mockAttribute: 'mock-value' }
 		};
 
-		it('should return batch results from SpiceDB', async () => {
+		it('should return entitlement results in request order for every request context type', async () => {
 			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
 			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
 			const spiceDBResult: SpiceDBResponse<EntitlementsBatchResult> = {
@@ -197,17 +198,52 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				}
 			};
 			mockSpiceDBQueryClient.spiceDBBatchFeatureQuery.mockResolvedValue(spiceDBResult);
+			mockSpiceDBQueryClient.spiceDBQuery
+				.mockResolvedValueOnce({ result: { result: true } })
+				.mockResolvedValueOnce({ result: { result: false } })
+				.mockResolvedValueOnce({ result: { result: true } });
+
+			const permissionContext: RequestContext = {
+				type: RequestContextType.Permission,
+				permissionKey: 'permission-a'
+			};
+			const routeContext: RequestContext = {
+				type: RequestContextType.Route,
+				method: 'GET',
+				path: '/users'
+			};
+			const entityContext: RequestContext = {
+				type: RequestContextType.Entity,
+				entityType: 'document',
+				key: 'document-1',
+				action: 'read'
+			};
 
 			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
-			const result = await cut.isEntitledToMany(subjectContext, ['feature-a', 'feature-b']);
+			const result = await cut.isEntitledToMany(subjectContext, [
+				{ type: RequestContextType.Feature, featureKey: 'feature-a' },
+				permissionContext,
+				{ type: RequestContextType.Feature, featureKey: 'feature-b' },
+				routeContext,
+				entityContext
+			]);
 
 			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).toHaveBeenCalledWith(subjectContext, [
 				'feature-a',
 				'feature-b'
 			]);
-			expect(result).toEqual(spiceDBResult.result);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, permissionContext);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, routeContext);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, entityContext);
+			expect(result).toEqual([
+				{ result: true },
+				{ result: true },
+				{ result: false },
+				{ result: false },
+				{ result: true }
+			]);
 			expect(mockLoggingClient.logRequest).not.toHaveBeenCalled();
 		});
 
@@ -223,16 +259,17 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
 			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+			const requestContexts: RequestContext[] = [{ type: RequestContextType.Feature, featureKey: 'feature-a' }];
 
-			await cut.isEntitledToMany(subjectContext, ['feature-a']);
+			await cut.isEntitledToMany(subjectContext, requestContexts);
 
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, entitlementKeys: ['feature-a'] },
+				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, requestContexts },
 				null
 			);
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:response', subjectContext, entitlementKeys: ['feature-a'] },
-				spiceDBResult
+				{ action: 'SpiceDB:isEntitledToMany:response', subjectContext, requestContexts },
+				[{ result: true }]
 			);
 		});
 
@@ -250,13 +287,50 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			});
 			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
 
-			const result = await cut.isEntitledToMany(subjectContext, ['feature-a', 'feature-b']);
+			const result = await cut.isEntitledToMany(subjectContext, [
+				{ type: RequestContextType.Feature, featureKey: 'feature-a' },
+				{ type: RequestContextType.Feature, featureKey: 'feature-b' }
+			]);
 
 			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
-			expect(result).toEqual({
-				'feature-a': { result: true },
-				'feature-b': { result: false }
-			});
+			expect(result).toEqual([{ result: true }, { result: false }]);
+		});
+
+		it('should reject feature requests with FGA subject context before any queries fire', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const fgaSubjectContext: FGASubjectContext = {
+				entityType: 'team',
+				key: 'team-1'
+			};
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+
+			await expect(
+				cut.isEntitledToMany(fgaSubjectContext, [
+					{ type: RequestContextType.Feature, featureKey: 'feature-a' },
+					{ type: RequestContextType.Entity, entityType: 'doc', key: 'doc-1', action: 'read' }
+				])
+			).rejects.toThrow('Feature entitlement requests require user subject context');
+			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).not.toHaveBeenCalled();
+			expect(mockSpiceDBQueryClient.spiceDBQuery).not.toHaveBeenCalled();
+		});
+
+		it('should propagate batch logging failures', async () => {
+			const mockSpiceDBQueryClient: MockProxy<SpiceDBQueryClient> = mock<SpiceDBQueryClient>();
+			const mockLoggingClient: MockProxy<LoggingClient> = mock<LoggingClient>();
+			const error = new Error('Logging failed');
+			mockLoggingClient.logRequest.mockRejectedValue(error);
+
+			const cut = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
+			setSpiceDBQueryClient(cut, mockSpiceDBQueryClient);
+
+			await expect(
+				cut.isEntitledToMany(subjectContext, [{ type: RequestContextType.Feature, featureKey: 'feature-a' }])
+			).rejects.toThrow('Logging failed');
+			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).not.toHaveBeenCalled();
+			expect(mockLoggingClient.error).not.toHaveBeenCalled();
 		});
 	});
 
