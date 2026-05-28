@@ -11,6 +11,7 @@
 -   [Installation](#installation)
 -   [Prerequisite](#prerequisite)
 -   [Usage](#usage)
+-   [Examples](#examples)
 -   [Lookup Operations](#lookup-operations)
 -   [Monitoring](#monitoring)
 
@@ -171,11 +172,66 @@ If `at` not provided, it defaults to the current UTC time.
 
 > **Note:** The `at` parameter is also supported in [Lookup Operations](#lookup-operations) with the same format and behavior.
 
+## Examples
+
+Runnable demos live in [`examples/`](./examples/). They use a **separate `package.json`** and are **not** installed when you run `yarn` at the repo root.
+
+```bash
+cd examples
+yarn install   # pulls @frontegg/e10s-client@latest from npm
+```
+
+See [examples/Readme.md](./examples/Readme.md) for Docker/SpiceDB setup and demo scripts.
+
 ## Lookup Operations
 
 The client provides lookup operations that query the ReBAC authorization model to discover access relationships between entities.
 
-All lookup operations support the optional `at` parameter for time-based access control (see [Time-Based Access](#query-for-fga-with-time-based-access-active_at-caveat)).
+FGA lookup operations support the optional `at` parameter for time-based access control (see [Time-Based Access](#query-for-fga-with-time-based-access-active_at-caveat)).
+
+### Lookup Entitlements
+
+Find all entitlement feature keys granted to a tenant or user.
+
+This lookup returns **effective feature entitlements** for the requested subject:
+
+- When only `tenantId` is provided, the response contains feature grants available to that tenant.
+- When both `tenantId` and `userId` are provided, the response contains the user's effective feature grants: tenant-inherited grants plus user-direct grants.
+- If `userId` is provided but the user is not a member of the tenant, the response is empty.
+- If the same feature key is granted through both the tenant and the user, it is returned once in the page response.
+
+Use a tenant-only subject when you need tenant-level entitlements. Use a subject with `userId` when you need the feature set that should apply to a specific user.
+
+> **Pagination note:** For user lookups, tenant and user grants are looked up and paginated independently. A feature key that is reachable through both streams may appear on different pages, so callers that aggregate multiple pages should deduplicate feature keys across pages if needed.
+
+```typescript
+const response = await e10sClient.lookupEntitlements({
+	subject: {
+		tenantId: 'tenant-123',
+		userId: 'user-456', // Optional: include for effective user entitlements
+		attributes: { plan: 'pro' } // Optional: evaluated by targeting rules
+	},
+	criteria: {
+		type: RequestContextType.Feature
+	},
+	limit: 100, // Optional: default 50
+	cursor: undefined // Optional: pagination cursor
+});
+
+console.log(`Found ${response.totalReturned} entitlement features`);
+
+response.entitlements.forEach((entitlement) => {
+	console.log(`${entitlement.type}:${entitlement.key}`);
+	// entitlement.permissionship: 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION'
+});
+
+if (response.cursor) {
+	const nextPage = await e10sClient.lookupEntitlements({
+		// ... same params
+		cursor: response.cursor
+	});
+}
+```
 
 ### Lookup Target Entities
 

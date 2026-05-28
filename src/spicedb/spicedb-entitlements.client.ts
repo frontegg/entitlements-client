@@ -9,6 +9,8 @@ import {
 	LookupTargetEntitiesResponse,
 	LookupEntitiesRequest,
 	LookupEntitiesResponse,
+	LookupEntitlementsRequest,
+	LookupEntitlementsResponse,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
@@ -20,8 +22,19 @@ import {
 import { LoggingClient } from '../logging';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { v1 } from '@authzed/authzed-node';
-import { buildLookupTargetEntitiesRequest, buildLookupEntitiesRequest } from './spicedb-queries/lookup-request.builder';
-import { mapLookupTargetEntitiesResponse, mapLookupEntitiesResponse } from './spicedb-queries/lookup-response.mapper';
+import {
+	buildLookupTargetEntitiesRequest,
+	buildLookupEntitiesRequest,
+	buildLookupEntitlementsRequest,
+	LookupEntitlementsSubject
+} from './spicedb-queries/lookup-request.builder';
+import {
+	mapLookupTargetEntitiesResponse,
+	mapLookupEntitiesResponse,
+	mapLookupEntitlementsResponse
+} from './spicedb-queries/lookup-response.mapper';
+import { SpiceDBEntities } from '../types/spicedb-consts';
+import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -166,6 +179,61 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
+	public async lookupEntitlements(req: LookupEntitlementsRequest): Promise<LookupEntitlementsResponse> {
+		try {
+			if (!(await this.isLookupEntitlementsTenantMember(req))) {
+				return {
+					entitlements: [],
+					totalReturned: 0,
+					cursor: undefined
+				};
+			}
+
+			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
+			const subjects = this.getLookupEntitlementsSubjects(req);
+			const requests = subjects.map((subject) => buildLookupEntitlementsRequest({ ...req, limit }, subject));
+			const resultsBySubject = await Promise.all(
+				requests.map((request) => this.spiceClient.lookupResources(request))
+			);
+			const results = resultsBySubject.flat();
+
+			if (this.logResults) {
+				await this.loggingClient.logRequest(requests, results);
+			}
+
+			return {
+				...mapLookupEntitlementsResponse(results, req.criteria.type),
+				cursor: this.getLookupEntitlementsCursor(resultsBySubject, limit)
+			};
+		} catch (err) {
+			await this.loggingClient.error(err);
+			throw err;
+		}
+	}
+
+	private async isLookupEntitlementsTenantMember(req: LookupEntitlementsRequest): Promise<boolean> {
+		if (!req.subject.userId) {
+			return true;
+		}
+
+		const request = v1.CheckPermissionRequest.create({
+			resource: {
+				objectType: SpiceDBEntities.Tenant,
+				objectId: encodeObjectId(req.subject.tenantId)
+			},
+			permission: 'access',
+			subject: {
+				object: {
+					objectType: SpiceDBEntities.User,
+					objectId: encodeObjectId(req.subject.userId)
+				},
+				optionalRelation: ''
+			}
+		});
+		const result = await this.spiceClient.checkPermission(request);
+		return result.permissionship === v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION;
+	}
+
 	private async executeEntitlementQuery(
 		subjectContext: SubjectContext,
 		requestContext: RequestContext,
@@ -200,6 +268,66 @@ export class SpiceDBEntitlementsClient {
 		} catch (err) {
 			await this.loggingClient.error(err);
 			return this.constructFallbackResult(requestContext);
+		}
+	}
+
+	private getLookupEntitlementsSubjects(req: LookupEntitlementsRequest): LookupEntitlementsSubject[] {
+		const cursor = this.decodeLookupEntitlementsCursor(req.cursor);
+		const subjects: LookupEntitlementsSubject[] = [
+			{
+				entityType: SpiceDBEntities.Tenant,
+				entityId: req.subject.tenantId,
+				cursor: cursor.tenant
+			}
+		];
+
+		if (req.subject.userId) {
+			subjects.push({
+				entityType: SpiceDBEntities.User,
+				entityId: req.subject.userId,
+				cursor: cursor.user
+			});
+		}
+
+		return subjects;
+	}
+
+	private getLookupEntitlementsCursor(
+		resultsBySubject: v1.LookupResourcesResponse[][],
+		limit: number
+	): string | undefined {
+		const [tenantResults, userResults] = resultsBySubject;
+		const tenant = this.getLookupResourcesCursor(tenantResults ?? [], limit);
+		const user = this.getLookupResourcesCursor(userResults ?? [], limit);
+
+		if (!tenant && !user) {
+			return undefined;
+		}
+
+		return encodeObjectId(JSON.stringify({ tenant, user }));
+	}
+
+	private getLookupResourcesCursor(results: v1.LookupResourcesResponse[], limit: number): string | undefined {
+		if (results.length !== limit) {
+			return undefined;
+		}
+
+		return results[results.length - 1]?.afterResultCursor?.token;
+	}
+
+	private decodeLookupEntitlementsCursor(cursor?: string): { tenant?: string; user?: string } {
+		if (!cursor) {
+			return {};
+		}
+
+		try {
+			const parsed = JSON.parse(decodeObjectId(cursor)) as { tenant?: string; user?: string };
+			return {
+				tenant: parsed.tenant,
+				user: parsed.user
+			};
+		} catch {
+			return {};
 		}
 	}
 

@@ -11,6 +11,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { decodeObjectId, encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
+import { createTargetingCaveatContext } from './caveat-context.utils';
 
 export interface HashOptions {
 	hashResourceId: boolean;
@@ -29,36 +30,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	): Promise<SpiceDBResponse<EntitlementsResult>>;
 
 	protected createCaveatContext(context: UserSubjectContext): v1.PbStruct {
-		return {
-			fields: {
-				user_context: {
-					kind: {
-						oneofKind: 'structValue',
-						structValue: {
-							fields: {
-								now: {
-									kind: {
-										oneofKind: 'stringValue',
-										stringValue: new Date().toISOString()
-									}
-								},
-								...Object.entries(context.attributes ?? {}).reduce<
-									Record<string, { kind: { oneofKind: 'stringValue'; stringValue: string } }>
-								>((acc, [attrName, attrValue]) => {
-									acc[attrName] = {
-										kind: {
-											oneofKind: 'stringValue',
-											stringValue: String(attrValue)
-										}
-									};
-									return acc;
-								}, {})
-							}
-						}
-					}
-				}
-			}
-		};
+		return createTargetingCaveatContext(context.attributes);
 	}
 
 	protected createBulkPermissionRequestItem(

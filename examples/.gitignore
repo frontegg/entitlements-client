@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/build
+**/coverage
+**/logs
+**/tmp
+**/temp
+**/test-results
+**/test-reports
+**/test-coverage
+**/test-reports
+yarn.lock

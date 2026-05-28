@@ -1,0 +1,48 @@
+schema: |
+
+    caveat active_at(at timestamp, activeFrom any, activeUntil any) {
+      (activeFrom == null || at >= timestamp(activeFrom)) && (activeUntil == null || at <= timestamp(activeUntil))
+    }
+
+    definition document {
+        relation parent: folder | folder with active_at
+        relation reader: user | user with active_at
+        permission read_doc = parent->read_folder + reader
+    }
+
+    definition folder {
+        relation reader: user | user with active_at
+        permission read_folder = reader
+    }
+
+    definition user {
+    }
+
+    caveat targeting(rules list<list<map<any>>>, expiration timestamp, user_context map<any>) {
+      (rules.size() == 0 || rules.size() > 0) && expiration >= timestamp(user_context["now"])
+    }
+
+    definition frontegg_user {
+    }
+
+    definition frontegg_tenant {
+        relation member: frontegg_user
+        permission access = member
+    }
+
+    definition frontegg_feature {
+        relation granted: frontegg_user with targeting | frontegg_tenant with targeting
+        permission access = granted
+    }
+
+relationships: |
+    folder:c2FsYXJpZXM#reader@user:QWxpY2U
+    document:VGltJ3Nfc2FsYXJ5X2ZlYg#reader@user:VGlt[active_at:{"activeFrom":"2026-02-01T00:00:00.000Z","activeUntil":null}]
+    document:VGltJ3Nfc2FsYXJ5X0phbg#reader@user:VGlt[active_at:{"activeFrom":"2026-01-01T00:00:00.000Z","activeUntil":null}]
+    document:VGltJ3Nfc2FsYXJ5X21hcg#reader@user:VGlt[active_at:{"activeFrom":"2026-03-01T00:00:00.000Z","activeUntil":null}]
+    document:VGltJ3Nfc2FsYXJ5X2ZlYg#parent@folder:c2FsYXJpZXM[active_at:{"activeFrom":"2026-02-01T00:00:00.000Z","activeUntil":null}]
+    document:VGltJ3Nfc2FsYXJ5X0phbg#parent@folder:c2FsYXJpZXM[active_at:{"activeFrom":"2026-01-01T00:00:00.000Z","activeUntil":null}]
+    document:VGltJ3Nfc2FsYXJ5X21hcg#parent@folder:c2FsYXJpZXM[active_at:{"activeFrom":"2026-03-01T00:00:00.000Z","activeUntil":null}]
+    frontegg_tenant:ZGVtby10ZW5hbnQ#member@frontegg_user:VGlt
+    frontegg_feature:cHJlbWl1bQ#granted@frontegg_user:VGlt[targeting:{"expiration":"2099-01-01T00:00:00.000Z","rules":[]}]
+    frontegg_feature:YmFzaWM#granted@frontegg_tenant:ZGVtby10ZW5hbnQ[targeting:{"expiration":"2099-01-01T00:00:00.000Z","rules":[]}]
