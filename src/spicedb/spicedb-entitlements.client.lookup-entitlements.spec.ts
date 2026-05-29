@@ -159,6 +159,65 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 		expect(result.totalReturned).toBe(3);
 	});
 
+	it('should not return more entitlements than the requested limit for a user subject', async () => {
+		mockSpiceClient.checkPermission.mockResolvedValue(
+			v1.CheckPermissionResponse.create({
+				permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+			})
+		);
+		mockSpiceClient.lookupResources
+			.mockResolvedValueOnce([
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('tenant-feature-a'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				},
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('tenant-feature-b'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: { token: 'tenant-next-cursor' }
+				}
+			])
+			.mockResolvedValueOnce([
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('user-feature-a'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				},
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('user-feature-b'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: { token: 'user-next-cursor' }
+				}
+			]);
+
+		const result = await client.lookupEntitlements({
+			...defaultRequest,
+			subject: {
+				...defaultRequest.subject,
+				userId: 'user-1'
+			},
+			limit: 2
+		});
+
+		expect(result).toEqual({
+			entitlements: [
+				{ type: RequestContextType.Feature, key: 'tenant-feature-a', permissionship: 'HAS_PERMISSION' },
+				{ type: RequestContextType.Feature, key: 'tenant-feature-b', permissionship: 'HAS_PERMISSION' }
+			],
+			totalReturned: 2,
+			cursor: encodeObjectId(JSON.stringify({ tenant: 'tenant-next-cursor', user: undefined }))
+		});
+	});
+
 	it('should return empty entitlements when the user is not a tenant member', async () => {
 		mockSpiceClient.checkPermission.mockResolvedValue(
 			v1.CheckPermissionResponse.create({

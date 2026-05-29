@@ -195,15 +195,18 @@ export class SpiceDBEntitlementsClient {
 			const resultsBySubject = await Promise.all(
 				requests.map((request) => this.spiceClient.lookupResources(request))
 			);
-			const results = resultsBySubject.flat();
+			const { results, consumedResultsBySubject } = this.limitLookupEntitlementsResults(resultsBySubject, limit);
 
 			if (this.logResults) {
-				await this.loggingClient.logRequest(requests, results);
+				await this.loggingClient.logRequest(requests, resultsBySubject.flat());
 			}
 
 			return {
 				...mapLookupEntitlementsResponse(results, req.criteria.type),
-				cursor: this.getLookupEntitlementsCursor(resultsBySubject, limit)
+				cursor: this.getLookupEntitlementsCursor(
+					consumedResultsBySubject,
+					this.decodeLookupEntitlementsCursor(req.cursor)
+				)
 			};
 		} catch (err) {
 			await this.loggingClient.error(err);
@@ -292,13 +295,42 @@ export class SpiceDBEntitlementsClient {
 		return subjects;
 	}
 
-	private getLookupEntitlementsCursor(
+	private limitLookupEntitlementsResults(
 		resultsBySubject: v1.LookupResourcesResponse[][],
 		limit: number
+	): { results: v1.LookupResourcesResponse[]; consumedResultsBySubject: v1.LookupResourcesResponse[][] } {
+		const results: v1.LookupResourcesResponse[] = [];
+		const consumedResultsBySubject: v1.LookupResourcesResponse[][] = resultsBySubject.map(() => []);
+		const seenKeys = new Set<string>();
+
+		for (const [subjectIndex, subjectResults] of resultsBySubject.entries()) {
+			for (const result of subjectResults) {
+				consumedResultsBySubject[subjectIndex].push(result);
+				const key = decodeObjectId(result.resourceObjectId);
+				if (seenKeys.has(key)) {
+					continue;
+				}
+
+				seenKeys.add(key);
+				results.push(result);
+				if (results.length === limit) {
+					return { results, consumedResultsBySubject };
+				}
+			}
+		}
+
+		return { results, consumedResultsBySubject };
+	}
+
+	private getLookupEntitlementsCursor(
+		consumedResultsBySubject: v1.LookupResourcesResponse[][],
+		previousCursor: { tenant?: string; user?: string }
 	): string | undefined {
-		const [tenantResults, userResults] = resultsBySubject;
-		const tenant = this.getLookupResourcesCursor(tenantResults ?? [], limit);
-		const user = this.getLookupResourcesCursor(userResults ?? [], limit);
+		const [tenantResults, userResults] = consumedResultsBySubject;
+		const tenant = tenantResults?.length
+			? this.getConsumedLookupResourcesCursor(tenantResults)
+			: previousCursor.tenant;
+		const user = userResults?.length ? this.getConsumedLookupResourcesCursor(userResults) : previousCursor.user;
 
 		if (!tenant && !user) {
 			return undefined;
@@ -307,11 +339,7 @@ export class SpiceDBEntitlementsClient {
 		return encodeObjectId(JSON.stringify({ tenant, user }));
 	}
 
-	private getLookupResourcesCursor(results: v1.LookupResourcesResponse[], limit: number): string | undefined {
-		if (results.length !== limit) {
-			return undefined;
-		}
-
+	private getConsumedLookupResourcesCursor(results: v1.LookupResourcesResponse[]): string | undefined {
 		return results[results.length - 1]?.afterResultCursor?.token;
 	}
 

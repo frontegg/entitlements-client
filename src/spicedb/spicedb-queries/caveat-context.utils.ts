@@ -20,25 +20,25 @@ export function createTargetingCaveatContext(attributes?: Record<string, unknown
 				kind: {
 					oneofKind: 'structValue',
 					structValue: {
-					fields: {
-						...Object.entries(attributes ?? {}).reduce<
-							Record<string, { kind: { oneofKind: 'stringValue'; stringValue: string } }>
-						>((acc, [attrName, attrValue]) => {
-							acc[attrName] = {
+						fields: {
+							...Object.entries(attributes ?? {}).reduce<
+								Record<string, { kind: { oneofKind: 'stringValue'; stringValue: string } }>
+							>((acc, [attrName, attrValue]) => {
+								acc[attrName] = {
+									kind: {
+										oneofKind: 'stringValue',
+										stringValue: String(attrValue)
+									}
+								};
+								return acc;
+							}, {}),
+							now: {
 								kind: {
 									oneofKind: 'stringValue',
-									stringValue: String(attrValue)
+									stringValue: new Date().toISOString()
 								}
-							};
-							return acc;
-						}, {}),
-						now: {
-							kind: {
-								oneofKind: 'stringValue',
-								stringValue: new Date().toISOString()
 							}
 						}
-					}
 					}
 				}
 			}
