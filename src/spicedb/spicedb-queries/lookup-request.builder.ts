@@ -52,10 +52,11 @@ export function buildLookupEntitiesRequest(params: LookupEntitiesRequest): v1.Lo
 
 export function buildLookupEntitlementsRequest(
 	params: LookupEntitlementsRequest,
-	subject: LookupEntitlementsSubject
+	subject: LookupEntitlementsSubject,
+	now?: string
 ): v1.LookupResourcesRequest {
 	const { criteria, limit } = params;
-	const caveatContext = createTargetingCaveatContext(params.subject.attributes);
+	const caveatContext = createTargetingCaveatContext(params.subject.attributes, now);
 
 	// Forward-compatibility guard: LookupEntitlementsCriteria is currently a union of one type,
 	// so TypeScript already prevents reaching this at compile time. When new criteria types are

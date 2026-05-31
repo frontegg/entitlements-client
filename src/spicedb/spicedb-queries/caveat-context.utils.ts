@@ -13,7 +13,7 @@ export function createActiveAtCaveatContext(at?: string): v1.PbStruct {
 	};
 }
 
-export function createTargetingCaveatContext(attributes?: Record<string, unknown>): v1.PbStruct {
+export function createTargetingCaveatContext(attributes?: Record<string, unknown>, now?: string): v1.PbStruct {
 	return {
 		fields: {
 			user_context: {
@@ -35,7 +35,7 @@ export function createTargetingCaveatContext(attributes?: Record<string, unknown
 							now: {
 								kind: {
 									oneofKind: 'stringValue',
-									stringValue: new Date().toISOString()
+									stringValue: now ?? new Date().toISOString()
 								}
 							}
 						}

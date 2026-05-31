@@ -36,6 +36,25 @@ import {
 import { SpiceDBEntities } from '../types/spicedb-consts';
 import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
 
+type LookupEntitlementsStreamKey = 'tenant' | 'user';
+
+interface LookupEntitlementsStreamState {
+	token?: string;
+	done?: boolean;
+}
+
+interface LookupEntitlementsCursorState {
+	tenant?: LookupEntitlementsStreamState;
+	user?: LookupEntitlementsStreamState;
+	now?: string;
+}
+
+interface LookupEntitlementsStream {
+	key: LookupEntitlementsStreamKey;
+	subject: LookupEntitlementsSubject;
+	state: LookupEntitlementsStreamState;
+}
+
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
 	public readonly spiceClient: v1.ZedPromiseClientInterface;
@@ -190,23 +209,27 @@ export class SpiceDBEntitlementsClient {
 			}
 
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
-			const subjects = this.getLookupEntitlementsSubjects(req);
-			const requests = subjects.map((subject) => buildLookupEntitlementsRequest({ ...req, limit }, subject));
-			const resultsBySubject = await Promise.all(
+			const previousCursor = this.decodeLookupEntitlementsCursor(req.cursor);
+			// SpiceDB cursors embed the full request (including the caveat context), so `now` must stay
+			// identical across every page. Pin it to the first page and round-trip it through our cursor.
+			const now = previousCursor.now ?? new Date().toISOString();
+			const streams = this.getLookupEntitlementsStreams(req, previousCursor);
+			const activeStreams = streams.filter((stream) => !stream.state.done);
+			const requests = activeStreams.map((stream) =>
+				buildLookupEntitlementsRequest({ ...req, limit }, stream.subject, now)
+			);
+			const resultsByStream = await Promise.all(
 				requests.map((request) => this.spiceClient.lookupResources(request))
 			);
-			const { results, consumedResultsBySubject } = this.limitLookupEntitlementsResults(resultsBySubject, limit);
+			const { results, consumedByStream } = this.limitLookupEntitlementsResults(resultsByStream, limit);
 
 			if (this.logResults) {
-				await this.loggingClient.logRequest(requests, resultsBySubject.flat());
+				await this.loggingClient.logRequest(requests, resultsByStream.flat());
 			}
 
 			return {
 				...mapLookupEntitlementsResponse(results, req.criteria.type),
-				cursor: this.getLookupEntitlementsCursor(
-					consumedResultsBySubject,
-					this.decodeLookupEntitlementsCursor(req.cursor)
-				)
+				cursor: this.getLookupEntitlementsCursor(streams, activeStreams, resultsByStream, consumedByStream, limit, now)
 			};
 		} catch (err) {
 			await this.loggingClient.error(err);
@@ -274,38 +297,48 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	private getLookupEntitlementsSubjects(req: LookupEntitlementsRequest): LookupEntitlementsSubject[] {
-		const cursor = this.decodeLookupEntitlementsCursor(req.cursor);
-		const subjects: LookupEntitlementsSubject[] = [
+	private getLookupEntitlementsStreams(
+		req: LookupEntitlementsRequest,
+		previousCursor: LookupEntitlementsCursorState
+	): LookupEntitlementsStream[] {
+		const streams: LookupEntitlementsStream[] = [
 			{
-				entityType: SpiceDBEntities.Tenant,
-				entityId: req.subject.tenantId,
-				cursor: cursor.tenant
+				key: 'tenant',
+				subject: {
+					entityType: SpiceDBEntities.Tenant,
+					entityId: req.subject.tenantId,
+					cursor: previousCursor.tenant?.token
+				},
+				state: previousCursor.tenant ?? {}
 			}
 		];
 
 		if (req.subject.userId) {
-			subjects.push({
-				entityType: SpiceDBEntities.User,
-				entityId: req.subject.userId,
-				cursor: cursor.user
+			streams.push({
+				key: 'user',
+				subject: {
+					entityType: SpiceDBEntities.User,
+					entityId: req.subject.userId,
+					cursor: previousCursor.user?.token
+				},
+				state: previousCursor.user ?? {}
 			});
 		}
 
-		return subjects;
+		return streams;
 	}
 
 	private limitLookupEntitlementsResults(
-		resultsBySubject: v1.LookupResourcesResponse[][],
+		resultsByStream: v1.LookupResourcesResponse[][],
 		limit: number
-	): { results: v1.LookupResourcesResponse[]; consumedResultsBySubject: v1.LookupResourcesResponse[][] } {
+	): { results: v1.LookupResourcesResponse[]; consumedByStream: v1.LookupResourcesResponse[][] } {
 		const results: v1.LookupResourcesResponse[] = [];
-		const consumedResultsBySubject: v1.LookupResourcesResponse[][] = resultsBySubject.map(() => []);
+		const consumedByStream: v1.LookupResourcesResponse[][] = resultsByStream.map(() => []);
 		const seenKeys = new Set<string>();
 
-		for (const [subjectIndex, subjectResults] of resultsBySubject.entries()) {
-			for (const result of subjectResults) {
-				consumedResultsBySubject[subjectIndex].push(result);
+		for (const [streamIndex, streamResults] of resultsByStream.entries()) {
+			for (const result of streamResults) {
+				consumedByStream[streamIndex].push(result);
 				const key = decodeObjectId(result.resourceObjectId);
 				if (seenKeys.has(key)) {
 					continue;
@@ -314,45 +347,85 @@ export class SpiceDBEntitlementsClient {
 				seenKeys.add(key);
 				results.push(result);
 				if (results.length === limit) {
-					return { results, consumedResultsBySubject };
+					return { results, consumedByStream };
 				}
 			}
 		}
 
-		return { results, consumedResultsBySubject };
+		return { results, consumedByStream };
 	}
 
 	private getLookupEntitlementsCursor(
-		consumedResultsBySubject: v1.LookupResourcesResponse[][],
-		previousCursor: { tenant?: string; user?: string }
+		streams: LookupEntitlementsStream[],
+		activeStreams: LookupEntitlementsStream[],
+		resultsByStream: v1.LookupResourcesResponse[][],
+		consumedByStream: v1.LookupResourcesResponse[][],
+		limit: number,
+		now: string
 	): string | undefined {
-		const [tenantResults, userResults] = consumedResultsBySubject;
-		const tenant = tenantResults?.length
-			? this.getConsumedLookupResourcesCursor(tenantResults)
-			: previousCursor.tenant;
-		const user = userResults?.length ? this.getConsumedLookupResourcesCursor(userResults) : previousCursor.user;
+		const nextState: LookupEntitlementsCursorState = {};
 
-		if (!tenant && !user) {
+		for (const stream of streams) {
+			const activeIndex = activeStreams.indexOf(stream);
+			if (activeIndex === -1) {
+				// Stream was already exhausted before this page; keep it marked done so we never re-query it.
+				nextState[stream.key] = { done: true };
+				continue;
+			}
+
+			nextState[stream.key] = this.getStreamState(
+				resultsByStream[activeIndex] ?? [],
+				consumedByStream[activeIndex] ?? [],
+				limit,
+				stream.subject.cursor
+			);
+		}
+
+		const everyStreamDone = streams.every((stream) => nextState[stream.key]?.done);
+		if (everyStreamDone) {
 			return undefined;
 		}
 
-		return encodeObjectId(JSON.stringify({ tenant, user }));
+		return encodeObjectId(JSON.stringify({ ...nextState, now }));
 	}
 
-	private getConsumedLookupResourcesCursor(results: v1.LookupResourcesResponse[]): string | undefined {
-		return results[results.length - 1]?.afterResultCursor?.token;
+	private getStreamState(
+		streamResults: v1.LookupResourcesResponse[],
+		consumedResults: v1.LookupResourcesResponse[],
+		limit: number,
+		previousToken?: string
+	): LookupEntitlementsStreamState {
+		if (consumedResults.length < streamResults.length) {
+			// Stopped mid-stream because the page limit was hit; resume from the last consumed item,
+			// or re-query from the same position if nothing from this stream made it onto the page.
+			if (consumedResults.length === 0) {
+				return { token: previousToken };
+			}
+			const token = consumedResults[consumedResults.length - 1]?.afterResultCursor?.token;
+			return token ? { token } : { done: true };
+		}
+
+		// A partial page (fewer results than the limit) or a missing continuation token means the
+		// stream is exhausted. Matches the `results.length === limit` convention in the response mapper.
+		if (streamResults.length < limit) {
+			return { done: true };
+		}
+
+		const token = streamResults[streamResults.length - 1]?.afterResultCursor?.token;
+		return token ? { token } : { done: true };
 	}
 
-	private decodeLookupEntitlementsCursor(cursor?: string): { tenant?: string; user?: string } {
+	private decodeLookupEntitlementsCursor(cursor?: string): LookupEntitlementsCursorState {
 		if (!cursor) {
 			return {};
 		}
 
 		try {
-			const parsed = JSON.parse(decodeObjectId(cursor)) as { tenant?: string; user?: string };
+			const parsed = JSON.parse(decodeObjectId(cursor)) as LookupEntitlementsCursorState;
 			return {
 				tenant: parsed.tenant,
-				user: parsed.user
+				user: parsed.user,
+				now: parsed.now
 			};
 		} catch {
 			return {};

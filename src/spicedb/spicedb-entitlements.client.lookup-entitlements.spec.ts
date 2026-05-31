@@ -6,6 +6,18 @@ import { LookupEntitlementsRequest, RequestContextType } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
 import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
 
+function readCaveatNow(request: v1.LookupResourcesRequest): string | undefined {
+	const userContext = request.context?.fields?.user_context?.kind;
+	if (userContext?.oneofKind !== 'structValue') {
+		return undefined;
+	}
+	const nowField = userContext.structValue.fields.now?.kind;
+	if (nowField?.oneofKind !== 'stringValue') {
+		return undefined;
+	}
+	return nowField.stringValue;
+}
+
 describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 	let mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface>;
 	let mockLoggingClient: MockProxy<LoggingClient>;
@@ -15,6 +27,8 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 		engineEndpoint: 'mock-endpoint',
 		engineToken: 'mock-token'
 	};
+
+	const fixedNow = '2026-05-31T00:00:00.000Z';
 
 	const defaultRequest: LookupEntitlementsRequest = {
 		subject: {
@@ -29,10 +43,15 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 	};
 
 	beforeEach(() => {
+		jest.useFakeTimers({ now: new Date(fixedNow) });
 		mockSpiceClient = mock<v1.ZedPromiseClientInterface>();
 		mockLoggingClient = mock<LoggingClient>();
 		client = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 		Object.defineProperty(client, 'spiceClient', { value: mockSpiceClient });
+	});
+
+	afterEach(() => {
+		jest.useRealTimers();
 	});
 
 	it('should lookup feature entitlements for a tenant subject', async () => {
@@ -214,7 +233,7 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 				{ type: RequestContextType.Feature, key: 'tenant-feature-b', permissionship: 'HAS_PERMISSION' }
 			],
 			totalReturned: 2,
-			cursor: encodeObjectId(JSON.stringify({ tenant: 'tenant-next-cursor', user: undefined }))
+			cursor: encodeObjectId(JSON.stringify({ tenant: { token: 'tenant-next-cursor' }, user: {}, now: fixedNow }))
 		});
 	});
 
@@ -283,7 +302,7 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 			}
 		]);
 
-		const inputCursor = encodeObjectId(JSON.stringify({ tenant: 'existing-cursor' }));
+		const inputCursor = encodeObjectId(JSON.stringify({ tenant: { token: 'existing-cursor' } }));
 
 		const result = await client.lookupEntitlements({
 			...defaultRequest,
@@ -299,7 +318,7 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 				})
 			})
 		);
-		const expectedCursor = encodeObjectId(JSON.stringify({ tenant: 'next-cursor', user: undefined }));
+		const expectedCursor = encodeObjectId(JSON.stringify({ tenant: { token: 'next-cursor' }, now: fixedNow }));
 		expect(result.cursor).toBe(expectedCursor);
 	});
 
@@ -336,6 +355,144 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 			})
 		);
 		expect(page2.cursor).toBeUndefined();
+	});
+
+	it('should clear the cursor when both subject streams are exhausted on a subsequent page', async () => {
+		mockSpiceClient.checkPermission.mockResolvedValue(
+			v1.CheckPermissionResponse.create({
+				permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+			})
+		);
+		mockSpiceClient.lookupResources.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+		const inputCursor = encodeObjectId(
+			JSON.stringify({ tenant: { token: 'tenant-cursor' }, user: { token: 'user-cursor' } })
+		);
+
+		const result = await client.lookupEntitlements({
+			...defaultRequest,
+			subject: {
+				...defaultRequest.subject,
+				userId: 'user-1'
+			},
+			limit: 50,
+			cursor: inputCursor
+		});
+
+		expect(result.entitlements).toEqual([]);
+		expect(result.cursor).toBeUndefined();
+	});
+
+	it('should clear a stream cursor when it returns fewer results than the limit', async () => {
+		mockSpiceClient.lookupResources.mockResolvedValue([
+			{
+				lookedUpAt: undefined,
+				resourceObjectId: encodeObjectId('feature-a'),
+				permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+				partialCaveatInfo: undefined,
+				afterResultCursor: { token: 'dangling-cursor' }
+			}
+		]);
+
+		const inputCursor = encodeObjectId(JSON.stringify({ tenant: { token: 'tenant-cursor' } }));
+
+		const result = await client.lookupEntitlements({
+			...defaultRequest,
+			limit: 50,
+			cursor: inputCursor
+		});
+
+		expect(result.cursor).toBeUndefined();
+	});
+
+	it('should terminate pagination across tenant and user streams without re-querying exhausted streams', async () => {
+		mockSpiceClient.checkPermission.mockResolvedValue(
+			v1.CheckPermissionResponse.create({
+				permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+			})
+		);
+		mockSpiceClient.lookupResources.mockImplementation(async (request) => {
+			const objectType = request.subject?.object?.objectType;
+			const token = request.optionalCursor?.token;
+			if (objectType === 'frontegg_tenant') {
+				return token
+					? []
+					: [
+							{
+								lookedUpAt: undefined,
+								resourceObjectId: encodeObjectId('basic'),
+								permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+								partialCaveatInfo: undefined,
+								afterResultCursor: { token: 'tenant-page-2' }
+							}
+					  ];
+			}
+			return token
+				? []
+				: [
+						{
+							lookedUpAt: undefined,
+							resourceObjectId: encodeObjectId('premium'),
+							permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+							partialCaveatInfo: undefined,
+							afterResultCursor: { token: 'user-page-2' }
+						}
+				  ];
+		});
+
+		const collectedKeys: string[] = [];
+		let cursor: string | undefined;
+		let pages = 0;
+		do {
+			const response = await client.lookupEntitlements({
+				...defaultRequest,
+				subject: {
+					...defaultRequest.subject,
+					userId: 'user-1'
+				},
+				limit: 1,
+				cursor
+			});
+			collectedKeys.push(...response.entitlements.map((entitlement) => entitlement.key));
+			cursor = response.cursor;
+			pages += 1;
+			expect(pages).toBeLessThanOrEqual(10);
+		} while (cursor);
+
+		expect([...collectedKeys].sort()).toEqual(['basic', 'premium']);
+	});
+
+	it('should pin the now caveat context across pages so SpiceDB cursor arguments stay identical', async () => {
+		mockSpiceClient.lookupResources.mockResolvedValueOnce([
+			{
+				lookedUpAt: undefined,
+				resourceObjectId: encodeObjectId('feature-a'),
+				permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+				partialCaveatInfo: undefined,
+				afterResultCursor: { token: 'spicedb-page2-token' }
+			}
+		]);
+
+		const page1 = await client.lookupEntitlements({ ...defaultRequest, limit: 1 });
+
+		jest.setSystemTime(new Date('2026-05-31T01:00:00.000Z'));
+
+		mockSpiceClient.lookupResources.mockResolvedValueOnce([
+			{
+				lookedUpAt: undefined,
+				resourceObjectId: encodeObjectId('feature-b'),
+				permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+				partialCaveatInfo: undefined,
+				afterResultCursor: undefined
+			}
+		]);
+
+		await client.lookupEntitlements({ ...defaultRequest, limit: 1, cursor: page1.cursor });
+
+		const page1Now = readCaveatNow(mockSpiceClient.lookupResources.mock.calls[0][0]);
+		const page2Now = readCaveatNow(mockSpiceClient.lookupResources.mock.calls[1][0]);
+		expect(page1Now).toBe(fixedNow);
+		expect(page2Now).toBe(fixedNow);
 	});
 
 	it('should log and propagate SpiceDB errors', async () => {
