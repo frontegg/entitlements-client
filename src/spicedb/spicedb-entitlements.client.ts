@@ -212,7 +212,14 @@ export class SpiceDBEntitlementsClient {
 
 			return {
 				...mapLookupEntitlementsResponse(results, req.criteria.type),
-				cursor: this.getLookupEntitlementsCursor(streams, activeStreams, resultsByStream, consumedByStream, limit, now)
+				cursor: this.getLookupEntitlementsCursor(
+					streams,
+					activeStreams,
+					resultsByStream,
+					consumedByStream,
+					limit,
+					now
+				)
 			};
 		} catch (err) {
 			await this.loggingClient.error(err);

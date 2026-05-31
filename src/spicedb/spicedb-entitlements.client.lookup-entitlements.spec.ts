@@ -425,7 +425,7 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 								partialCaveatInfo: undefined,
 								afterResultCursor: { token: 'tenant-page-2' }
 							}
-					  ];
+						];
 			}
 			return token
 				? []
@@ -437,7 +437,7 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 							partialCaveatInfo: undefined,
 							afterResultCursor: { token: 'user-page-2' }
 						}
-				  ];
+					];
 		});
 
 		const collectedKeys: string[] = [];
