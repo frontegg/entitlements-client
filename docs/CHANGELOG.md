@@ -1,3 +1,5 @@
+## [3.0.1](https://github.com/frontegg/entitlements-client/compare/3.0.0...3.0.1) (2026-05-31)
+
 ## [3.0.1-alpha.1](https://github.com/frontegg/entitlements-client/compare/3.0.0...3.0.1-alpha.1) (2026-05-31)
 
 # [3.0.0](https://github.com/frontegg/entitlements-client/compare/2.0.0...3.0.0) (2026-01-14)
