@@ -3,17 +3,12 @@ import {
 	LookupTargetEntitiesRequest,
 	LookupEntitiesRequest,
 	LookupEntitlementsRequest,
+	LookupEntitlementsSubject,
 	RequestContextType
 } from '../../types';
 import { encodeObjectId } from './base64.utils';
 import { createActiveAtCaveatContext, createTargetingCaveatContext } from './caveat-context.utils';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
-
-export interface LookupEntitlementsSubject {
-	entityType: string;
-	entityId: string;
-	cursor?: string;
-}
 
 export function buildLookupTargetEntitiesRequest(params: LookupTargetEntitiesRequest): v1.LookupResourcesRequest {
 	const { entityType, entityId, TargetEntityType, action, limit, cursor, at } = params;

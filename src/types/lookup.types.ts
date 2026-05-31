@@ -60,6 +60,31 @@ export interface LookupEntitlementsRequest {
 	cursor?: string;
 }
 
+export interface LookupEntitlementsSubject {
+	entityType: string;
+	entityId: string;
+	cursor?: string;
+}
+
+export type LookupEntitlementsStreamKey = 'tenant' | 'user';
+
+export interface LookupEntitlementsStreamState {
+	token?: string;
+	done?: boolean;
+}
+
+export interface LookupEntitlementsCursorState {
+	tenant?: LookupEntitlementsStreamState;
+	user?: LookupEntitlementsStreamState;
+	now?: string;
+}
+
+export interface LookupEntitlementsStream {
+	key: LookupEntitlementsStreamKey;
+	subject: LookupEntitlementsSubject;
+	state: LookupEntitlementsStreamState;
+}
+
 export interface EntitlementItem extends LookupBaseItem {
 	type: RequestContextType;
 	key: string;

@@ -9,8 +9,11 @@ import {
 	LookupTargetEntitiesResponse,
 	LookupEntitiesRequest,
 	LookupEntitiesResponse,
+	LookupEntitlementsCursorState,
 	LookupEntitlementsRequest,
 	LookupEntitlementsResponse,
+	LookupEntitlementsStream,
+	LookupEntitlementsStreamState,
 	PermissionsEntitlementsContext,
 	RequestContext,
 	RequestContextType,
@@ -25,8 +28,7 @@ import { v1 } from '@authzed/authzed-node';
 import {
 	buildLookupTargetEntitiesRequest,
 	buildLookupEntitiesRequest,
-	buildLookupEntitlementsRequest,
-	LookupEntitlementsSubject
+	buildLookupEntitlementsRequest
 } from './spicedb-queries/lookup-request.builder';
 import {
 	mapLookupTargetEntitiesResponse,
@@ -35,25 +37,6 @@ import {
 } from './spicedb-queries/lookup-response.mapper';
 import { SpiceDBEntities } from '../types/spicedb-consts';
 import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
-
-type LookupEntitlementsStreamKey = 'tenant' | 'user';
-
-interface LookupEntitlementsStreamState {
-	token?: string;
-	done?: boolean;
-}
-
-interface LookupEntitlementsCursorState {
-	tenant?: LookupEntitlementsStreamState;
-	user?: LookupEntitlementsStreamState;
-	now?: string;
-}
-
-interface LookupEntitlementsStream {
-	key: LookupEntitlementsStreamKey;
-	subject: LookupEntitlementsSubject;
-	state: LookupEntitlementsStreamState;
-}
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };

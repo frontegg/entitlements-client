@@ -21,6 +21,12 @@ export function createTargetingCaveatContext(attributes?: Record<string, unknown
 					oneofKind: 'structValue',
 					structValue: {
 						fields: {
+							now: {
+								kind: {
+									oneofKind: 'stringValue',
+									stringValue: now ?? new Date().toISOString()
+								}
+							},
 							...Object.entries(attributes ?? {}).reduce<
 								Record<string, { kind: { oneofKind: 'stringValue'; stringValue: string } }>
 							>((acc, [attrName, attrValue]) => {
@@ -31,13 +37,7 @@ export function createTargetingCaveatContext(attributes?: Record<string, unknown
 									}
 								};
 								return acc;
-							}, {}),
-							now: {
-								kind: {
-									oneofKind: 'stringValue',
-									stringValue: now ?? new Date().toISOString()
-								}
-							}
+							}, {})
 						}
 					}
 				}
