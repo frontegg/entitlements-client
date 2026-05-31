@@ -1,0 +1,25 @@
+{
+	"name": "frontegg-e10s-demo",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Demo apps for Frontegg E10S entitlement checks",
+	"scripts": {
+		"demo:alice": "ts-node \"1. is-entitled-demo-alice-inheritance/index.ts\"",
+		"demo:tim": "ts-node \"2. is-entitled-demo-tim-direct/index.ts\"",
+		"demo:lookup-targets": "ts-node \"3. lookupTargetEntities-demo/index.ts\"",
+		"demo:lookup-entities": "ts-node \"4. lookupEntities-demo/index.ts\"",
+		"demo:lookup-entitlements": "ts-node \"5. lookupEntitlements-demo/index.ts\"",
+		"start": "yarn demo:tim"
+	},
+	"dependencies": {
+		"@authzed/authzed-node": "^1.6.1",
+		"@frontegg/e10s-client": "latest",
+		"yaml": "^2.3.4"
+	},
+	"devDependencies": {
+		"@types/node": "^20.10.0",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.4.5"
+	},
+	"packageManager": "yarn@1.22.22"
+}

@@ -1,5 +1,6 @@
 import { v1 } from '@authzed/authzed-node';
 import {
+	EntitlementsBatchResult,
 	EntitlementsDynamicQuery,
 	EntitlementsResult,
 	PermissionsEntitlementsContext,
@@ -8,8 +9,9 @@ import {
 } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
-import { encodeObjectId } from './base64.utils';
+import { decodeObjectId, encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
+import { createTargetingCaveatContext } from './caveat-context.utils';
 
 export interface HashOptions {
 	hashResourceId: boolean;
@@ -28,36 +30,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	): Promise<SpiceDBResponse<EntitlementsResult>>;
 
 	protected createCaveatContext(context: UserSubjectContext): v1.PbStruct {
-		return {
-			fields: {
-				user_context: {
-					kind: {
-						oneofKind: 'structValue',
-						structValue: {
-							fields: {
-								now: {
-									kind: {
-										oneofKind: 'stringValue',
-										stringValue: new Date().toISOString()
-									}
-								},
-								...Object.entries(context.attributes ?? {}).reduce<
-									Record<string, { kind: { oneofKind: 'stringValue'; stringValue: string } }>
-								>((acc, [attrName, attrValue]) => {
-									acc[attrName] = {
-										kind: {
-											oneofKind: 'stringValue',
-											stringValue: String(attrValue)
-										}
-									};
-									return acc;
-								}, {})
-							}
-						}
-					}
-				}
-			}
-		};
+		return createTargetingCaveatContext(context.attributes);
 	}
 
 	protected createBulkPermissionRequestItem(
@@ -117,12 +90,59 @@ export abstract class EntitlementsSpiceDBQuery {
 		});
 	}
 
+	protected createManyBulkPermissionsRequest(
+		objectType: string,
+		objectIds: string[],
+		context: UserSubjectContext,
+		caveatContext: v1.PbStruct,
+		hashOptions: HashOptions = { hashSubjectId: true, hashResourceId: true }
+	): v1.CheckBulkPermissionsRequest {
+		return v1.CheckBulkPermissionsRequest.create({
+			items: objectIds.flatMap(
+				(objectId) =>
+					this.createBulkPermissionsRequest(objectType, objectId, context, caveatContext, hashOptions).items
+			)
+		});
+	}
+
 	protected processCheckBulkPermissionsResponse(res: v1.CheckBulkPermissionsResponse): boolean {
 		return res.pairs.some(
 			(pair) =>
 				pair.response.oneofKind === 'item' &&
 				pair.response.item.permissionship === v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
 		);
+	}
+
+	protected processManyCheckBulkPermissionsResponse(
+		res: v1.CheckBulkPermissionsResponse,
+		objectIds: string[],
+		hashResourceId: boolean = true
+	): EntitlementsBatchResult {
+		const results = objectIds.reduce<EntitlementsBatchResult>((mappedResults, objectId) => {
+			mappedResults[objectId] = { result: false };
+			return mappedResults;
+		}, {});
+
+		for (const pair of res.pairs) {
+			const resourceObjectId = pair.request?.resource?.objectId;
+			if (!resourceObjectId) {
+				continue;
+			}
+
+			const objectId = hashResourceId ? decodeObjectId(resourceObjectId) : resourceObjectId;
+			if (!results[objectId]) {
+				continue;
+			}
+
+			const hasPermission =
+				pair.response.oneofKind === 'item' &&
+				pair.response.item.permissionship === v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION;
+			if (hasPermission) {
+				results[objectId] = { result: true };
+			}
+		}
+
+		return results;
 	}
 
 	protected async executeCommonQuery(
@@ -155,6 +175,46 @@ export abstract class EntitlementsSpiceDBQuery {
 		return {
 			result: { result } as EntitlementsResult
 		} as SpiceDBResponse<EntitlementsResult>;
+	}
+
+	protected async executeManyCommonQuery(
+		objectType: string,
+		objectIds: string[],
+		subjectContext: UserSubjectContext
+	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
+		const context = subjectContext;
+		const uniqueObjectIds = Array.from(new Set(objectIds));
+		if (uniqueObjectIds.length === 0) {
+			return { result: {} };
+		}
+
+		const caveatContext = this.createCaveatContext(context);
+		const request = this.createManyBulkPermissionsRequest(objectType, uniqueObjectIds, context, caveatContext);
+
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{
+					action: 'SpiceDB:checkBulkPermissionsMany:request',
+					objectType,
+					objectIds: uniqueObjectIds,
+					subjectContext
+				},
+				{ request }
+			);
+		}
+
+		const res = await this.client.checkBulkPermissions(request);
+
+		if (this.logResults) {
+			await this.loggingClient?.logRequest(
+				{ action: 'SpiceDB:checkBulkPermissionsMany:response', objectType, objectIds: uniqueObjectIds },
+				{ response: res }
+			);
+		}
+
+		return {
+			result: this.processManyCheckBulkPermissionsResponse(res, uniqueObjectIds)
+		};
 	}
 	protected async isPermissionLinkedToFeatures(
 		requestContext: PermissionsEntitlementsContext,

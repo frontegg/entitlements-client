@@ -1,6 +1,10 @@
-import { v1 } from '@authzed/authzed-node';
-import { buildLookupTargetEntitiesRequest, buildLookupEntitiesRequest } from './lookup-request.builder';
+import {
+	buildLookupTargetEntitiesRequest,
+	buildLookupEntitiesRequest,
+	buildLookupEntitlementsRequest
+} from './lookup-request.builder';
 import { encodeObjectId } from './base64.utils';
+import { RequestContextType } from '../../types';
 
 describe('lookup-request.builder', () => {
 	describe('buildLookupTargetEntitiesRequest', () => {
@@ -126,6 +130,65 @@ describe('lookup-request.builder', () => {
 			expect(encodedId).not.toContain('+');
 			expect(encodedId).not.toContain('/');
 			expect(encodedId).not.toContain('=');
+		});
+	});
+
+	describe('buildLookupEntitlementsRequest', () => {
+		it('should build a feature entitlement lookup request for a tenant subject', () => {
+			const result = buildLookupEntitlementsRequest(
+				{
+					subject: {
+						tenantId: 'tenant-1',
+						attributes: {
+							plan: 'pro'
+						}
+					},
+					criteria: {
+						type: RequestContextType.Feature
+					},
+					limit: 25,
+					cursor: 'cursor-token'
+				},
+				{
+					entityType: 'frontegg_tenant',
+					entityId: 'tenant-1',
+					cursor: 'cursor-token'
+				}
+			);
+
+			expect(result.resourceObjectType).toBe('frontegg_feature');
+			expect(result.permission).toBe('access');
+			expect(result.subject?.object?.objectType).toBe('frontegg_tenant');
+			expect(result.subject?.object?.objectId).toBe(encodeObjectId('tenant-1'));
+			expect(result.subject?.optionalRelation).toBe('');
+			expect(result.optionalLimit).toBe(25);
+			expect(result.optionalCursor?.token).toBe('cursor-token');
+			expect(result.context?.fields.user_context.kind.oneofKind).toBe('structValue');
+		});
+
+		it('should build a feature entitlement lookup request for a user subject', () => {
+			const result = buildLookupEntitlementsRequest(
+				{
+					subject: {
+						tenantId: 'tenant-1',
+						userId: 'user-1'
+					},
+					criteria: {
+						type: RequestContextType.Feature
+					},
+					limit: 50
+				},
+				{
+					entityType: 'frontegg_user',
+					entityId: 'user-1'
+				}
+			);
+
+			expect(result.resourceObjectType).toBe('frontegg_feature');
+			expect(result.permission).toBe('access');
+			expect(result.subject?.object?.objectType).toBe('frontegg_user');
+			expect(result.subject?.object?.objectId).toBe(encodeObjectId('user-1'));
+			expect(result.optionalCursor).toBeUndefined();
 		});
 	});
 });

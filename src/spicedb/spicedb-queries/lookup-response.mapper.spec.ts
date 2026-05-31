@@ -1,7 +1,12 @@
 import { v1 } from '@authzed/authzed-node';
-import { mapLookupTargetEntitiesResponse, mapLookupEntitiesResponse } from './lookup-response.mapper';
+import {
+	mapLookupTargetEntitiesResponse,
+	mapLookupEntitiesResponse,
+	mapLookupEntitlementsResponse
+} from './lookup-response.mapper';
 import { permissionshipMap } from '../lookup.constants';
 import { encodeObjectId } from './base64.utils';
+import { RequestContextType } from '../../types';
 
 describe('lookup-response.mapper', () => {
 	describe('mapPermissionship', () => {
@@ -244,6 +249,89 @@ describe('lookup-response.mapper', () => {
 			const response = mapLookupEntitiesResponse(results, 'cust_user');
 
 			expect(response.entities[0].entityId).toBe(originalUserId);
+		});
+	});
+
+	describe('mapLookupEntitlementsResponse', () => {
+		it('should map feature entitlement lookup resources and decode feature keys', () => {
+			const results: v1.LookupResourcesResponse[] = [
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-a'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				},
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-b'),
+					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				}
+			];
+
+			const response = mapLookupEntitlementsResponse(results, RequestContextType.Feature);
+
+			expect(response.entitlements).toEqual([
+				{ type: RequestContextType.Feature, key: 'feature-a', permissionship: 'HAS_PERMISSION' },
+				{ type: RequestContextType.Feature, key: 'feature-b', permissionship: 'CONDITIONAL_PERMISSION' }
+			]);
+			expect(response.totalReturned).toBe(2);
+		});
+
+		it('should deduplicate entitlement keys while preserving first result order', () => {
+			const results: v1.LookupResourcesResponse[] = [
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-a'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				},
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-b'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				},
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-a'),
+					permissionship: v1.LookupPermissionship.CONDITIONAL_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				}
+			];
+
+			const response = mapLookupEntitlementsResponse(results, RequestContextType.Feature);
+
+			expect(response.entitlements.map((entitlement) => entitlement.key)).toEqual(['feature-a', 'feature-b']);
+			expect(response.entitlements[0].permissionship).toBe('HAS_PERMISSION');
+		});
+
+		it('should count deduplicated results in totalReturned', () => {
+			const results: v1.LookupResourcesResponse[] = [
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-a'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				},
+				{
+					lookedUpAt: undefined,
+					resourceObjectId: encodeObjectId('feature-a'),
+					permissionship: v1.LookupPermissionship.HAS_PERMISSION,
+					partialCaveatInfo: undefined,
+					afterResultCursor: undefined
+				}
+			];
+
+			const response = mapLookupEntitlementsResponse(results, RequestContextType.Feature);
+
+			expect(response.totalReturned).toBe(1);
 		});
 	});
 });
