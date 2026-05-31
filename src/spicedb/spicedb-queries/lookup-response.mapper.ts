@@ -1,5 +1,13 @@
 import { v1 } from '@authzed/authzed-node';
-import { TargetEntityItem, LookupTargetEntitiesResponse, EntityItem, LookupEntitiesResponse } from '../../types';
+import {
+	TargetEntityItem,
+	LookupTargetEntitiesResponse,
+	EntityItem,
+	LookupEntitiesResponse,
+	LookupEntitlementsResponse,
+	EntitlementItem,
+	RequestContextType
+} from '../../types';
 import { permissionshipMap } from '../lookup.constants';
 import { decodeObjectId } from './base64.utils';
 
@@ -37,5 +45,32 @@ export function mapLookupEntitiesResponse(
 	return {
 		entities,
 		totalReturned: entities.length
+	};
+}
+
+export function mapLookupEntitlementsResponse(
+	results: v1.LookupResourcesResponse[],
+	type: RequestContextType
+): Omit<LookupEntitlementsResponse, 'cursor'> {
+	const entitlements: EntitlementItem[] = [];
+	const seenKeys = new Set<string>();
+
+	for (const result of results) {
+		const key = decodeObjectId(result.resourceObjectId);
+		if (seenKeys.has(key)) {
+			continue;
+		}
+
+		seenKeys.add(key);
+		entitlements.push({
+			type,
+			key,
+			permissionship: permissionshipMap.get(result.permissionship)
+		});
+	}
+
+	return {
+		entitlements,
+		totalReturned: entitlements.length
 	};
 }

@@ -157,6 +157,28 @@ describe(EntitlementsSpiceDBQuery.name, () => {
 			}
 		});
 
+		it('should allow user attributes to override the generated now value', () => {
+			const userContext: UserSubjectContext = {
+				userId: 'user-123',
+				tenantId: 'tenant-456',
+				permissions: ['read'],
+				attributes: {
+					now: '2026-01-01T00:00:00.000Z'
+				}
+			};
+
+			const caveatContext = queryClient.testCreateCaveatContext(userContext);
+			const structValue =
+				caveatContext.fields.user_context.kind?.oneofKind === 'structValue'
+					? caveatContext.fields.user_context.kind.structValue
+					: undefined;
+
+			expect(structValue?.fields.now.kind?.oneofKind).toBe('stringValue');
+			if (structValue?.fields.now.kind?.oneofKind === 'stringValue') {
+				expect(structValue.fields.now.kind.stringValue).toBe('2026-01-01T00:00:00.000Z');
+			}
+		});
+
 		it('should handle context with no attributes', () => {
 			const userContext: UserSubjectContext = {
 				userId: 'user-123',

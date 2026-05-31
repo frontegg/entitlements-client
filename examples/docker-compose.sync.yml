@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+    spicedb-create-db:
+        image: cockroachdb/cockroach:v26.2.0
+        command:
+            [
+                'sql',
+                '--insecure',
+                '--host=spicedb-cockroachdb:26257',
+                '--execute=CREATE DATABASE IF NOT EXISTS spicedb;'
+            ]
+        depends_on:
+            spicedb-cockroachdb:
+                condition: service_healthy
+        restart: 'no'
+
+    spicedb-migrate:
+        image: authzed/spicedb:v1.53.0
+        command:
+            [
+                'datastore',
+                'migrate',
+                'head',
+                '--datastore-engine=cockroachdb',
+                '--datastore-conn-uri=postgres://root:password@spicedb-cockroachdb:26257/spicedb?sslmode=disable'
+            ]
+        depends_on:
+            spicedb-create-db:
+                condition: service_completed_successfully
+        restart: 'no'
+
+    spicedb:
+        image: authzed/spicedb:v1.53.0
+        cpus: '0.5'
+        mem_limit: 512m
+        ports:
+            - '50051:50051'
+        volumes:
+            - spicedb-data:/data
+
+        command:
+            [
+                'serve',
+                '--datastore-engine=cockroachdb',
+                '--datastore-conn-uri=postgres://root:password@spicedb-cockroachdb:26257/spicedb?sslmode=disable',
+                '--log-level=trace'
+            ]
+        environment:
+            - SPICEDB_GRPC_PRESHARED_KEY=${SPICEDB_GRPC_PRESHARED_KEY:-spicedb}
+        healthcheck:
+            test: ['CMD', 'pgrep', '-f', 'spicedb']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 10s
+        depends_on:
+            spicedb-migrate:
+                condition: service_completed_successfully
+            spicedb-cockroachdb:
+                condition: service_healthy
+
+    spicedb-cockroachdb:
+        image: cockroachdb/cockroach:v26.2.0
+        ports:
+            - '26257:26257'
+        volumes:
+            - spicedb-cockroachdb-data:/cockroach/cockroach-data
+        command: ['start-single-node', '--insecure']
+        healthcheck:
+            test: ['CMD', '/cockroach/cockroach', 'sql', '--insecure', '--execute', 'SELECT 1']
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 10s
+        environment:
+            - PGUSER=root
+            - PGPASSWORD=password
+            - PGDATABASE=spicedb
+
+volumes:
+    spicedb-data:
+    spicedb-cockroachdb-data:

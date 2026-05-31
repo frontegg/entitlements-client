@@ -1,3 +1,6 @@
+import { RequestContextType } from './request-context-type.enum';
+import { UserSubjectContext } from './subject-context';
+
 export type Permissionship = 'HAS_PERMISSION' | 'CONDITIONAL_PERMISSION' | 'NO_PERMISSION';
 
 export interface LookupBaseRequest {
@@ -42,4 +45,52 @@ export interface LookupEntitiesRequest extends LookupBaseRequest {
 
 export interface LookupEntitiesResponse extends LookupBaseResponse {
 	entities: EntityItem[];
+}
+
+export interface LookupEntitlementsFeatureCriteria {
+	type: RequestContextType.Feature;
+}
+
+export type LookupEntitlementsCriteria = LookupEntitlementsFeatureCriteria;
+
+export interface LookupEntitlementsRequest {
+	subject: UserSubjectContext;
+	criteria: LookupEntitlementsCriteria;
+	limit?: number;
+	cursor?: string;
+}
+
+export interface LookupEntitlementsSubject {
+	entityType: string;
+	entityId: string;
+	cursor?: string;
+}
+
+export type LookupEntitlementsStreamKey = 'tenant' | 'user';
+
+export interface LookupEntitlementsStreamState {
+	token?: string;
+	done?: boolean;
+}
+
+export interface LookupEntitlementsCursorState {
+	tenant?: LookupEntitlementsStreamState;
+	user?: LookupEntitlementsStreamState;
+	now?: string;
+}
+
+export interface LookupEntitlementsStream {
+	key: LookupEntitlementsStreamKey;
+	subject: LookupEntitlementsSubject;
+	state: LookupEntitlementsStreamState;
+}
+
+export interface EntitlementItem extends LookupBaseItem {
+	type: RequestContextType;
+	key: string;
+}
+
+export interface LookupEntitlementsResponse extends LookupBaseResponse {
+	entitlements: EntitlementItem[];
+	cursor?: string;
 }
