@@ -8,6 +8,9 @@ import {
 	UserSubjectContext,
 	EntitlementsDynamicQueryRequestContext
 } from '../../types';
+import { SchemaScope } from '../../instances/schema-scope';
+
+const LEGACY_SCOPE = new SchemaScope('');
 
 export function getRequestContext(type: RequestContextType): RequestContext {
 	switch (type) {
@@ -93,10 +96,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
 			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
 
-			const result = await queryClient.query({
-				subjectContext: subjectContext || defaultSubjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext: subjectContext || defaultSubjectContext,
+					requestContext
+				},
+				LEGACY_SCOPE
+			);
 
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -128,10 +134,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
 
-			const result = await queryClient.query({
-				subjectContext: subjectContext || defaultSubjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext: subjectContext || defaultSubjectContext,
+					requestContext
+				},
+				LEGACY_SCOPE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -150,10 +159,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
 
 			await expect(
-				queryClient.query({
-					subjectContext: subjectContext || defaultSubjectContext,
-					requestContext
-				})
+				queryClient.query(
+					{
+						subjectContext: subjectContext || defaultSubjectContext,
+						requestContext
+					},
+					LEGACY_SCOPE
+				)
 			).rejects.toThrow(mockError);
 		});
 	});

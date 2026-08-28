@@ -10,6 +10,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { LoggingClient } from '../../logging';
+import { SchemaScope } from '../../instances/schema-scope';
 
 export class FeaturesSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
@@ -20,18 +21,19 @@ export class FeaturesSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		super(client, loggingClient, logResults);
 	}
 
-	async query({
-		subjectContext,
-		requestContext
-	}: EntitlementsDynamicQuery<RequestContextType.Feature>): Promise<SpiceDBResponse<EntitlementsResult>> {
+	async query(
+		{ subjectContext, requestContext }: EntitlementsDynamicQuery<RequestContextType.Feature>,
+		scope: SchemaScope
+	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
-		return this.executeCommonQuery(SpiceDBEntities.Feature, requestContext.featureKey, context);
+		return this.executeCommonQuery(scope, SpiceDBEntities.Feature, requestContext.featureKey, context);
 	}
 
 	async queryMany(
 		subjectContext: UserSubjectContext,
-		featureKeys: string[]
+		featureKeys: string[],
+		scope: SchemaScope
 	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
-		return this.executeManyCommonQuery(SpiceDBEntities.Feature, featureKeys, subjectContext);
+		return this.executeManyCommonQuery(scope, SpiceDBEntities.Feature, featureKeys, subjectContext);
 	}
 }

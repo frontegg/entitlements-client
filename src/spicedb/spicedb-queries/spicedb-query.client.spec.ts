@@ -3,6 +3,9 @@ import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { v1 } from '@authzed/authzed-node';
 import { RequestContext, RequestContextType, SubjectContext } from '../../types';
 import { getRequestContext } from './entitlements-spicedb.query.spec-helper';
+import { SchemaScope } from '../../instances/schema-scope';
+
+const LEGACY_SCOPE = new SchemaScope('');
 
 describe(SpiceDBQueryClient.name, () => {
 	let queryClient: SpiceDBQueryClient;
@@ -32,8 +35,8 @@ describe(SpiceDBQueryClient.name, () => {
 		const mockStrategy = jest.spyOn(queryClient['strategy'][requestContextType], 'query');
 		mockStrategy.mockResolvedValue({ result: { result: true } });
 
-		await queryClient.spiceDBQuery(subjectContext, requestContext);
+		await queryClient.spiceDBQuery(subjectContext, requestContext, LEGACY_SCOPE);
 
-		expect(mockStrategy).toHaveBeenCalledWith({ requestContext, subjectContext });
+		expect(mockStrategy).toHaveBeenCalledWith({ requestContext, subjectContext }, LEGACY_SCOPE);
 	});
 });

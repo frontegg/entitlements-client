@@ -3,6 +3,9 @@ import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { FeaturesSpiceDBQuery } from './features-spicedb.query';
 import { EntitlementsSpiceDBQueryCommonTests } from './entitlements-spicedb.query.spec-helper';
 import { EntitlementsDynamicQueryRequestContext, RequestContextType, UserSubjectContext } from '../../types';
+import { SchemaScope } from '../../instances/schema-scope';
+
+const LEGACY_SCOPE = new SchemaScope('');
 
 describe(FeaturesSpiceDBQuery.name, () => {
 	EntitlementsSpiceDBQueryCommonTests<FeaturesSpiceDBQuery, RequestContextType.Feature>(
@@ -52,7 +55,7 @@ describe(FeaturesSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
 
-			await queryClient.query({ subjectContext, requestContext });
+			await queryClient.query({ subjectContext, requestContext }, LEGACY_SCOPE);
 
 			const call = mockClient.checkBulkPermissions.mock.calls[0][0];
 			const context = call.items?.[0]?.context;

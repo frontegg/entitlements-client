@@ -13,6 +13,9 @@ import {
 } from '../types';
 import { SpiceDBResponse } from '../types/spicedb.dto';
 import { ClientConfiguration, FallbackConfiguration } from '../client-configuration';
+import { SchemaScope } from '../instances/schema-scope';
+
+const LEGACY_SCOPE = new SchemaScope('');
 
 // Helper function to create request contexts for each type
 function getRequestContext(type: RequestContextType): RequestContext {
@@ -86,7 +89,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+					subjectContext,
+					requestContext,
+					LEGACY_SCOPE
+				);
 				expect(result).toEqual({ result: true });
 				expect(mockLoggingClient.log).not.toHaveBeenCalled();
 			});
@@ -100,7 +107,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
 				// THEN
-				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+					subjectContext,
+					requestContext,
+					LEGACY_SCOPE
+				);
 				expect(result).toEqual({ result: true });
 				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, spiceDBResult);
 			});
@@ -118,7 +129,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
-				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+					subjectContext,
+					requestContext,
+					LEGACY_SCOPE
+				);
 				expect(result).toEqual({ result: false });
 			});
 		}
@@ -154,7 +169,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
-				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+					subjectContext,
+					requestContext,
+					LEGACY_SCOPE
+				);
 				expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
 				expect(result).toEqual({ result: false });
 			});
@@ -168,7 +187,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 				const result = await cut.isEntitledTo(subjectContext, requestContext);
 
-				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+				expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+					subjectContext,
+					requestContext,
+					LEGACY_SCOPE
+				);
 				expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
 				expect(result).toEqual({ result: true });
 			});
@@ -230,13 +253,26 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				entityContext
 			]);
 
-			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).toHaveBeenCalledWith(subjectContext, [
-				'feature-a',
-				'feature-b'
-			]);
-			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, permissionContext);
-			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, routeContext);
-			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, entityContext);
+			expect(mockSpiceDBQueryClient.spiceDBBatchFeatureQuery).toHaveBeenCalledWith(
+				subjectContext,
+				['feature-a', 'feature-b'],
+				LEGACY_SCOPE
+			);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+				subjectContext,
+				permissionContext,
+				LEGACY_SCOPE
+			);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+				subjectContext,
+				routeContext,
+				LEGACY_SCOPE
+			);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+				subjectContext,
+				entityContext,
+				LEGACY_SCOPE
+			);
 			expect(result).toEqual([
 				{ result: true },
 				{ result: true },
@@ -435,7 +471,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			const result = await cut.isEntitledTo(subjectContext, requestContext);
 
-			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+				subjectContext,
+				requestContext,
+				LEGACY_SCOPE
+			);
 			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
 			expect(result).toEqual(expectedResult);
 		});
@@ -515,7 +555,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			const result = await cut.isEntitledTo(subjectContext, requestContext);
 
-			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(subjectContext, requestContext);
+			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalledWith(
+				subjectContext,
+				requestContext,
+				LEGACY_SCOPE
+			);
 			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
 			expect(result).toEqual(expectedResult);
 		});

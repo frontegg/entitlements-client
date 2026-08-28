@@ -7,6 +7,9 @@ import {
 import { permissionshipMap } from '../lookup.constants';
 import { encodeObjectId } from './base64.utils';
 import { RequestContextType } from '../../types';
+import { SchemaScope } from '../../instances/schema-scope';
+
+const LEGACY_SCOPE = new SchemaScope('');
 
 describe('lookup-response.mapper', () => {
 	describe('mapPermissionship', () => {
@@ -49,7 +52,7 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupTargetEntitiesResponse(results, 'document', 50);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 50, LEGACY_SCOPE);
 
 			expect(response.targets).toHaveLength(2);
 			// Should decode to original IDs
@@ -75,7 +78,7 @@ describe('lookup-response.mapper', () => {
 				afterResultCursor: i === 9 ? { token: 'next-cursor' } : undefined
 			}));
 
-			const response = mapLookupTargetEntitiesResponse(results, 'document', 10);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 10, LEGACY_SCOPE);
 
 			expect(response.cursor).toBe('next-cursor');
 		});
@@ -91,13 +94,13 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupTargetEntitiesResponse(results, 'document', 50);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 50, LEGACY_SCOPE);
 
 			expect(response.cursor).toBeUndefined();
 		});
 
 		it('should handle empty results', () => {
-			const response = mapLookupTargetEntitiesResponse([], 'document', 50);
+			const response = mapLookupTargetEntitiesResponse([], 'document', 50, LEGACY_SCOPE);
 
 			expect(response.targets).toHaveLength(0);
 			expect(response.totalReturned).toBe(0);
@@ -116,7 +119,7 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupTargetEntitiesResponse(results, 'document', 50);
+			const response = mapLookupTargetEntitiesResponse(results, 'document', 50, LEGACY_SCOPE);
 
 			expect(response.targets[0].TargetEntityId).toBe(originalId);
 		});
@@ -156,7 +159,7 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupEntitiesResponse(results, 'user');
+			const response = mapLookupEntitiesResponse(results, 'user', LEGACY_SCOPE);
 
 			expect(response.entities).toHaveLength(2);
 			// Should decode to original IDs
@@ -174,7 +177,7 @@ describe('lookup-response.mapper', () => {
 		});
 
 		it('should handle empty results', () => {
-			const response = mapLookupEntitiesResponse([], 'user');
+			const response = mapLookupEntitiesResponse([], 'user', LEGACY_SCOPE);
 
 			expect(response.entities).toHaveLength(0);
 			expect(response.totalReturned).toBe(0);
@@ -194,7 +197,7 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupEntitiesResponse(results, 'user');
+			const response = mapLookupEntitiesResponse(results, 'user', LEGACY_SCOPE);
 
 			expect(response.entities[0].entityId).toBe('');
 			expect(response.entities[0].permissionship).toBeUndefined();
@@ -220,7 +223,7 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupEntitiesResponse(results, 'user');
+			const response = mapLookupEntitiesResponse(results, 'user', LEGACY_SCOPE);
 
 			// Should use the subject field value, not the deprecated top-level one
 			expect(response.entities[0].permissionship).toBe('CONDITIONAL_PERMISSION');
@@ -246,7 +249,7 @@ describe('lookup-response.mapper', () => {
 				}
 			];
 
-			const response = mapLookupEntitiesResponse(results, 'cust_user');
+			const response = mapLookupEntitiesResponse(results, 'cust_user', LEGACY_SCOPE);
 
 			expect(response.entities[0].entityId).toBe(originalUserId);
 		});

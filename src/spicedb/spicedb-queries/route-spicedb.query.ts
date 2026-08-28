@@ -6,6 +6,7 @@ import { LRUCache } from 'lru-cache';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
+import { SchemaScope } from '../../instances/schema-scope';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	private readonly cache: LRUCache<string, any>;
@@ -30,22 +31,23 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		return { result };
 	}
 
-	async query({
-		subjectContext,
-		requestContext
-	}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
+	async query(
+		{ subjectContext, requestContext }: EntitlementsDynamicQuery<RequestContextType.Route>,
+		scope: SchemaScope
+	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
 		let isMonitoringEnabled = false;
 		const request = v1.ReadRelationshipsRequest.create({
 			relationshipFilter: {
-				resourceType: SpiceDBEntities.Route
+				resourceType: scope.type(SpiceDBEntities.Route)
 			}
 		});
 
-		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get('routes-relations');
+		const cacheKey = `routes-relations:${scope.schemaPrefix}`;
+		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get(cacheKey);
 		if (!relations) {
 			relations = await this.client.readRelationships(request);
-			this.cache.set('routes-relations', relations);
+			this.cache.set(cacheKey, relations);
 		}
 		let objects = relations
 			.filter((relation: v1.ReadRelationshipsResponse) => {
@@ -115,7 +117,8 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		const caveatContext = this.createCaveatContext(context);
 
 		const bulkRequest = this.createBulkPermissionsRequest(
-			firstRule.resourceType,
+			scope,
+			scope.strip(firstRule.resourceType),
 			firstRule.resourceId,
 			context,
 			caveatContext,

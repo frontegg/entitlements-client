@@ -5,6 +5,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
+import { SchemaScope } from '../../instances/schema-scope';
 
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
@@ -15,22 +16,22 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		super(client, loggingClient, logResults);
 	}
 
-	async query({
-		requestContext,
-		subjectContext
-	}: EntitlementsDynamicQuery<RequestContextType.Entity>): Promise<SpiceDBResponse<EntitlementsResult>> {
+	async query(
+		{ requestContext, subjectContext }: EntitlementsDynamicQuery<RequestContextType.Entity>,
+		scope: SchemaScope
+	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as FGASubjectContext;
 		const caveatContext = createActiveAtCaveatContext(requestContext.at);
 		const request = v1.CheckPermissionRequest.create({
 			subject: {
 				object: {
-					objectType: context.entityType,
+					objectType: scope.type(context.entityType),
 					objectId: encodeObjectId(context.key)
 				},
 				optionalRelation: ''
 			},
 			resource: {
-				objectType: requestContext.entityType,
+				objectType: scope.type(requestContext.entityType),
 				objectId: encodeObjectId(requestContext.key)
 			},
 			permission: requestContext.action,

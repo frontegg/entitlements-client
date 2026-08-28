@@ -37,18 +37,31 @@ import {
 } from './spicedb-queries/lookup-response.mapper';
 import { SpiceDBEntities } from '../types/spicedb-consts';
 import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
+import { InstanceRegistry, ResolvedInstance } from '../instances/instance-registry';
+import { resolveInstance } from '../instances/resolve-instance';
+import { SchemaScope } from '../instances/schema-scope';
+import { InstanceResolutionException } from '../exceptions/instance-resolution.exception';
+
+export interface InstanceOptions {
+	instanceId?: string;
+}
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
 	public readonly spiceClient: v1.ZedPromiseClientInterface;
 	private readonly spiceDBQueryClient: SpiceDBQueryClient;
 
+	private readonly registry: InstanceRegistry;
+
 	constructor(
 		private readonly configuration: ClientConfiguration,
 		private readonly loggingClient: LoggingClient,
 		private readonly logResults = false,
-		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
+		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false },
+		registry?: InstanceRegistry
 	) {
+		this.registry = registry ?? new InstanceRegistry(configuration, configuration.defaultInstanceId);
+
 		try {
 			this.spiceClient = v1.NewClient(
 				this.configuration.engineToken,
@@ -70,15 +83,19 @@ export class SpiceDBEntitlementsClient {
 
 	public async isEntitledTo(
 		subjectContext: SubjectContext,
-		requestContext: RequestContext
+		requestContext: RequestContext,
+		options?: InstanceOptions
 	): Promise<EntitlementsResult> {
-		return this.executeEntitlementQuery(subjectContext, requestContext, 'SpiceDB:isEntitledTo');
+		const instance = this.resolve(options?.instanceId);
+		return this.executeEntitlementQuery(subjectContext, requestContext, instance, 'SpiceDB:isEntitledTo');
 	}
 
 	public async isEntitledToMany(
 		subjectContext: SubjectContext,
-		requestContexts: RequestContext[]
+		requestContexts: RequestContext[],
+		options?: InstanceOptions
 	): Promise<EntitlementsManyResult> {
+		const instance = this.resolve(options?.instanceId);
 		if (this.logResults) {
 			await this.loggingClient.logRequest(
 				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, requestContexts },
@@ -102,7 +119,7 @@ export class SpiceDBEntitlementsClient {
 		}
 
 		const [featureResults, nonFeatureResults] = await Promise.all([
-			this.resolveFeatureEntitlements(subjectContext, featureRequests),
+			this.resolveFeatureEntitlements(subjectContext, featureRequests, instance),
 			Promise.all(
 				requestContexts.map(async (requestContext, index) => {
 					if (requestContext.type === RequestContextType.Feature) {
@@ -111,7 +128,7 @@ export class SpiceDBEntitlementsClient {
 
 					return {
 						index,
-						result: await this.executeEntitlementQuery(subjectContext, requestContext)
+						result: await this.executeEntitlementQuery(subjectContext, requestContext, instance)
 					};
 				})
 			)
@@ -134,56 +151,69 @@ export class SpiceDBEntitlementsClient {
 		return results;
 	}
 
-	public async lookupTargetEntities(req: LookupTargetEntitiesRequest): Promise<LookupTargetEntitiesResponse> {
+	public async lookupTargetEntities(
+		req: LookupTargetEntitiesRequest & InstanceOptions
+	): Promise<LookupTargetEntitiesResponse> {
+		const { scope } = this.resolve(req.instanceId);
 		try {
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
-			const request = buildLookupTargetEntitiesRequest({
-				entityType: req.entityType,
-				entityId: req.entityId,
-				TargetEntityType: req.TargetEntityType,
-				action: req.action,
-				limit,
-				cursor: req.cursor,
-				at: req.at
-			});
+			const request = buildLookupTargetEntitiesRequest(
+				{
+					entityType: req.entityType,
+					entityId: req.entityId,
+					TargetEntityType: req.TargetEntityType,
+					action: req.action,
+					limit,
+					cursor: req.cursor,
+					at: req.at
+				},
+				scope
+			);
 
 			const results = await this.spiceClient.lookupResources(request);
 
 			if (this.logResults) {
 				await this.loggingClient.logRequest(request, results);
 			}
-			return mapLookupTargetEntitiesResponse(results, req.TargetEntityType, limit);
+			return mapLookupTargetEntitiesResponse(results, req.TargetEntityType, limit, scope);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;
 		}
 	}
 
-	public async lookupEntities(req: LookupEntitiesRequest): Promise<LookupEntitiesResponse> {
+	public async lookupEntities(req: LookupEntitiesRequest & InstanceOptions): Promise<LookupEntitiesResponse> {
+		const { scope } = this.resolve(req.instanceId);
 		try {
-			const request = buildLookupEntitiesRequest({
-				TargetEntityType: req.TargetEntityType,
-				TargetEntityId: req.TargetEntityId,
-				entityType: req.entityType,
-				action: req.action,
-				at: req.at
-			});
+			const request = buildLookupEntitiesRequest(
+				{
+					TargetEntityType: req.TargetEntityType,
+					TargetEntityId: req.TargetEntityId,
+					entityType: req.entityType,
+					action: req.action,
+					at: req.at
+				},
+				scope
+			);
 
 			const results = await this.spiceClient.lookupSubjects(request);
 
 			if (this.logResults) {
 				await this.loggingClient.logRequest(request, results);
 			}
-			return mapLookupEntitiesResponse(results, req.entityType);
+			return mapLookupEntitiesResponse(results, req.entityType, scope);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;
 		}
 	}
 
-	public async lookupEntitlements(req: LookupEntitlementsRequest): Promise<LookupEntitlementsResponse> {
+	public async lookupEntitlements(
+		req: LookupEntitlementsRequest & InstanceOptions
+	): Promise<LookupEntitlementsResponse> {
+		const { scope } = this.resolve(req.instanceId);
 		try {
-			if (!(await this.isLookupEntitlementsTenantMember(req))) {
+			if (!(await this.isLookupEntitlementsTenantMember(req, scope))) {
 				return {
 					entitlements: [],
 					totalReturned: 0,
@@ -199,7 +229,7 @@ export class SpiceDBEntitlementsClient {
 			const streams = this.getLookupEntitlementsStreams(req, previousCursor);
 			const activeStreams = streams.filter((stream) => !stream.state.done);
 			const requests = activeStreams.map((stream) =>
-				buildLookupEntitlementsRequest({ ...req, limit }, stream.subject, now)
+				buildLookupEntitlementsRequest({ ...req, limit }, stream.subject, scope, now)
 			);
 			const resultsByStream = await Promise.all(
 				requests.map((request) => this.spiceClient.lookupResources(request))
@@ -227,20 +257,23 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	private async isLookupEntitlementsTenantMember(req: LookupEntitlementsRequest): Promise<boolean> {
+	private async isLookupEntitlementsTenantMember(
+		req: LookupEntitlementsRequest,
+		scope: SchemaScope
+	): Promise<boolean> {
 		if (!req.subject.userId) {
 			return true;
 		}
 
 		const request = v1.CheckPermissionRequest.create({
 			resource: {
-				objectType: SpiceDBEntities.Tenant,
+				objectType: scope.type(SpiceDBEntities.Tenant),
 				objectId: encodeObjectId(req.subject.tenantId)
 			},
 			permission: 'access',
 			subject: {
 				object: {
-					objectType: SpiceDBEntities.User,
+					objectType: scope.type(SpiceDBEntities.User),
 					objectId: encodeObjectId(req.subject.userId)
 				},
 				optionalRelation: ''
@@ -250,9 +283,29 @@ export class SpiceDBEntitlementsClient {
 		return result.permissionship === v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION;
 	}
 
+	private resolve(instanceId?: string): ResolvedInstance {
+		return resolveInstance(this.registry, instanceId, this.loggingClient);
+	}
+
+	public async readSchemaFor(instanceId?: string): Promise<string> {
+		const { scope } = this.resolve(instanceId);
+		const { schemaText } = await this.spiceClient.readSchema({});
+
+		if (scope.isLegacy) {
+			return schemaText;
+		}
+
+		const marker = `${scope.schemaPrefix}/`;
+		return schemaText
+			.split(/\n(?=definition |caveat )/)
+			.filter((block) => block.startsWith(`definition ${marker}`) || block.startsWith(`caveat ${marker}`))
+			.join('\n');
+	}
+
 	private async executeEntitlementQuery(
 		subjectContext: SubjectContext,
 		requestContext: RequestContext,
+		instance: ResolvedInstance,
 		logAction?: string
 	): Promise<EntitlementsResult> {
 		const logPerItem = this.logResults && logAction != null;
@@ -264,7 +317,7 @@ export class SpiceDBEntitlementsClient {
 				);
 			}
 
-			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext);
+			const res = await this.spiceDBQueryClient.spiceDBQuery(subjectContext, requestContext, instance.scope);
 
 			if (logPerItem) {
 				await this.loggingClient.logRequest(
@@ -282,8 +335,11 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
+			if (err instanceof InstanceResolutionException) {
+				throw err;
+			}
 			await this.loggingClient.error(err);
-			return this.constructFallbackResult(requestContext);
+			return this.constructFallbackResult(requestContext, instance);
 		}
 	}
 
@@ -424,7 +480,8 @@ export class SpiceDBEntitlementsClient {
 
 	private async resolveFeatureEntitlements(
 		subjectContext: SubjectContext,
-		featureRequests: { requestContext: FeatureEntitlementsContext; index: number }[]
+		featureRequests: { requestContext: FeatureEntitlementsContext; index: number }[],
+		instance: ResolvedInstance
 	): Promise<{ index: number; result: EntitlementsResult }[]> {
 		if (!featureRequests.length) {
 			return [];
@@ -437,33 +494,41 @@ export class SpiceDBEntitlementsClient {
 		try {
 			const res = await this.spiceDBQueryClient.spiceDBBatchFeatureQuery(
 				subjectContext as UserSubjectContext,
-				uniqueFeatureKeys
+				uniqueFeatureKeys,
+				instance.scope
 			);
 			return featureRequests.map(({ requestContext, index }) => ({
 				index,
 				result: res.result[requestContext.featureKey] ?? { result: false }
 			}));
 		} catch (err) {
+			if (err instanceof InstanceResolutionException) {
+				throw err;
+			}
 			await this.loggingClient.error(err);
 			return Promise.all(
 				featureRequests.map(async ({ requestContext, index }) => ({
 					index,
-					result: await this.constructFallbackResult(requestContext)
+					result: await this.constructFallbackResult(requestContext, instance)
 				}))
 			);
 		}
 	}
 
-	private async constructFallbackResult(requestContext: RequestContext): Promise<EntitlementsResult> {
+	private async constructFallbackResult(
+		requestContext: RequestContext,
+		instance?: ResolvedInstance
+	): Promise<EntitlementsResult> {
+		const configuration = instance?.fallbackConfiguration ?? this.fallbackConfiguration;
 		const fallback =
-			this.fallbackConfiguration instanceof Function
-				? await this.fallbackConfiguration(requestContext)
-				: this.getStaticFallback(requestContext);
+			configuration instanceof Function
+				? await configuration(requestContext)
+				: this.getStaticFallback(requestContext, configuration);
 		return { result: fallback };
 	}
 
-	private getStaticFallback(requestContext: RequestContext): boolean {
-		const staticFallbackConfiguration = this.fallbackConfiguration as StaticFallbackConfiguration;
+	private getStaticFallback(requestContext: RequestContext, configuration: FallbackConfiguration): boolean {
+		const staticFallbackConfiguration = configuration as StaticFallbackConfiguration;
 
 		const fallbackMapper = {
 			[RequestContextType.Feature]:

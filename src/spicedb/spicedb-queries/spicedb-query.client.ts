@@ -14,6 +14,7 @@ import { FgaSpiceDBQuery } from './fga-spicedb.query';
 import { RouteSpiceDBQuery } from './route-spicedb.query';
 import { v1 } from '@authzed/authzed-node';
 import { LoggingClient } from '../../logging';
+import { SchemaScope } from '../../instances/schema-scope';
 
 export class SpiceDBQueryClient {
 	private readonly strategy: Record<RequestContextType, EntitlementsSpiceDBQuery>;
@@ -33,18 +34,21 @@ export class SpiceDBQueryClient {
 
 	async spiceDBQuery(
 		subjectContext: SubjectContext,
-		requestContext: RequestContext
+		requestContext: RequestContext,
+		scope: SchemaScope
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
-		return this.strategy[requestContext.type].query({ requestContext, subjectContext });
+		return this.strategy[requestContext.type].query({ requestContext, subjectContext }, scope);
 	}
 
 	async spiceDBBatchFeatureQuery(
 		subjectContext: UserSubjectContext,
-		featureKeys: string[]
+		featureKeys: string[],
+		scope: SchemaScope
 	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
 		return (this.strategy[RequestContextType.Feature] as FeaturesSpiceDBQuery).queryMany(
 			subjectContext,
-			featureKeys
+			featureKeys,
+			scope
 		);
 	}
 }

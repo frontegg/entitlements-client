@@ -12,6 +12,7 @@ import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { decodeObjectId, encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
 import { createTargetingCaveatContext } from './caveat-context.utils';
+import { SchemaScope } from '../../instances/schema-scope';
 
 export interface HashOptions {
 	hashResourceId: boolean;
@@ -26,7 +27,8 @@ export abstract class EntitlementsSpiceDBQuery {
 	) {}
 
 	abstract query(
-		entitlementsQuery: EntitlementsDynamicQuery<RequestContextType>
+		entitlementsQuery: EntitlementsDynamicQuery<RequestContextType>,
+		scope: SchemaScope
 	): Promise<SpiceDBResponse<EntitlementsResult>>;
 
 	protected createCaveatContext(context: UserSubjectContext): v1.PbStruct {
@@ -34,6 +36,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	}
 
 	protected createBulkPermissionRequestItem(
+		scope: SchemaScope,
 		resourceObjectType: string,
 		resourceObjectId: string,
 		subjectObjectType: string,
@@ -43,13 +46,13 @@ export abstract class EntitlementsSpiceDBQuery {
 	): v1.CheckBulkPermissionsRequestItem {
 		return {
 			resource: {
-				objectType: resourceObjectType,
+				objectType: scope.type(resourceObjectType),
 				objectId: hashOptions.hashResourceId ? encodeObjectId(resourceObjectId) : resourceObjectId
 			},
 			permission: 'access',
 			subject: {
 				object: {
-					objectType: subjectObjectType,
+					objectType: scope.type(subjectObjectType),
 					objectId: hashOptions.hashSubjectId ? encodeObjectId(subjectObjectId) : subjectObjectId
 				},
 				optionalRelation: ''
@@ -59,6 +62,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	}
 
 	protected createBulkPermissionsRequest(
+		scope: SchemaScope,
 		objectType: string,
 		objectId: string,
 		context: UserSubjectContext,
@@ -66,6 +70,7 @@ export abstract class EntitlementsSpiceDBQuery {
 		hashOptions: HashOptions = { hashSubjectId: true, hashResourceId: true }
 	): v1.CheckBulkPermissionsRequest {
 		const tenantRequest = this.createBulkPermissionRequestItem(
+			scope,
 			objectType,
 			objectId,
 			SpiceDBEntities.Tenant,
@@ -79,6 +84,7 @@ export abstract class EntitlementsSpiceDBQuery {
 				? [
 						tenantRequest,
 						this.createBulkPermissionRequestItem(
+							scope,
 							objectType,
 							objectId,
 							SpiceDBEntities.User,
@@ -91,6 +97,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	}
 
 	protected createManyBulkPermissionsRequest(
+		scope: SchemaScope,
 		objectType: string,
 		objectIds: string[],
 		context: UserSubjectContext,
@@ -100,7 +107,8 @@ export abstract class EntitlementsSpiceDBQuery {
 		return v1.CheckBulkPermissionsRequest.create({
 			items: objectIds.flatMap(
 				(objectId) =>
-					this.createBulkPermissionsRequest(objectType, objectId, context, caveatContext, hashOptions).items
+					this.createBulkPermissionsRequest(scope, objectType, objectId, context, caveatContext, hashOptions)
+						.items
 			)
 		});
 	}
@@ -146,13 +154,14 @@ export abstract class EntitlementsSpiceDBQuery {
 	}
 
 	protected async executeCommonQuery(
+		scope: SchemaScope,
 		objectType: string,
 		objectId: string,
 		subjectContext: UserSubjectContext
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext;
 		const caveatContext = this.createCaveatContext(context);
-		const request = this.createBulkPermissionsRequest(objectType, objectId, context, caveatContext);
+		const request = this.createBulkPermissionsRequest(scope, objectType, objectId, context, caveatContext);
 
 		if (this.logResults) {
 			await this.loggingClient?.logRequest(
@@ -178,6 +187,7 @@ export abstract class EntitlementsSpiceDBQuery {
 	}
 
 	protected async executeManyCommonQuery(
+		scope: SchemaScope,
 		objectType: string,
 		objectIds: string[],
 		subjectContext: UserSubjectContext
@@ -189,7 +199,13 @@ export abstract class EntitlementsSpiceDBQuery {
 		}
 
 		const caveatContext = this.createCaveatContext(context);
-		const request = this.createManyBulkPermissionsRequest(objectType, uniqueObjectIds, context, caveatContext);
+		const request = this.createManyBulkPermissionsRequest(
+			scope,
+			objectType,
+			uniqueObjectIds,
+			context,
+			caveatContext
+		);
 
 		if (this.logResults) {
 			await this.loggingClient?.logRequest(
@@ -217,16 +233,17 @@ export abstract class EntitlementsSpiceDBQuery {
 		};
 	}
 	protected async isPermissionLinkedToFeatures(
+		scope: SchemaScope,
 		requestContext: PermissionsEntitlementsContext,
 		hashResourceId: boolean = true
 	): Promise<boolean> {
 		const lookupRequest = v1.LookupSubjectsRequest.create({
 			permission: 'parent',
 			resource: {
-				objectType: SpiceDBEntities.Permission,
+				objectType: scope.type(SpiceDBEntities.Permission),
 				objectId: hashResourceId ? encodeObjectId(requestContext.permissionKey) : requestContext.permissionKey
 			},
-			subjectObjectType: SpiceDBEntities.Feature
+			subjectObjectType: scope.type(SpiceDBEntities.Feature)
 		});
 		const lookUpRes = await this.client.lookupSubjects(lookupRequest);
 		return !!lookUpRes.length;
