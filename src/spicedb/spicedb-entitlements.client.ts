@@ -48,6 +48,10 @@ export interface InstanceOptions {
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
+	/**
+	 * @deprecated Direct access bypasses instance scoping and can read another instance's data.
+	 * Use isEntitledTo / lookup* / readSchemaFor with an instanceId instead.
+	 */
 	public readonly spiceClient: v1.ZedPromiseClientInterface;
 	private readonly spiceDBQueryClient: SpiceDBQueryClient;
 
@@ -98,7 +102,12 @@ export class SpiceDBEntitlementsClient {
 		const instance = this.resolve(options?.instanceId);
 		if (this.logResults) {
 			await this.loggingClient.logRequest(
-				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, requestContexts },
+				{
+					action: 'SpiceDB:isEntitledToMany:request',
+					instanceId: instance.instanceId,
+					subjectContext,
+					requestContexts
+				},
 				null
 			);
 		}
@@ -143,7 +152,12 @@ export class SpiceDBEntitlementsClient {
 
 		if (this.logResults) {
 			await this.loggingClient.logRequest(
-				{ action: 'SpiceDB:isEntitledToMany:response', subjectContext, requestContexts },
+				{
+					action: 'SpiceDB:isEntitledToMany:response',
+					instanceId: instance.instanceId,
+					subjectContext,
+					requestContexts
+				},
 				results
 			);
 		}
@@ -312,7 +326,7 @@ export class SpiceDBEntitlementsClient {
 		try {
 			if (logPerItem) {
 				await this.loggingClient.logRequest(
-					{ action: `${logAction}:request`, subjectContext, requestContext },
+					{ action: `${logAction}:request`, instanceId: instance.instanceId, subjectContext, requestContext },
 					null
 				);
 			}
@@ -321,7 +335,12 @@ export class SpiceDBEntitlementsClient {
 
 			if (logPerItem) {
 				await this.loggingClient.logRequest(
-					{ action: `${logAction}:response`, subjectContext, requestContext },
+					{
+						action: `${logAction}:response`,
+						instanceId: instance.instanceId,
+						subjectContext,
+						requestContext
+					},
 					res
 				);
 			}

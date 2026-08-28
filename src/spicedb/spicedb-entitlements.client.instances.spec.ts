@@ -155,6 +155,57 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 		});
 	});
 
+	describe('readSchemaFor', () => {
+		const schemaText = [
+			`definition ${PREFIX_A}/frontegg_feature {}`,
+			`definition ${PREFIX_A}/cust_document {}`,
+			`caveat ${PREFIX_A}/targeting(x int) {\n  x == x\n}`,
+			`definition ${PREFIX_B}/frontegg_feature {}`,
+			`caveat ${PREFIX_B}/targeting(x int) {\n  x == x\n}`
+		].join('\n');
+
+		function withSchema(client: SpiceDBEntitlementsClient): void {
+			(client as unknown as { spiceClient: { readSchema: jest.Mock } }).spiceClient = {
+				readSchema: jest.fn().mockResolvedValue({ schemaText })
+			};
+		}
+
+		it('should return only the requested instance definitions', async () => {
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			withSchema(client);
+
+			const schema = await client.readSchemaFor('a');
+
+			expect(schema).toContain(`definition ${PREFIX_A}/frontegg_feature`);
+			expect(schema).toContain(`caveat ${PREFIX_A}/targeting`);
+			expect(schema).not.toContain(PREFIX_B);
+		});
+
+		it('should not leak another instance schema', async () => {
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			withSchema(client);
+
+			const schema = await client.readSchemaFor('b');
+
+			expect(schema).toContain(`definition ${PREFIX_B}/frontegg_feature`);
+			expect(schema).not.toContain(PREFIX_A);
+		});
+
+		it('should return the whole schema for a legacy instance', async () => {
+			const client = buildClient({}, queryClient, loggingClient);
+			withSchema(client);
+
+			await expect(client.readSchemaFor()).resolves.toBe(schemaText);
+		});
+
+		it('should throw for an unknown instanceId', async () => {
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			withSchema(client);
+
+			await expect(client.readSchemaFor('nope')).rejects.toBeInstanceOf(UnknownInstanceException);
+		});
+	});
+
 	describe('per-instance fallback', () => {
 		it('should prefer the instance fallback over the client fallback', async () => {
 			queryClient.spiceDBQuery.mockRejectedValue(new Error('spicedb unavailable'));

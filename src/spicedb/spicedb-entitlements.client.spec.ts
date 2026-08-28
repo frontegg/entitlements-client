@@ -300,11 +300,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			await cut.isEntitledToMany(subjectContext, requestContexts);
 
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:request', subjectContext, requestContexts },
+				{ action: 'SpiceDB:isEntitledToMany:request', instanceId: 'default', subjectContext, requestContexts },
 				null
 			);
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:response', subjectContext, requestContexts },
+				{ action: 'SpiceDB:isEntitledToMany:response', instanceId: 'default', subjectContext, requestContexts },
 				[{ result: true }]
 			);
 		});
