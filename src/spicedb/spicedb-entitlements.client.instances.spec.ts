@@ -197,6 +197,62 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 		});
 	});
 
+	describe('lookup instance routing', () => {
+		function withLookups(client: SpiceDBEntitlementsClient): {
+			lookupResources: jest.Mock;
+			lookupSubjects: jest.Mock;
+		} {
+			const spice = {
+				lookupResources: jest.fn().mockResolvedValue([]),
+				lookupSubjects: jest.fn().mockResolvedValue([])
+			};
+			(client as unknown as { spiceClient: unknown }).spiceClient = spice;
+			return spice;
+		}
+
+		it('should scope lookupTargetEntities by the options instanceId', async () => {
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			const spice = withLookups(client);
+
+			await client.lookupTargetEntities(
+				{ entityType: 'cust_user', entityId: 'u1', TargetEntityType: 'cust_document', action: 'access' },
+				{ instanceId: 'b' }
+			);
+
+			expect(spice.lookupResources.mock.calls[0][0].resourceObjectType).toBe(`${PREFIX_B}/cust_document`);
+		});
+
+		it('should scope lookupEntities by the options instanceId', async () => {
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			const spice = withLookups(client);
+
+			await client.lookupEntities(
+				{
+					TargetEntityType: 'cust_document',
+					TargetEntityId: 'd1',
+					entityType: 'cust_user',
+					action: 'access'
+				},
+				{ instanceId: 'a' }
+			);
+
+			expect(spice.lookupSubjects.mock.calls[0][0].subjectObjectType).toBe(`${PREFIX_A}/cust_user`);
+		});
+
+		it('should throw and make no call when the lookup instanceId is unknown', async () => {
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			const spice = withLookups(client);
+
+			await expect(
+				client.lookupTargetEntities(
+					{ entityType: 'cust_user', entityId: 'u1', TargetEntityType: 'cust_document', action: 'access' },
+					{ instanceId: 'nope' }
+				)
+			).rejects.toBeInstanceOf(UnknownInstanceException);
+			expect(spice.lookupResources).not.toHaveBeenCalled();
+		});
+	});
+
 	describe('readSchemaFor', () => {
 		const schemaText = [
 			`definition ${PREFIX_A}/frontegg_feature {}`,

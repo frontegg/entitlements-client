@@ -166,9 +166,10 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupTargetEntities(
-		req: LookupTargetEntitiesRequest & InstanceOptions
+		req: LookupTargetEntitiesRequest,
+		options?: InstanceOptions
 	): Promise<LookupTargetEntitiesResponse> {
-		const { scope } = this.resolve(req.instanceId);
+		const { scope } = this.resolve(options?.instanceId);
 		try {
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
 			const request = buildLookupTargetEntitiesRequest(
@@ -196,8 +197,11 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	public async lookupEntities(req: LookupEntitiesRequest & InstanceOptions): Promise<LookupEntitiesResponse> {
-		const { scope } = this.resolve(req.instanceId);
+	public async lookupEntities(
+		req: LookupEntitiesRequest,
+		options?: InstanceOptions
+	): Promise<LookupEntitiesResponse> {
+		const { scope } = this.resolve(options?.instanceId);
 		try {
 			const request = buildLookupEntitiesRequest(
 				{
@@ -223,9 +227,10 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	public async lookupEntitlements(
-		req: LookupEntitlementsRequest & InstanceOptions
+		req: LookupEntitlementsRequest,
+		options?: InstanceOptions
 	): Promise<LookupEntitlementsResponse> {
-		const { scope } = this.resolve(req.instanceId);
+		const { scope } = this.resolve(options?.instanceId);
 		try {
 			if (!(await this.isLookupEntitlementsTenantMember(req, scope))) {
 				return {
