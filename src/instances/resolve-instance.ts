@@ -22,14 +22,16 @@ export function resolveInstance(
 
 	const { defaultInstanceId } = registry;
 	if (defaultInstanceId !== undefined) {
-		void loggingClient?.logRequest(
-			{
-				action: 'SpiceDB:resolveInstance:default',
-				instanceId: defaultInstanceId,
-				message: 'instanceId omitted; falling back to defaultInstanceId'
-			},
-			null
-		);
+		void Promise.resolve(
+			loggingClient?.logRequest(
+				{
+					action: 'SpiceDB:resolveInstance:default',
+					instanceId: defaultInstanceId,
+					message: 'instanceId omitted; falling back to defaultInstanceId'
+				},
+				null
+			)
+		).catch(() => undefined);
 		return registry.get(defaultInstanceId) as ResolvedInstance;
 	}
 

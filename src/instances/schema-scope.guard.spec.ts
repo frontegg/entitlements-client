@@ -6,7 +6,7 @@ const SRC_ROOT = join(__dirname, '..');
 const OBJECT_TYPE_FIELD = /\b(objectType|resourceObjectType|subjectObjectType|resourceType):\s*([^\n,]+)/g;
 
 const REQUEST_SPAN_START =
-	/v1\.[A-Za-z]+\.create\(|createBulkPermissionRequestItem\([\s\S]*?\)\s*:\s*v1\.CheckBulkPermissionsRequestItem\s*\{/g;
+	/v1\.[A-Za-z]+\.create\(|this\.(?:client|spiceClient)\.[A-Za-z]+\(|createBulkPermissionRequestItem\([\s\S]*?\)\s*:\s*v1\.CheckBulkPermissionsRequestItem\s*\{/g;
 
 function collectSources(dir: string, acc: string[] = []): string[] {
 	for (const entry of readdirSync(dir)) {

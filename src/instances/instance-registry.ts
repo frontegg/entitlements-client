@@ -16,10 +16,13 @@ export class InstanceRegistry {
 	private readonly instances: Map<string, ResolvedInstance>;
 	private readonly order: string[];
 
+	public readonly defaultInstanceId?: string;
+
 	constructor(
 		configuration: Pick<ClientConfiguration, 'instances' | 'defaultInstanceId'>,
-		public readonly defaultInstanceId?: string
+		defaultInstanceId: string | undefined = configuration.defaultInstanceId
 	) {
+		this.defaultInstanceId = defaultInstanceId;
 		const declared = configuration.instances;
 		this.instances = new Map();
 		this.order = [];

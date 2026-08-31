@@ -10,16 +10,14 @@ import {
 } from '../../types';
 import { permissionshipMap } from '../lookup.constants';
 import { decodeObjectId } from './base64.utils';
-import { SchemaScope } from '../../instances/schema-scope';
 
 export function mapLookupTargetEntitiesResponse(
 	results: v1.LookupResourcesResponse[],
 	TargetEntityType: string,
-	limit: number,
-	scope: SchemaScope
+	limit: number
 ): LookupTargetEntitiesResponse {
 	const targets: TargetEntityItem[] = results.map((result) => ({
-		TargetEntityType: scope.strip(TargetEntityType),
+		TargetEntityType,
 		TargetEntityId: decodeObjectId(result.resourceObjectId),
 		permissionship: permissionshipMap.get(result.permissionship)
 	}));
@@ -36,11 +34,10 @@ export function mapLookupTargetEntitiesResponse(
 
 export function mapLookupEntitiesResponse(
 	results: v1.LookupSubjectsResponse[],
-	entityType: string,
-	scope: SchemaScope
+	entityType: string
 ): LookupEntitiesResponse {
 	const entities: EntityItem[] = results.map((result) => ({
-		entityType: scope.strip(entityType),
+		entityType,
 		entityId: decodeObjectId(result.subject?.subjectObjectId ?? ''),
 		permissionship: result.subject ? permissionshipMap.get(result.subject.permissionship) : undefined
 	}));

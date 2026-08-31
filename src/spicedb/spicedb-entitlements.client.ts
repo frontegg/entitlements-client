@@ -41,6 +41,7 @@ import { InstanceRegistry, ResolvedInstance } from '../instances/instance-regist
 import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaScope } from '../instances/schema-scope';
 import { InstanceResolutionException } from '../exceptions/instance-resolution.exception';
+import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 
 export interface InstanceOptions {
 	instanceId?: string;
@@ -189,7 +190,7 @@ export class SpiceDBEntitlementsClient {
 			if (this.logResults) {
 				await this.loggingClient.logRequest(request, results);
 			}
-			return mapLookupTargetEntitiesResponse(results, req.TargetEntityType, limit, scope);
+			return mapLookupTargetEntitiesResponse(results, req.TargetEntityType, limit);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;
@@ -215,7 +216,7 @@ export class SpiceDBEntitlementsClient {
 			if (this.logResults) {
 				await this.loggingClient.logRequest(request, results);
 			}
-			return mapLookupEntitiesResponse(results, req.entityType, scope);
+			return mapLookupEntitiesResponse(results, req.entityType);
 		} catch (err) {
 			await this.loggingClient.error(err);
 			throw err;
@@ -354,7 +355,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			if (err instanceof InstanceResolutionException) {
+			if (err instanceof InstanceResolutionException || err instanceof ConfigurationInputIsInvalidException) {
 				throw err;
 			}
 			await this.loggingClient.error(err);
@@ -521,7 +522,7 @@ export class SpiceDBEntitlementsClient {
 				result: res.result[requestContext.featureKey] ?? { result: false }
 			}));
 		} catch (err) {
-			if (err instanceof InstanceResolutionException) {
+			if (err instanceof InstanceResolutionException || err instanceof ConfigurationInputIsInvalidException) {
 				throw err;
 			}
 			await this.loggingClient.error(err);

@@ -98,6 +98,28 @@ describe(InstanceRegistry.name, () => {
 		);
 	});
 
+	it('should take defaultInstanceId from the configuration object', () => {
+		const registry = new InstanceRegistry({
+			instances: [
+				{ instanceId: 'a', vendorId: VENDOR_A },
+				{ instanceId: 'b', vendorId: VENDOR_B }
+			],
+			defaultInstanceId: 'b'
+		});
+
+		expect(registry.defaultInstanceId).toBe('b');
+	});
+
+	it('should validate a defaultInstanceId given on the configuration object', () => {
+		expect(
+			() =>
+				new InstanceRegistry({
+					instances: [{ instanceId: 'a', vendorId: VENDOR_A }],
+					defaultInstanceId: 'missing'
+				})
+		).toThrow(ConfigurationInputIsInvalidException);
+	});
+
 	it('should accept a defaultInstanceId that is configured', () => {
 		const registry = new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId: VENDOR_A }] }, 'a');
 

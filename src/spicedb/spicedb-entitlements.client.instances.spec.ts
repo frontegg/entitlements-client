@@ -7,6 +7,7 @@ import { ClientConfiguration } from '../client-configuration';
 import { InstanceRegistry } from '../instances/instance-registry';
 import { UnknownInstanceException } from '../exceptions/unknown-instance.exception';
 import { InstanceIdRequiredException } from '../exceptions/instance-id-required.exception';
+import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 
 const VENDOR_A = '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b';
 const VENDOR_B = '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f';
@@ -125,6 +126,47 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 			await expect(client.isEntitledToMany(subjectContext, [featureContext])).rejects.toBeInstanceOf(
 				InstanceIdRequiredException
 			);
+		});
+
+		it('should not swallow a prefix escape into the fallback boolean', async () => {
+			queryClient.spiceDBQuery.mockImplementation(() => {
+				throw new ConfigurationInputIsInvalidException(
+					"Object type 'v_other/cust_document' must not contain '/'"
+				);
+			});
+			const client = buildClient(
+				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
+				queryClient,
+				loggingClient
+			);
+
+			await expect(
+				client.isEntitledTo(
+					{ entityType: 'v_other/cust_document', key: 'k' },
+					{
+						type: RequestContextType.Entity,
+						entityType: 'v_other/cust_document',
+						key: 'doc-1',
+						action: 'access'
+					},
+					{ instanceId: 'a' }
+				)
+			).rejects.toBeInstanceOf(ConfigurationInputIsInvalidException);
+		});
+
+		it('should not swallow a prefix escape from the batch feature path', async () => {
+			queryClient.spiceDBBatchFeatureQuery.mockImplementation(() => {
+				throw new ConfigurationInputIsInvalidException("Object type 'v_other/x' must not contain '/'");
+			});
+			const client = buildClient(
+				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
+				queryClient,
+				loggingClient
+			);
+
+			await expect(
+				client.isEntitledToMany(subjectContext, [featureContext], { instanceId: 'a' })
+			).rejects.toBeInstanceOf(ConfigurationInputIsInvalidException);
 		});
 
 		it('should still return the fallback for a genuine SpiceDB error', async () => {
