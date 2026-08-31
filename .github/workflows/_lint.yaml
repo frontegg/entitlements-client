@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 18
-          cache: 'npm'
+          cache: 'yarn'
       - name: generate NPMRC file
         run:
           echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
