@@ -14,7 +14,7 @@ export class EntitlementsClientFactory {
 			throw new ConfigurationInputIsMissingException('engineToken is required');
 		}
 
-		const registry = new InstanceRegistry(configuration, configuration.defaultInstanceId);
+		const registry = new InstanceRegistry(configuration);
 
 		const { loggingClient, logResults } = this.configureLoggingClient(configuration.logging);
 

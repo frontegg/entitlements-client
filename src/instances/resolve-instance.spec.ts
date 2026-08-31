@@ -59,7 +59,18 @@ describe(resolveInstance.name, () => {
 		expect(catchError(() => resolveInstance(pair()))).toBeInstanceOf(InstanceResolutionException);
 	});
 
-	it('should name the configured instances in the ambiguity error', () => {
-		expect(() => resolveInstance(pair())).toThrow(/a, b/);
+	it('should expose the configured instances on the error without putting them in the message', () => {
+		const error = catchError(() => resolveInstance(pair())) as InstanceIdRequiredException;
+
+		expect(error.configuredInstanceIds).toEqual(['a', 'b']);
+		expect(error.message).not.toContain('a, b');
+	});
+
+	it('should keep the unknown instanceId list off the message too', () => {
+		const error = catchError(() => resolveInstance(pair(), 'nope')) as UnknownInstanceException;
+
+		expect(error.instanceId).toBe('nope');
+		expect(error.configuredInstanceIds).toEqual(['a', 'b']);
+		expect(error.message).not.toContain('a, b');
 	});
 });

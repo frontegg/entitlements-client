@@ -92,6 +92,42 @@ describe(InstanceRegistry.name, () => {
 		).toThrow(ConfigurationInputIsInvalidException);
 	});
 
+	it('should throw when two explicit schemaPrefix overrides collide', () => {
+		expect(
+			() =>
+				new InstanceRegistry({
+					instances: [
+						{ instanceId: 'a', vendorId: VENDOR_A, schemaPrefix: 'v_shared' },
+						{ instanceId: 'b', vendorId: VENDOR_B, schemaPrefix: 'v_shared' }
+					]
+				})
+		).toThrow(ConfigurationInputIsInvalidException);
+	});
+
+	it('should throw when two distinct vendorIds normalise to the same prefix', () => {
+		expect(
+			() =>
+				new InstanceRegistry({
+					instances: [
+						{ instanceId: 'a', vendorId: 'ACME-CORP' },
+						{ instanceId: 'b', vendorId: 'acme_corp' }
+					]
+				})
+		).toThrow(ConfigurationInputIsInvalidException);
+	});
+
+	it('should throw when two instances are both explicitly legacy', () => {
+		expect(
+			() =>
+				new InstanceRegistry({
+					instances: [
+						{ instanceId: 'a', vendorId: VENDOR_A, schemaPrefix: '' },
+						{ instanceId: 'b', vendorId: VENDOR_B, schemaPrefix: '' }
+					]
+				})
+		).toThrow(ConfigurationInputIsInvalidException);
+	});
+
 	it('should throw when defaultInstanceId is not a configured instance', () => {
 		expect(() => new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId: VENDOR_A }] }, 'missing')).toThrow(
 			ConfigurationInputIsInvalidException

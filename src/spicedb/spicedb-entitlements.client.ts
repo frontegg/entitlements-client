@@ -40,7 +40,6 @@ import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
 import { InstanceRegistry, ResolvedInstance } from '../instances/instance-registry';
 import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaScope } from '../instances/schema-scope';
-import { InstanceResolutionException } from '../exceptions/instance-resolution.exception';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 
 export interface InstanceOptions {
@@ -65,7 +64,7 @@ export class SpiceDBEntitlementsClient {
 		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false },
 		registry?: InstanceRegistry
 	) {
-		this.registry = registry ?? new InstanceRegistry(configuration, configuration.defaultInstanceId);
+		this.registry = registry ?? new InstanceRegistry(configuration);
 
 		try {
 			this.spiceClient = v1.NewClient(
@@ -311,10 +310,46 @@ export class SpiceDBEntitlementsClient {
 		}
 
 		const marker = `${scope.schemaPrefix}/`;
-		return schemaText
-			.split(/\n(?=definition |caveat )/)
-			.filter((block) => block.startsWith(`definition ${marker}`) || block.startsWith(`caveat ${marker}`))
+		return this.splitSchemaBlocks(schemaText)
+			.filter((block) => {
+				const header = block[0].trim();
+				return header.startsWith(`definition ${marker}`) || header.startsWith(`caveat ${marker}`);
+			})
+			.map((block) => block.join('\n'))
 			.join('\n');
+	}
+
+	private splitSchemaBlocks(schemaText: string): string[][] {
+		const blocks: string[][] = [];
+		let current: string[] | undefined;
+		let depth = 0;
+
+		for (const line of schemaText.split('\n')) {
+			const trimmed = line.trim();
+			if (depth === 0 && (trimmed.startsWith('definition ') || trimmed.startsWith('caveat '))) {
+				current = [line];
+				blocks.push(current);
+			} else if (current) {
+				current.push(line);
+			}
+
+			depth += this.countChar(line, '{') - this.countChar(line, '}');
+			if (depth === 0) {
+				current = undefined;
+			}
+		}
+
+		return blocks;
+	}
+
+	private countChar(value: string, char: string): number {
+		let count = 0;
+		for (const candidate of value) {
+			if (candidate === char) {
+				count++;
+			}
+		}
+		return count;
 	}
 
 	private async executeEntitlementQuery(
@@ -355,7 +390,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			if (err instanceof InstanceResolutionException || err instanceof ConfigurationInputIsInvalidException) {
+			if (err instanceof ConfigurationInputIsInvalidException) {
 				throw err;
 			}
 			await this.loggingClient.error(err);
@@ -522,7 +557,7 @@ export class SpiceDBEntitlementsClient {
 				result: res.result[requestContext.featureKey] ?? { result: false }
 			}));
 		} catch (err) {
-			if (err instanceof InstanceResolutionException || err instanceof ConfigurationInputIsInvalidException) {
+			if (err instanceof ConfigurationInputIsInvalidException) {
 				throw err;
 			}
 			await this.loggingClient.error(err);

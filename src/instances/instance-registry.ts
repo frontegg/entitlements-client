@@ -36,8 +36,9 @@ export class InstanceRegistry {
 			this.order.push(legacy.instanceId);
 		} else {
 			const seenVendorIds = new Set<string>();
+			const seenSchemaPrefixes = new Set<string>();
 			for (const instance of declared) {
-				this.assertInstance(instance, seenVendorIds);
+				this.assertInstance(instance, seenVendorIds, seenSchemaPrefixes);
 				const resolved: ResolvedInstance = {
 					instanceId: instance.instanceId,
 					vendorId: instance.vendorId,
@@ -80,7 +81,11 @@ export class InstanceRegistry {
 		return deriveSchemaPrefix(instance.vendorId);
 	}
 
-	private assertInstance(instance: InstanceConfiguration, seenVendorIds: Set<string>): void {
+	private assertInstance(
+		instance: InstanceConfiguration,
+		seenVendorIds: Set<string>,
+		seenSchemaPrefixes: Set<string>
+	): void {
 		if (!instance.instanceId) {
 			throw new ConfigurationInputIsInvalidException('instanceId is required for every configured instance');
 		}
@@ -109,5 +114,13 @@ export class InstanceRegistry {
 					`Expected an empty string or a SpiceDB identifier matching /^[a-z_][a-z0-9_]{1,62}[a-z0-9]$/`
 			);
 		}
+
+		if (seenSchemaPrefixes.has(prefix)) {
+			throw new ConfigurationInputIsInvalidException(
+				`Instance '${instance.instanceId}' resolves to schemaPrefix '${prefix}', which is already used by ` +
+					`another configured instance. Two instances sharing a prefix would share SpiceDB data.`
+			);
+		}
+		seenSchemaPrefixes.add(prefix);
 	}
 }

@@ -240,6 +240,30 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 			await expect(client.readSchemaFor()).resolves.toBe(schemaText);
 		});
 
+		it('should isolate blocks that are indented or preceded by comments', async () => {
+			const awkward = [
+				'// leading comment',
+				`definition ${PREFIX_A}/frontegg_feature {`,
+				'\trelation granted: frontegg_tenant',
+				'}',
+				'',
+				'// another comment',
+				`definition ${PREFIX_B}/frontegg_feature {`,
+				'\trelation granted: frontegg_tenant',
+				'}'
+			].join('\n');
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			(client as unknown as { spiceClient: { readSchema: jest.Mock } }).spiceClient = {
+				readSchema: jest.fn().mockResolvedValue({ schemaText: awkward })
+			};
+
+			const schema = await client.readSchemaFor('a');
+
+			expect(schema).toContain(`definition ${PREFIX_A}/frontegg_feature`);
+			expect(schema).toContain('relation granted');
+			expect(schema).not.toContain(PREFIX_B);
+		});
+
 		it('should throw for an unknown instanceId', async () => {
 			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
 			withSchema(client);
