@@ -7,9 +7,6 @@ on:
         required: true
 
 env:
-  # Throwaway preshared key for the ephemeral in-memory SpiceDB started below.
-  # Not a credential: the instance exists only for the life of this job.
-  SPICEDB_TEST_TOKEN: isolation-suite-local-key
   SPICEDB_TEST_ENDPOINT: localhost:50051
 
 jobs:
@@ -27,6 +24,9 @@ jobs:
 
       - name: Install Dependencies
         run: yarn
+
+      - name: Generate a preshared key for this run
+        run: echo "SPICEDB_TEST_TOKEN=$(openssl rand -hex 16)" >> "$GITHUB_ENV"
 
       - name: Start SpiceDB
         run: |
