@@ -18,7 +18,7 @@ export function isValidSchemaPrefix(prefix: string): boolean {
 	}
 
 	const first = prefix[0] as string;
-	if (!isLower(first) && first !== '_') {
+	if (!isLower(first)) {
 		return false;
 	}
 
