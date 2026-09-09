@@ -1,0 +1,71 @@
+---
+description: FR-26219 instance-namespaced SpiceDB queries in the entitlements SDK
+globs: ["src/**", "eslint-rules/**"]
+alwaysApply: false
+---
+
+# FR-26219 — instance-namespaced SDK queries
+
+Plan: `docs/plans/fr-26219.md`. Work one numbered step at a time.
+
+One shared SpiceDB holds many Frontegg instances. Each instance's data lives under a schema prefix
+derived from its vendorId:
+
+```
+prefix = "v_" + vendorId.replaceAll("-", "_")
+type   = <prefix>/frontegg_feature , <prefix>/<rebacEntityType> , ...
+```
+
+Prefixes NEVER appear in SDK inputs or outputs. Add on the way in, strip on the way out.
+
+## Vocabulary
+
+`SchemaNamespace` is the class that applies and strips the prefix; `schemaPrefix` is the prefix
+string it holds and the public config field. Do not reintroduce "scope" for either — that word was
+removed from this repo deliberately.
+
+The service (`entitlements-service`) calls the same concept `prefix` throughout. That cross-repo
+split is known and was left as-is; do not "fix" it in passing.
+
+## Guards — code must enforce these, not just intend them
+
+- **G6** Every object type reaching a gRPC request passes through the resolved instance's
+  `SchemaNamespace.type()`. No raw `SpiceDBEntities` value is ever put on a request. That enum is
+  only a source of unprefixed names.
+- **G7** Caller-supplied type strings — FGA `entityType`, lookup `resourceType`/`subjectType` — are
+  rejected if they contain `/`, but only once a prefix is actually being added. A legacy instance
+  passes them through: `prefix/type` is valid SpiceDB syntax and customers already use it.
+- **G8** Instance-resolution failures and object-type violations THROW. They never resolve to a
+  fallback boolean, which would answer a question scoped to no instance at all.
+- **G9** Never log a token, a preshared key, or a secret. Every log line carries `instanceId`.
+
+## How this repo enforces them
+
+Worth knowing before "fixing" something that looks missing:
+
+- **G7 lives inside `SchemaNamespace.type()`**, not at each call site. Every query path calls
+  `namespace.type(...)`, so the `/` rejection is enforced once. Per-call-site checks are redundant.
+- **G8 needs both halves.** `this.resolve(...)` is called *outside* the `try` block, so a resolution
+  failure cannot reach the fallback. Validation errors raised *inside* the try must additionally be
+  named in the rethrow guards — `ConfigurationInputIsInvalidException` and
+  `InvalidObjectTypeException`, in `executeEntitlementQuery` and in the batch feature path. A new
+  exception type that should not degrade to a boolean has to be added there or it is silently
+  swallowed. That has already happened once.
+- **Lookup responses need no `strip()`.** The mappers echo the caller's own unprefixed type
+  (`req.entityType` / `req.TargetEntityType`) rather than reading a type off the SpiceDB response,
+  so the public shape is unprefixed by construction.
+- **G6 is enforced by a lint rule**, `eslint-rules/require-namespaced-object-type.js`, wired as
+  `error` over `src/**` with `parserOptions.project`. It is type-aware: it flags an object-type
+  field whose contextual type comes from `@authzed/authzed-node` and is not built through
+  `namespace.type()`. Without type information it silently matches nothing, so the wiring is itself
+  asserted by `src/instances/schema-namespace.lint-rule.spec.ts`.
+
+## Testing notes
+
+- `tsconfig.json` excludes specs, so `tsc --noEmit` will not catch a type error in a `.spec.ts`.
+  Only `yarn test` (ts-jest) does. A green `tsc` is not evidence the specs compile.
+- A clean `yarn lint` is also what a silently-unwired lint rule looks like. Prove the rule fires
+  against a deliberate violation before trusting it.
+- SpiceDB serves reads from a quantized revision (5s by default), so tuples written a moment ago
+  are not visible to the SDK's default consistency. A suite that writes then immediately reads
+  fails on a cold server and passes on a warm one. Wait for the seed.
