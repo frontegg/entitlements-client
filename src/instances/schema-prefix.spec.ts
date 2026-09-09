@@ -28,11 +28,20 @@ describe('schema-prefix', () => {
 			expect(isValidSchemaPrefix(deriveSchemaPrefix('2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b'))).toBe(true);
 		});
 
-		it.each([['V_UPPER'], ['1leading_digit'], ['has/slash'], ['ends_with_'], ['ab']])(
-			'should reject %s',
-			(prefix) => {
-				expect(isValidSchemaPrefix(prefix)).toBe(false);
-			}
-		);
+		it.each([
+			['V_UPPER'],
+			['1leading_digit'],
+			['has/slash'],
+			['ends_with_'],
+			['ab'],
+			['_leading_underscore'],
+			[`v${'a'.repeat(64)}`]
+		])('should reject %s', (prefix) => {
+			expect(isValidSchemaPrefix(prefix)).toBe(false);
+		});
+
+		it('should accept the longest prefix SpiceDB allows', () => {
+			expect(isValidSchemaPrefix(`v${'a'.repeat(63)}`)).toBe(true);
+		});
 	});
 });
