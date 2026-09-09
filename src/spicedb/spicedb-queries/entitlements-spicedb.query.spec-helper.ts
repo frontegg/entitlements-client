@@ -8,6 +8,9 @@ import {
 	UserSubjectContext,
 	EntitlementsDynamicQueryRequestContext
 } from '../../types';
+import { SchemaNamespace } from '../../instances/schema-namespace';
+
+const LEGACY_NAMESPACE = new SchemaNamespace('');
 
 export function getRequestContext(type: RequestContextType): RequestContext {
 	switch (type) {
@@ -93,10 +96,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
 			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
 
-			const result = await queryClient.query({
-				subjectContext: subjectContext || defaultSubjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext: subjectContext || defaultSubjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -128,10 +134,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
 
-			const result = await queryClient.query({
-				subjectContext: subjectContext || defaultSubjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext: subjectContext || defaultSubjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -150,10 +159,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
 
 			await expect(
-				queryClient.query({
-					subjectContext: subjectContext || defaultSubjectContext,
-					requestContext
-				})
+				queryClient.query(
+					{
+						subjectContext: subjectContext || defaultSubjectContext,
+						requestContext
+					},
+					LEGACY_NAMESPACE
+				)
 			).rejects.toThrow(mockError);
 		});
 	});
