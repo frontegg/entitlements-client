@@ -10,6 +10,9 @@ import {
 } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { encodeObjectId } from './base64.utils';
+import { SchemaNamespace } from '../../instances/schema-namespace';
+
+const LEGACY_NAMESPACE = new SchemaNamespace('');
 
 // Create a concrete test implementation to test the abstract class
 class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
@@ -34,9 +37,11 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		resourceObjectId: string,
 		subjectObjectType: string,
 		subjectObjectId: string,
-		caveatContext: v1.PbStruct
+		caveatContext: v1.PbStruct,
+		namespace: SchemaNamespace = LEGACY_NAMESPACE
 	): v1.CheckBulkPermissionsRequestItem {
 		return this.createBulkPermissionRequestItem(
+			namespace,
 			resourceObjectType,
 			resourceObjectId,
 			subjectObjectType,
@@ -49,18 +54,20 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		objectType: string,
 		objectId: string,
 		context: UserSubjectContext,
-		caveatContext: v1.PbStruct
+		caveatContext: v1.PbStruct,
+		namespace: SchemaNamespace = LEGACY_NAMESPACE
 	): v1.CheckBulkPermissionsRequest {
-		return this.createBulkPermissionsRequest(objectType, objectId, context, caveatContext);
+		return this.createBulkPermissionsRequest(namespace, objectType, objectId, context, caveatContext);
 	}
 
 	public testCreateManyBulkPermissionsRequest(
 		objectType: string,
 		objectIds: string[],
 		context: UserSubjectContext,
-		caveatContext: v1.PbStruct
+		caveatContext: v1.PbStruct,
+		namespace: SchemaNamespace = LEGACY_NAMESPACE
 	): v1.CheckBulkPermissionsRequest {
-		return this.createManyBulkPermissionsRequest(objectType, objectIds, context, caveatContext);
+		return this.createManyBulkPermissionsRequest(namespace, objectType, objectIds, context, caveatContext);
 	}
 
 	public testProcessCheckBulkPermissionsResponse(res: v1.CheckBulkPermissionsResponse): boolean {
@@ -77,17 +84,19 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	public testExecuteCommonQuery(
 		objectType: string,
 		objectId: string,
-		subjectContext: UserSubjectContext
+		subjectContext: UserSubjectContext,
+		namespace: SchemaNamespace = LEGACY_NAMESPACE
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
-		return this.executeCommonQuery(objectType, objectId, subjectContext);
+		return this.executeCommonQuery(namespace, objectType, objectId, subjectContext);
 	}
 
 	public testExecuteManyCommonQuery(
 		objectType: string,
 		objectIds: string[],
-		subjectContext: UserSubjectContext
+		subjectContext: UserSubjectContext,
+		namespace: SchemaNamespace = LEGACY_NAMESPACE
 	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
-		return this.executeManyCommonQuery(objectType, objectIds, subjectContext);
+		return this.executeManyCommonQuery(namespace, objectType, objectIds, subjectContext);
 	}
 }
 

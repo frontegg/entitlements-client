@@ -2,6 +2,9 @@ import { v1 } from '@authzed/authzed-node';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { EntitlementsDynamicQueryRequestContext, RequestContextType } from '../../types';
 import { FgaSpiceDBQuery } from './fga-spicedb.query';
+import { SchemaNamespace } from '../../instances/schema-namespace';
+
+const LEGACY_NAMESPACE = new SchemaNamespace('');
 
 describe(FgaSpiceDBQuery.name, () => {
 	let queryClient: FgaSpiceDBQuery;
@@ -39,10 +42,13 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		const result = await queryClient.query({
-			subjectContext,
-			requestContext
-		});
+		const result = await queryClient.query(
+			{
+				subjectContext,
+				requestContext
+			},
+			LEGACY_NAMESPACE
+		);
 
 		expect(mockClient.checkPermission).toHaveBeenCalled();
 		expect(result.result.result).toBe(true);
@@ -65,7 +71,7 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		await queryClient.query({ subjectContext, requestContext });
+		await queryClient.query({ subjectContext, requestContext }, LEGACY_NAMESPACE);
 
 		const call = mockClient.checkPermission.mock.calls[0][0];
 		expect(call.context).toBeDefined();
@@ -94,7 +100,7 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		await queryClient.query({ subjectContext, requestContext });
+		await queryClient.query({ subjectContext, requestContext }, LEGACY_NAMESPACE);
 
 		const call = mockClient.checkPermission.mock.calls[0][0];
 		expect(call.context?.fields?.at?.kind).toEqual({
@@ -122,7 +128,7 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		await queryClient.query({ subjectContext, requestContext });
+		await queryClient.query({ subjectContext, requestContext }, LEGACY_NAMESPACE);
 
 		const call = mockClient.checkPermission.mock.calls[0][0];
 		expect(call.context?.fields?.at?.kind).toEqual({
@@ -147,10 +153,13 @@ describe(FgaSpiceDBQuery.name, () => {
 		mockClient.checkPermission.mockRejectedValue(mockError);
 
 		await expect(
-			queryClient.query({
-				subjectContext,
-				requestContext
-			})
+			queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			)
 		).rejects.toThrow(mockError);
 	});
 });
