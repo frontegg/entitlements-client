@@ -20,8 +20,14 @@ jobs:
     secrets:
       npm_token: ${{ secrets.NPM_TOKEN }}
 
+  isolation:
+    needs: lint
+    uses: ./.github/workflows/_isolation.yaml
+    secrets:
+      npm_token: ${{ secrets.NPM_TOKEN }}
+
   pre-release:
-    needs: build-and-test
+    needs: [ build-and-test, isolation ]
     uses: ./.github/workflows/_pre-release.yaml
     secrets:
       npm_token: ${{ secrets.NPM_TOKEN }}

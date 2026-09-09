@@ -13,8 +13,12 @@ import { PREFIX_A, PREFIX_B, VENDOR_A, VENDOR_B, buildSchemaFor, seedTuplesFor }
  * Runs against a real SpiceDB. It is skipped unless SPICEDB_TEST_ENDPOINT is set, so CI
  * without a SpiceDB service stays green:
  *
- *   spicedb serve --grpc-preshared-key testkey --datastore-engine memory --grpc-addr :50051
- *   SPICEDB_TEST_ENDPOINT=localhost:50051 yarn test -- isolation
+ *   spicedb serve --grpc-preshared-key testkey --datastore-engine memory \
+ *     --grpc-addr :50051 --datastore-revision-quantization-interval 0s
+ *   SPICEDB_TEST_ENDPOINT=localhost:50051 yarn test:isolation
+ *
+ * The zero quantization interval is not required — the suite waits for its seed either way —
+ * but it removes the startup wait.
  *
  * The four remaining rows of the section 10.2 table (partial_failure_isolated, no_cross_delete,
  * prune_instance, leak_scanner) exercise the syncer's write path and belong to workstream B.
@@ -63,6 +67,30 @@ describeIsolation('FR-26219 shared-SpiceDB instance isolation', () => {
 			fallbackConfiguration: { defaultFallback: false }
 		});
 
+	/**
+	 * SpiceDB answers reads from a quantized revision (5s by default), so tuples written a
+	 * moment ago are not yet visible to the SDK's default consistency. Against a cold server
+	 * that makes the whole suite fail on its first run, so wait for the seed to land instead
+	 * of asserting against a revision that predates it.
+	 */
+	const waitForSeedToBeVisible = async (): Promise<void> => {
+		for (let attempt = 0; attempt < 60; attempt += 1) {
+			const { result } = await client.isEntitledTo(
+				SUBJECT,
+				{ type: RequestContextType.Feature, featureKey: 'premium' },
+				{ instanceId: INSTANCE_A }
+			);
+
+			if (result) {
+				return;
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+
+		throw new Error('Seeded relationships never became visible in SpiceDB');
+	};
+
 	beforeAll(async () => {
 		client = buildClient(twoInstances);
 
@@ -80,6 +108,8 @@ describeIsolation('FR-26219 shared-SpiceDB instance isolation', () => {
 				]
 			})
 		);
+
+		await waitForSeedToBeVisible();
 	});
 
 	describe('same_feature_diverges', () => {

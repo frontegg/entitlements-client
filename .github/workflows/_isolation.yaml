@@ -1,0 +1,59 @@
+name: Isolation Suite
+
+on:
+  workflow_call:
+    secrets:
+      npm_token:
+        required: true
+
+env:
+  # Throwaway preshared key for the ephemeral in-memory SpiceDB started below.
+  # Not a credential: the instance exists only for the life of this job.
+  SPICEDB_TEST_TOKEN: isolation-suite-local-key
+  SPICEDB_TEST_ENDPOINT: localhost:50051
+
+jobs:
+  isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.5.1
+          cache: 'yarn'
+      - name: generate NPMRC file
+        run:
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
+
+      - name: Install Dependencies
+        run: yarn
+
+      - name: Start SpiceDB
+        run: |
+          docker run -d --name spicedb -p 50051:50051 \
+            authzed/spicedb:v1.53.0 \
+            serve \
+              --grpc-preshared-key "$SPICEDB_TEST_TOKEN" \
+              --datastore-engine memory \
+              --grpc-addr :50051 \
+              --datastore-revision-quantization-interval 0s
+
+      - name: Wait for SpiceDB
+        run: |
+          for _ in $(seq 1 60); do
+            if (echo > /dev/tcp/localhost/50051) 2>/dev/null; then
+              echo "SpiceDB is accepting connections"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "SpiceDB did not become ready in time"
+          docker logs spicedb
+          exit 1
+
+      - name: Run the isolation suite
+        run: yarn test:isolation
+
+      - name: SpiceDB logs
+        if: failure()
+        run: docker logs spicedb
