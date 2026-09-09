@@ -4,6 +4,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { LoggingClient } from '../../logging';
+import { SchemaNamespace } from '../../instances/schema-namespace';
 
 export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
@@ -14,10 +15,10 @@ export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		super(client, loggingClient, logResults);
 	}
 
-	public async query({
-		requestContext,
-		subjectContext
-	}: EntitlementsDynamicQuery<RequestContextType.Permission>): Promise<SpiceDBResponse<EntitlementsResult>> {
+	public async query(
+		{ requestContext, subjectContext }: EntitlementsDynamicQuery<RequestContextType.Permission>,
+		namespace: SchemaNamespace
+	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
 
 		if (!this.hasPermission(requestContext.permissionKey, context.permissions)) {
@@ -28,7 +29,7 @@ export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			};
 		}
 
-		const isPermissionLinkedToFeatures = await this.isPermissionLinkedToFeatures(requestContext);
+		const isPermissionLinkedToFeatures = await this.isPermissionLinkedToFeatures(namespace, requestContext);
 		if (!isPermissionLinkedToFeatures) {
 			return {
 				result: {
@@ -36,6 +37,6 @@ export class PermissionSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				}
 			};
 		}
-		return this.executeCommonQuery(SpiceDBEntities.Permission, requestContext.permissionKey, context);
+		return this.executeCommonQuery(namespace, SpiceDBEntities.Permission, requestContext.permissionKey, context);
 	}
 }
