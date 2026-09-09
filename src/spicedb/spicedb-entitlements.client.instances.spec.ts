@@ -8,6 +8,7 @@ import { InstanceRegistry } from '../instances/instance-registry';
 import { UnknownInstanceException } from '../exceptions/unknown-instance.exception';
 import { InstanceIdRequiredException } from '../exceptions/instance-id-required.exception';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
+import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 
 const VENDOR_A = '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b';
 const VENDOR_B = '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f';
@@ -154,7 +155,7 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 			).rejects.toBeInstanceOf(ConfigurationInputIsInvalidException);
 		});
 
-		it('should not swallow a prefix escape from the batch feature path', async () => {
+		it('should report a prefix escape on the item rather than as the fallback', async () => {
 			queryClient.spiceDBBatchFeatureQuery.mockImplementation(() => {
 				throw new ConfigurationInputIsInvalidException("Object type 'v_other/x' must not contain '/'");
 			});
@@ -164,9 +165,41 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 				loggingClient
 			);
 
-			await expect(
-				client.isEntitledToMany(subjectContext, [featureContext], { instanceId: 'a' })
-			).rejects.toBeInstanceOf(ConfigurationInputIsInvalidException);
+			const [item] = await client.isEntitledToMany(subjectContext, [featureContext], {
+				instanceId: 'a'
+			});
+
+			expect(item?.error).toContain("must not contain '/'");
+			expect(item?.result).toBeUndefined();
+		});
+
+		it('should fail only the bad item and still answer the others', async () => {
+			queryClient.spiceDBQuery.mockImplementation((_subject, request) => {
+				if ((request as { entityType?: string }).entityType?.includes('/')) {
+					throw new InvalidObjectTypeException(
+						'v_other/doc',
+						"Object type 'v_other/doc' must not contain '/'"
+					);
+				}
+				return Promise.resolve({ result: { result: true } });
+			});
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+
+			const results = await client.isEntitledToMany(
+				{ entityType: 'frontegg_user', key: 'u1' },
+				[
+					{ type: RequestContextType.Entity, entityType: 'doc', key: 'good', action: 'read' },
+					{ type: RequestContextType.Entity, entityType: 'v_other/doc', key: 'bad', action: 'read' },
+					{ type: RequestContextType.Entity, entityType: 'doc', key: 'also-good', action: 'read' }
+				],
+				{ instanceId: 'a' }
+			);
+
+			expect(results).toHaveLength(3);
+			expect(results[0]?.result).toBe(true);
+			expect(results[1]?.error).toContain("must not contain '/'");
+			expect(results[1]?.result).toBeUndefined();
+			expect(results[2]?.result).toBe(true);
 		});
 
 		it('should still return the fallback for a genuine SpiceDB error', async () => {
