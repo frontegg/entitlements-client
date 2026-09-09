@@ -4,7 +4,7 @@ import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
 import { RequestContextType } from '../types';
 import { UnknownInstanceException } from '../exceptions/unknown-instance.exception';
 import { InstanceIdRequiredException } from '../exceptions/instance-id-required.exception';
-import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
+import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 import { PREFIX_A, PREFIX_B, VENDOR_A, VENDOR_B, buildSchemaFor, seedTuplesFor } from './isolation.spec-helper';
 
 /**
@@ -94,13 +94,19 @@ describeIsolation('FR-26219 shared-SpiceDB instance isolation', () => {
 	beforeAll(async () => {
 		client = buildClient(twoInstances);
 
+		const seedClient = v1.NewClient(
+			TOKEN,
+			ENDPOINT as string,
+			v1.ClientSecurity.INSECURE_PLAINTEXT_CREDENTIALS
+		).promises;
+
 		const schema =
 			buildSchemaFor({ prefix: PREFIX_A, documentRelation: 'viewer' }) +
 			buildSchemaFor({ prefix: PREFIX_B, documentRelation: 'editor' });
 
-		await client.spiceClient.writeSchema(v1.WriteSchemaRequest.create({ schema }));
+		await seedClient.writeSchema(v1.WriteSchemaRequest.create({ schema }));
 
-		await client.spiceClient.writeRelationships(
+		await seedClient.writeRelationships(
 			v1.WriteRelationshipsRequest.create({
 				updates: [
 					...seedTuplesFor({ prefix: PREFIX_A, documentRelation: 'viewer' }, true),
@@ -311,7 +317,7 @@ describeIsolation('FR-26219 shared-SpiceDB instance isolation', () => {
 					},
 					{ instanceId: INSTANCE_A }
 				)
-			).rejects.toThrow(ConfigurationInputIsInvalidException);
+			).rejects.toThrow(InvalidObjectTypeException);
 		});
 
 		it('should reject a subject entityType that carries another instance prefix', async () => {
@@ -321,7 +327,7 @@ describeIsolation('FR-26219 shared-SpiceDB instance isolation', () => {
 					{ type: RequestContextType.Entity, entityType: 'document', key: 'doc-a1', action: 'read' },
 					{ instanceId: INSTANCE_A }
 				)
-			).rejects.toThrow(ConfigurationInputIsInvalidException);
+			).rejects.toThrow(InvalidObjectTypeException);
 		});
 
 		it('should reject a lookup type that carries another instance prefix', async () => {
@@ -336,7 +342,7 @@ describeIsolation('FR-26219 shared-SpiceDB instance isolation', () => {
 					},
 					{ instanceId: INSTANCE_A }
 				)
-			).rejects.toThrow(ConfigurationInputIsInvalidException);
+			).rejects.toThrow(InvalidObjectTypeException);
 		});
 	});
 });
