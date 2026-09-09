@@ -329,19 +329,23 @@ export class SpiceDBEntitlementsClient {
 
 	private splitSchemaBlocks(schemaText: string): string[][] {
 		const blocks: string[][] = [];
+		const scan = { inBlockComment: false };
 		let current: string[] | undefined;
 		let depth = 0;
 
 		for (const line of schemaText.split('\n')) {
 			const trimmed = line.trim();
-			if (depth === 0 && (trimmed.startsWith('definition ') || trimmed.startsWith('caveat '))) {
+			const isBlockHeader =
+				!scan.inBlockComment && (trimmed.startsWith('definition ') || trimmed.startsWith('caveat '));
+
+			if (depth === 0 && isBlockHeader) {
 				current = [line];
 				blocks.push(current);
 			} else if (current) {
 				current.push(line);
 			}
 
-			depth += this.countChar(line, '{') - this.countChar(line, '}');
+			depth += this.braceDelta(line, scan);
 			if (depth === 0) {
 				current = undefined;
 			}
@@ -350,14 +354,46 @@ export class SpiceDBEntitlementsClient {
 		return blocks;
 	}
 
-	private countChar(value: string, char: string): number {
-		let count = 0;
-		for (const candidate of value) {
-			if (candidate === char) {
-				count++;
+	private braceDelta(line: string, scan: { inBlockComment: boolean }): number {
+		let delta = 0;
+		let quote: string | undefined;
+
+		for (let index = 0; index < line.length; index += 1) {
+			const char = line[index] as string;
+			const next = line[index + 1];
+
+			if (scan.inBlockComment) {
+				if (char === '*' && next === '/') {
+					scan.inBlockComment = false;
+					index += 1;
+				}
+				continue;
+			}
+
+			if (quote !== undefined) {
+				if (char === '\\') {
+					index += 1;
+				} else if (char === quote) {
+					quote = undefined;
+				}
+				continue;
+			}
+
+			if (char === '"' || char === "'") {
+				quote = char;
+			} else if (char === '/' && next === '/') {
+				break;
+			} else if (char === '/' && next === '*') {
+				scan.inBlockComment = true;
+				index += 1;
+			} else if (char === '{') {
+				delta += 1;
+			} else if (char === '}') {
+				delta -= 1;
 			}
 		}
-		return count;
+
+		return delta;
 	}
 
 	private async executeEntitlementQuery(
