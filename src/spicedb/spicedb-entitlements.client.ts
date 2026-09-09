@@ -49,8 +49,7 @@ export interface InstanceOptions {
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
-	/** @deprecated Bypasses instance namespacing and can read another instance's data; use isEntitledTo, the lookup methods, or readSchemaFor. */
-	public readonly spiceClient: v1.ZedPromiseClientInterface;
+	private readonly spiceClient: v1.ZedPromiseClientInterface;
 	private readonly spiceDBQueryClient: SpiceDBQueryClient;
 
 	private readonly registry: InstanceRegistry;
