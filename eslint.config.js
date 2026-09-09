@@ -2,6 +2,7 @@ const parser = require('@typescript-eslint/parser');
 const eslintPlugin = require('@typescript-eslint/eslint-plugin');
 const tseslint = require('typescript-eslint');
 const eslint = require('@eslint/js');
+const requireNamespacedObjectType = require('./eslint-rules/require-namespaced-object-type');
 
 module.exports = tseslint.config(
         eslint.configs.recommended,
@@ -39,6 +40,21 @@ module.exports = tseslint.config(
                     {avoidEscape: true, allowTemplateLiterals: true},
                 ],
                 '@typescript-eslint/no-unused-vars': ['warn', {args: 'none'}],
+            },
+        },
+        {
+            files: ['src/**/*.ts'],
+            ignores: ['**/*.spec.ts', '**/*spec-helper.ts'],
+            languageOptions: {
+                parser,
+                parserOptions: {
+                    sourceType: 'module',
+                    project: './tsconfig.json',
+                },
+            },
+            plugins: {'frontegg': {rules: {'require-namespaced-object-type': requireNamespacedObjectType}}},
+            rules: {
+                'frontegg/require-namespaced-object-type': 'error',
             },
         },
 );
