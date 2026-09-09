@@ -43,6 +43,7 @@ import { InstanceRegistry, ResolvedInstance } from '../instances/instance-regist
 import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaNamespace } from '../instances/schema-namespace';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
+import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 
 export interface InstanceOptions {
 	instanceId?: string;
@@ -134,10 +135,14 @@ export class SpiceDBEntitlementsClient {
 						return null;
 					}
 
-					return {
-						index,
-						result: await this.executeEntitlementQuery(subjectContext, requestContext, instance)
-					};
+					try {
+						return {
+							index,
+							result: await this.executeEntitlementQuery(subjectContext, requestContext, instance)
+						};
+					} catch (err) {
+						return { index, result: this.toItemFailure(err) };
+					}
 				})
 			)
 		]);
@@ -395,7 +400,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			if (err instanceof ConfigurationInputIsInvalidException) {
+			if (err instanceof ConfigurationInputIsInvalidException || err instanceof InvalidObjectTypeException) {
 				throw err;
 			}
 			await this.loggingClient.error(err);
@@ -562,8 +567,9 @@ export class SpiceDBEntitlementsClient {
 				result: res.result[requestContext.featureKey] ?? { result: false }
 			}));
 		} catch (err) {
-			if (err instanceof ConfigurationInputIsInvalidException) {
-				throw err;
+			if (err instanceof ConfigurationInputIsInvalidException || err instanceof InvalidObjectTypeException) {
+				const failure = this.toItemFailure(err);
+				return featureRequests.map(({ index }) => ({ index, result: failure }));
 			}
 			await this.loggingClient.error(err);
 			return Promise.all(
@@ -573,6 +579,14 @@ export class SpiceDBEntitlementsClient {
 				}))
 			);
 		}
+	}
+
+	private toItemFailure(err: unknown): EntitlementsResult {
+		if (err instanceof ConfigurationInputIsInvalidException || err instanceof InvalidObjectTypeException) {
+			return { error: err.message };
+		}
+
+		throw err;
 	}
 
 	private async constructFallbackResult(
