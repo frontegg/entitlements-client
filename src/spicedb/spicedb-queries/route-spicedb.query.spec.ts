@@ -2,6 +2,9 @@ import { v1 } from '@authzed/authzed-node';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { EntitlementsDynamicQueryRequestContext, RequestContextType, UserSubjectContext } from '../../types';
 import { RouteSpiceDBQuery } from './route-spicedb.query';
+import { SchemaNamespace } from '../../instances/schema-namespace';
+
+const LEGACY_NAMESPACE = new SchemaNamespace('');
 
 describe(RouteSpiceDBQuery.name, () => {
 	let queryClient: RouteSpiceDBQuery;
@@ -79,10 +82,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			mockClient.checkBulkPermissions.mockRejectedValue(mockError);
 
 			await expect(
-				queryClient.query({
-					subjectContext,
-					requestContext
-				})
+				queryClient.query(
+					{
+						subjectContext,
+						requestContext
+					},
+					LEGACY_NAMESPACE
+				)
 			).rejects.toThrow(mockError);
 		});
 
@@ -102,10 +108,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
 			try {
-				const result = await queryClient.query({
-					subjectContext,
-					requestContext
-				});
+				const result = await queryClient.query(
+					{
+						subjectContext,
+						requestContext
+					},
+					LEGACY_NAMESPACE
+				);
 
 				// If we get here, the implementation has changed to handle empty arrays
 				expect(result.result.result).toBe(false);
@@ -174,10 +183,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -242,10 +254,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.result.result).toBe(true);
 			expect(result.result.monitoring).toBe(true);
@@ -292,10 +307,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			// This shouldn't be called for allow policy type
 			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -342,10 +360,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			// This shouldn't be called for deny policy type
 			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(false);
@@ -431,10 +452,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			// This shouldn't be called because the highest priority rule is deny
 			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(false);
@@ -501,10 +525,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.result.result).toBe(true);
 		});
@@ -555,10 +582,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			// Mock hasPermission method to return false (missing permission)
 			jest.spyOn(queryClient as any, 'hasPermission').mockReturnValue(false);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(false);
