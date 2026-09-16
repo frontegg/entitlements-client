@@ -4,5 +4,4 @@ export * from './schema-namespace';
 export * from './schema-prefix.utils';
 export * from './instance-registry';
 export * from './resolve-instance';
-export * from './instance-options';
 export * from './schema-parse.exception';

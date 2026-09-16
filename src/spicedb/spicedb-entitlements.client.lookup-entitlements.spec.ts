@@ -5,7 +5,7 @@ import { LoggingClient } from '../logging';
 import { LookupEntitlementsRequest, RequestContextType } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
 import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
-import { LEGACY_INSTANCE_ID } from '../instances/instance-registry';
+import { LEGACY_INSTANCE_ID } from '../instances/instance.constants';
 
 function readCaveatNow(request: v1.LookupResourcesRequest): string | undefined {
 	const userContext = request.context?.fields?.user_context?.kind;

@@ -22,3 +22,7 @@ export const OBJECT_TYPE_RULE = `a valid SpiceDB object type; see ${SPICEDB_NAMI
 export const SCHEMA_PREFIX_RULE = `a valid SpiceDB object type prefix; see ${SPICEDB_NAMING_RULES_URL}`;
 
 export const VENDOR_ID_SCHEMA_PREFIX_RULE = `only a-z, 0-9 and '-', forming ${SCHEMA_PREFIX_RULE}`;
+export const SCHEMA_HEADER_KEYWORDS = ['definition', 'caveat'];
+
+export const SCHEMA_STRING_DELIMITERS = ['"""', "'''", '"', "'", '`'];
+export const SCHEMA_RAW_STRING_PREFIXES = ['r', 'rb', 'br'];

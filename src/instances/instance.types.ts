@@ -17,3 +17,7 @@ export interface ResolvedInstance {
 	namespace: SchemaNamespace;
 	fallbackConfiguration?: FallbackConfiguration;
 }
+
+export interface InstanceOptions {
+	instanceId?: string;
+}
