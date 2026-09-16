@@ -203,3 +203,24 @@ describe(filterSchemaBlocks.name, () => {
 		});
 	});
 });
+
+describe('a keyword that is really a field access', () => {
+	const schema = [
+		'definition v_aaa/user {}',
+		'caveat v_aaa/c(attrs map<any>) {',
+		'  attrs.definition == 1',
+		'}',
+		'definition v_bbb/secret {}'
+	].join('\n');
+
+	it('should not read attrs.definition as the start of a block', () => {
+		const filtered = filterSchemaBlocks(schema, 'v_aaa');
+
+		expect(filtered).toContain('attrs.definition == 1');
+		expect(filtered).not.toContain('v_bbb');
+	});
+
+	it('should still read a real definition that follows a caveat body', () => {
+		expect(filterSchemaBlocks(schema, 'v_bbb')).toBe('definition secret {}');
+	});
+});
