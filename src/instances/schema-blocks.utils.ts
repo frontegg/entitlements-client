@@ -30,8 +30,14 @@ function headerKeywordAt(text: string, index: number): string | undefined {
 
 function blockNameAfter(text: string, index: number): string {
 	let start = index;
-	while (isWhitespace(text[start])) {
-		start += 1;
+	for (;;) {
+		if (isWhitespace(text[start])) {
+			start += 1;
+		} else if (text.startsWith('//', start) || text.startsWith('/*', start)) {
+			start = endOfComment(text, start);
+		} else {
+			break;
+		}
 	}
 
 	let end = start;
