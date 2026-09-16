@@ -10,5 +10,6 @@ export class UnknownInstanceException extends InstanceResolutionException {
 				? `Unknown instanceId '${instanceId}'; no instances are configured`
 				: `Unknown instanceId '${instanceId}'; configured instances: ${configuredInstanceIds.join(', ')}`
 		);
+		this.name = 'UnknownInstanceException';
 	}
 }

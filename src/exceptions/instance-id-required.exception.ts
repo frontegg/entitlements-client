@@ -6,5 +6,6 @@ export class InstanceIdRequiredException extends InstanceResolutionException {
 			`instanceId is required when more than one instance is configured (${configuredInstanceIds.join(', ')}) ` +
 				'and no defaultInstanceId is set'
 		);
+		this.name = 'InstanceIdRequiredException';
 	}
 }

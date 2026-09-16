@@ -1,9 +1,9 @@
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { ConfigurationInputIsMissingException } from '../exceptions/configuration-input-is-missing.exception';
-import { LEGACY_INSTANCE_ID, SCHEMA_PREFIX_RULE } from './instance.constants';
+import { LEGACY_INSTANCE_ID, VENDOR_ID_SCHEMA_PREFIX_RULE } from './instance.constants';
 import { InstanceConfiguration, InstancesConfiguration, ResolvedInstance } from './instance.types';
 import { SchemaNamespace } from './schema-namespace';
-import { deriveSchemaPrefix, isValidSchemaPrefix } from './schema-prefix.utils';
+import { deriveSchemaPrefix } from './schema-prefix.utils';
 
 export class InstanceRegistry {
 	private readonly instances = new Map<string, ResolvedInstance>();
@@ -27,7 +27,7 @@ export class InstanceRegistry {
 
 		this.implicitInstance = configuration.instances
 			? this.resolveImplicitInstance(defaultInstanceId)
-			: { instanceId: LEGACY_INSTANCE_ID, namespace: new SchemaNamespace('', LEGACY_INSTANCE_ID) };
+			: { instanceId: LEGACY_INSTANCE_ID, namespace: SchemaNamespace.legacy(LEGACY_INSTANCE_ID) };
 	}
 
 	public get instanceIds(): string[] {
@@ -46,13 +46,12 @@ export class InstanceRegistry {
 		}
 
 		const vendorIdOwners = new Map<string, string>();
-		const schemaPrefixOwners = new Map<string, string>();
 		for (const [index, instance] of instances.entries()) {
-			const prefix = this.assertInstance(instance, index, vendorIdOwners, schemaPrefixOwners);
+			const schemaPrefix = this.assertInstance(instance, index, vendorIdOwners);
+			vendorIdOwners.set(instance.vendorId, instance.instanceId);
 			this.instances.set(instance.instanceId, {
 				instanceId: instance.instanceId,
-				vendorId: instance.vendorId,
-				namespace: new SchemaNamespace(prefix, instance.instanceId),
+				namespace: SchemaNamespace.prefixed(schemaPrefix, instance.instanceId),
 				fallbackConfiguration: instance.fallbackConfiguration
 			});
 		}
@@ -74,8 +73,7 @@ export class InstanceRegistry {
 	private assertInstance(
 		instance: InstanceConfiguration,
 		index: number,
-		vendorIdOwners: Map<string, string>,
-		schemaPrefixOwners: Map<string, string>
+		vendorIdOwners: ReadonlyMap<string, string>
 	): string {
 		if (!instance.instanceId) {
 			throw new ConfigurationInputIsMissingException(
@@ -85,8 +83,10 @@ export class InstanceRegistry {
 			);
 		}
 
-		if (this.instances.has(instance.instanceId)) {
-			throw new ConfigurationInputIsInvalidException(`Duplicate instanceId '${instance.instanceId}'`);
+		if (instance.instanceId === LEGACY_INSTANCE_ID) {
+			throw new ConfigurationInputIsInvalidException(
+				`instanceId '${LEGACY_INSTANCE_ID}' on instances[${index}] is reserved for the unprefixed client`
+			);
 		}
 
 		if (!instance.vendorId) {
@@ -95,40 +95,25 @@ export class InstanceRegistry {
 			);
 		}
 
+		const schemaPrefix = deriveSchemaPrefix(instance.vendorId);
+		if (schemaPrefix === undefined) {
+			throw new ConfigurationInputIsInvalidException(
+				`vendorId '${instance.vendorId}' for instance '${instance.instanceId}' cannot become a SpiceDB schema prefix; ` +
+					`expected ${VENDOR_ID_SCHEMA_PREFIX_RULE}`
+			);
+		}
+
+		if (this.instances.has(instance.instanceId)) {
+			throw new ConfigurationInputIsInvalidException(`Duplicate instanceId '${instance.instanceId}'`);
+		}
+
 		const vendorIdOwner = vendorIdOwners.get(instance.vendorId);
 		if (vendorIdOwner !== undefined) {
 			throw new ConfigurationInputIsInvalidException(
 				`Duplicate vendorId '${instance.vendorId}' on instances '${vendorIdOwner}' and '${instance.instanceId}'`
 			);
 		}
-		vendorIdOwners.set(instance.vendorId, instance.instanceId);
 
-		const prefix = instance.schemaPrefix ?? deriveSchemaPrefix(instance.vendorId);
-
-		if (prefix === '') {
-			throw new ConfigurationInputIsInvalidException(
-				`schemaPrefix must not be empty for instance '${instance.instanceId}'`
-			);
-		}
-
-		const schemaPrefixOwner = schemaPrefixOwners.get(prefix);
-		if (schemaPrefixOwner !== undefined) {
-			throw new ConfigurationInputIsInvalidException(
-				`Duplicate schemaPrefix '${prefix}' on instances '${schemaPrefixOwner}' and '${instance.instanceId}'; ` +
-					'instances would share a namespace'
-			);
-		}
-		schemaPrefixOwners.set(prefix, instance.instanceId);
-
-		if (!isValidSchemaPrefix(prefix)) {
-			throw new ConfigurationInputIsInvalidException(
-				instance.schemaPrefix === undefined
-					? `Schema prefix '${prefix}' derived from vendorId '${instance.vendorId}' for instance '${instance.instanceId}' ` +
-						`is not a valid SpiceDB namespace (${SCHEMA_PREFIX_RULE}); set schemaPrefix explicitly`
-					: `Invalid schemaPrefix '${prefix}' for instance '${instance.instanceId}'. Expected ${SCHEMA_PREFIX_RULE}`
-			);
-		}
-
-		return prefix;
+		return schemaPrefix;
 	}
 }

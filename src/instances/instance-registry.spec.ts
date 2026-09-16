@@ -49,59 +49,43 @@ describe(InstanceRegistry.name, () => {
 			expect(registry.get('b')?.namespace.schemaPrefix).toBe('v_8b1d0e77_3c5a_4f2b_9d6e_7a8b9c0d1e2f');
 		});
 
-		it('should honour an explicit schemaPrefix override', () => {
-			const registry = new InstanceRegistry({
-				instances: [{ instanceId: 'a', vendorId: VENDOR_A, schemaPrefix: 'v_custom' }]
-			});
+		it.each([
+			['an uppercase letter', 'ACME-CORP'],
+			['an uppercase uuid', '2F9C1A44-7B0E-4A1E-9F8A-1C2D3E4F5A6B'],
+			['an underscore', 'acme_corp'],
+			['a space', 'acme corp'],
+			['a non-ascii letter', 'acmé-corp'],
+			['a trailing dash', 'acme-']
+		])('should reject a vendorId with %s because it cannot become a SpiceDB prefix', (_case, vendorId) => {
+			const construct = (): InstanceRegistry =>
+				new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId }] });
 
-			expect(registry.get('a')?.namespace.schemaPrefix).toBe('v_custom');
-			expect(registry.get('a')?.namespace.instanceId).toBe('a');
+			expect(construct).toThrow(ConfigurationInputIsInvalidException);
+			expect(construct).toThrow(`vendorId '${vendorId}' for instance 'a' cannot become a SpiceDB schema prefix`);
 		});
 
-		it('should reject an empty schemaPrefix inside a populated instances list', () => {
-			expect(
-				() => new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId: VENDOR_A, schemaPrefix: '' }] })
-			).toThrow("schemaPrefix must not be empty for instance 'a'");
-		});
-
-		it('should reject an invalid explicit schemaPrefix and name the rule', () => {
+		it('should reject an invalid vendorId before reporting a duplicate instanceId', () => {
 			const construct = (): InstanceRegistry =>
 				new InstanceRegistry({
-					instances: [{ instanceId: 'a', vendorId: VENDOR_A, schemaPrefix: 'Not/Valid' }]
+					instances: [
+						{ instanceId: 'a', vendorId: VENDOR_A },
+						{ instanceId: 'a', vendorId: 'ACME' }
+					]
 				});
 
-			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow("Invalid schemaPrefix 'Not/Valid'");
-			expect(construct).toThrow('starting with a-z');
+			expect(construct).toThrow("vendorId 'ACME' for instance 'a' cannot become a SpiceDB schema prefix");
 		});
 
-		it('should blame the vendorId when a derived prefix is invalid', () => {
-			const construct = (): InstanceRegistry =>
-				new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId: 'acme corp' }] });
-
-			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow("derived from vendorId 'acme corp'");
-			expect(construct).toThrow('set schemaPrefix explicitly');
-		});
-
-		it.each([
-			[
-				'two explicit overrides collide',
-				{ instanceId: 'a', vendorId: VENDOR_A, schemaPrefix: 'shared_ns' },
-				{ instanceId: 'b', vendorId: VENDOR_B, schemaPrefix: 'shared_ns' },
-				"Duplicate schemaPrefix 'shared_ns' on instances 'a' and 'b'"
-			],
-			[
-				'two vendorIds normalise to the same prefix',
-				{ instanceId: 'a', vendorId: 'ACME-CORP' },
-				{ instanceId: 'b', vendorId: 'acme_corp' },
-				"Duplicate schemaPrefix 'v_acme_corp' on instances 'a' and 'b'"
-			]
-		])('should reject a shared namespace when %s', (_case, first, second, message) => {
-			const construct = (): InstanceRegistry => new InstanceRegistry({ instances: [first, second] });
-
-			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow(message);
+		it('should reject a vendorId that would alias the prefix another vendorId derives', () => {
+			expect(
+				() =>
+					new InstanceRegistry({
+						instances: [
+							{ instanceId: 'a', vendorId: 'acme-corp' },
+							{ instanceId: 'b', vendorId: 'acme_corp' }
+						]
+					})
+			).toThrow("vendorId 'acme_corp' for instance 'b' cannot become a SpiceDB schema prefix");
 		});
 	});
 
@@ -125,6 +109,14 @@ describe(InstanceRegistry.name, () => {
 
 			expect(construct).toThrow(ConfigurationInputIsMissingException);
 			expect(construct).toThrow(message);
+		});
+
+		it('should reject an instance that claims the reserved legacy instanceId', () => {
+			const construct = (): InstanceRegistry =>
+				new InstanceRegistry({ instances: [{ instanceId: LEGACY_INSTANCE_ID, vendorId: VENDOR_A }] });
+
+			expect(construct).toThrow(ConfigurationInputIsInvalidException);
+			expect(construct).toThrow("instanceId 'legacy' on instances[0] is reserved for the unprefixed client");
 		});
 
 		it('should throw on a missing vendorId', () => {

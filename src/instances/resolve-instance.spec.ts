@@ -29,24 +29,24 @@ function catchError(fn: () => unknown): unknown {
 }
 
 describe(resolveInstance.name, () => {
-	it('rule 1: should resolve an explicitly given instanceId', () => {
+	it('should resolve an explicitly given instanceId', () => {
 		expect(resolveInstance(pair(), 'b').instanceId).toBe('b');
 	});
 
-	it('rule 1: should throw UnknownInstanceException for an unconfigured instanceId', () => {
+	it('should throw UnknownInstanceException for an unconfigured instanceId', () => {
 		expect(() => resolveInstance(pair(), 'nope')).toThrow(UnknownInstanceException);
 		expect(catchError(() => resolveInstance(pair(), 'nope'))).toBeInstanceOf(InstanceResolutionException);
 	});
 
-	it('rule 1: should name the configured instances when the instanceId is unknown', () => {
+	it('should name the configured instances when the instanceId is unknown', () => {
 		expect(() => resolveInstance(pair(), 'nope')).toThrow("Unknown instanceId 'nope'; configured instances: a, b");
 	});
 
-	it('rule 1: should treat an empty instanceId as unknown rather than omitted', () => {
+	it('should treat an empty instanceId as unknown rather than omitted', () => {
 		expect(() => resolveInstance(single(), '')).toThrow(UnknownInstanceException);
 	});
 
-	it('rule 1: should say no instances are configured when a legacy client is given an instanceId', () => {
+	it('should say no instances are configured when a legacy client is given an instanceId', () => {
 		const error = catchError(() => resolveInstance(legacy(), 'eu'));
 
 		expect(error).toBeInstanceOf(UnknownInstanceException);
@@ -54,28 +54,35 @@ describe(resolveInstance.name, () => {
 		expect(() => resolveInstance(legacy(), 'eu')).toThrow("Unknown instanceId 'eu'; no instances are configured");
 	});
 
-	it('rule 2: should use the only instance when instanceId is omitted', () => {
+	it('should use the only instance when instanceId is omitted', () => {
 		expect(resolveInstance(single()).instanceId).toBe('a');
 	});
 
-	it.each([[undefined], [null]])('rule 2: should treat %s as an omitted instanceId', (instanceId) => {
+	it.each([[undefined], [null]])('should treat %s as an omitted instanceId', (instanceId) => {
 		expect(resolveInstance(single(), instanceId).instanceId).toBe('a');
 	});
 
-	it('rule 2: should use the legacy instance when no instances are configured', () => {
+	it('should use the legacy instance when no instances are configured', () => {
 		expect(resolveInstance(legacy()).instanceId).toBe(LEGACY_INSTANCE_ID);
 	});
 
-	it('rule 3: should fall back to defaultInstanceId', () => {
+	it('should fall back to defaultInstanceId when instanceId is omitted', () => {
 		expect(resolveInstance(pair('b')).instanceId).toBe('b');
 	});
 
-	it('rule 4: should throw InstanceIdRequiredException when ambiguous', () => {
+	it('should throw InstanceIdRequiredException when instanceId is omitted and several instances have no default', () => {
 		expect(() => resolveInstance(pair())).toThrow(InstanceIdRequiredException);
 		expect(catchError(() => resolveInstance(pair()))).toBeInstanceOf(InstanceResolutionException);
 	});
 
 	it('should name the configured instances in the ambiguity error', () => {
 		expect(() => resolveInstance(pair())).toThrow('a, b');
+	});
+
+	it.each([
+		['UnknownInstanceException', (): unknown => resolveInstance(pair(), 'nope')],
+		['InstanceIdRequiredException', (): unknown => resolveInstance(pair())]
+	])('should name the thrown error %s', (name, resolve) => {
+		expect(catchError(resolve)).toMatchObject({ name });
 	});
 });

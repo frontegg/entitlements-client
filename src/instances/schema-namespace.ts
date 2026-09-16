@@ -1,21 +1,30 @@
+import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
+import { SCHEMA_PREFIX_RULE } from './instance.constants';
+import { isValidSchemaPrefix } from './schema-prefix.utils';
 
 export class SchemaNamespace {
-	private readonly typePrefix: string;
-
-	constructor(
-		private readonly prefix: string,
+	private constructor(
+		public readonly schemaPrefix: string,
 		public readonly instanceId: string
-	) {
-		this.typePrefix = prefix === '' ? '' : `${prefix}/`;
+	) {}
+
+	public static prefixed(schemaPrefix: string, instanceId: string): SchemaNamespace {
+		if (!isValidSchemaPrefix(schemaPrefix)) {
+			throw new ConfigurationInputIsInvalidException(
+				`Invalid schema prefix '${schemaPrefix}' for instance '${instanceId}'; expected ${SCHEMA_PREFIX_RULE}`
+			);
+		}
+
+		return new SchemaNamespace(schemaPrefix, instanceId);
+	}
+
+	public static legacy(instanceId: string): SchemaNamespace {
+		return new SchemaNamespace('', instanceId);
 	}
 
 	public get isLegacy(): boolean {
-		return this.prefix === '';
-	}
-
-	public get schemaPrefix(): string {
-		return this.prefix;
+		return this.schemaPrefix === '';
 	}
 
 	public type(objectType: string): string {
@@ -24,12 +33,9 @@ export class SchemaNamespace {
 		}
 
 		if (objectType.includes('/')) {
-			throw new InvalidObjectTypeException(
-				objectType,
-				`Object type '${objectType}' must not contain '/'. Schema prefixes are applied by the SDK.`
-			);
+			throw new InvalidObjectTypeException(objectType);
 		}
 
-		return `${this.typePrefix}${objectType}`;
+		return `${this.schemaPrefix}/${objectType}`;
 	}
 }
