@@ -8,10 +8,11 @@ import { RequestContextType, UserSubjectContext, FGASubjectContext } from '../..
 import { SchemaNamespace } from '../../instances/schema-namespace';
 import { InvalidObjectTypeException } from '../../exceptions/invalid-object-type.exception';
 import { buildLookupTargetEntitiesRequest, buildLookupEntitiesRequest } from './lookup-request.builder';
+import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
+import { LoggingClient } from '../../logging';
 
 const PREFIX = 'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b';
 const NAMESPACED = new SchemaNamespace(PREFIX, 'eu');
-const LEGACY = new SchemaNamespace('', 'legacy');
 
 const userSubject: UserSubjectContext = {
 	tenantId: 'tenant-1',
@@ -41,7 +42,7 @@ describe('schema namespace threading', () => {
 
 	describe.each([
 		['prefixed', NAMESPACED, `${PREFIX}/`],
-		['legacy', LEGACY, '']
+		['legacy', LEGACY_NAMESPACE, '']
 	])('%s instance', (_label, namespace, expected) => {
 		it('should namespace the feature check request', async () => {
 			const query = new FeaturesSpiceDBQuery(client);
@@ -224,6 +225,49 @@ describe('schema namespace threading', () => {
 			await query.query({ requestContext, subjectContext: userSubject }, NAMESPACED);
 
 			expect(client.readRelationships).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	describe('route check', () => {
+		it('should check the namespaced route type and log it unprefixed', async () => {
+			const loggingClient = mock<LoggingClient>();
+			const query = new RouteSpiceDBQuery(client, loggingClient, true);
+			client.readRelationships.mockResolvedValue([
+				v1.ReadRelationshipsResponse.create({
+					relationship: {
+						resource: { objectType: `${PREFIX}/frontegg_route`, objectId: 'route-1' },
+						relation: 'access',
+						subject: { object: { objectType: `${PREFIX}/frontegg_tenant`, objectId: 'tenant-1' } },
+						optionalCaveat: {
+							caveatName: `${PREFIX}/route_policy`,
+							context: {
+								fields: {
+									pattern: { kind: { oneofKind: 'stringValue', stringValue: 'GET /a' } },
+									policy_type: { kind: { oneofKind: 'stringValue', stringValue: 'ruleBased' } }
+								}
+							}
+						}
+					}
+				})
+			]);
+
+			await query.query(
+				{
+					requestContext: { type: RequestContextType.Route, method: 'GET', path: '/a' },
+					subjectContext: userSubject
+				},
+				NAMESPACED
+			);
+
+			const request = client.checkBulkPermissions.mock.calls[0][0];
+			expect(request.items[0].resource?.objectType).toBe(`${PREFIX}/frontegg_route`);
+			expect(loggingClient.logRequest).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: 'SpiceDB:checkBulkPermissions:request',
+					objectType: 'frontegg_route'
+				}),
+				expect.anything()
+			);
 		});
 	});
 });
