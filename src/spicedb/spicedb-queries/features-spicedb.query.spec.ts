@@ -1,11 +1,8 @@
 import { v1 } from '@authzed/authzed-node';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { FeaturesSpiceDBQuery } from './features-spicedb.query';
-import { EntitlementsSpiceDBQueryCommonTests } from './entitlements-spicedb.query.spec-helper';
+import { EntitlementsSpiceDBQueryCommonTests, LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 import { EntitlementsDynamicQueryRequestContext, RequestContextType, UserSubjectContext } from '../../types';
-import { SchemaNamespace } from '../../instances/schema-namespace';
-
-const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 describe(FeaturesSpiceDBQuery.name, () => {
 	EntitlementsSpiceDBQueryCommonTests<FeaturesSpiceDBQuery, RequestContextType.Feature>(

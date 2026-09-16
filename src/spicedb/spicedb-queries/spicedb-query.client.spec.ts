@@ -1,11 +1,8 @@
 import { SpiceDBQueryClient } from './spicedb-query.client';
-import { mock, MockProxy, mockReset } from 'jest-mock-extended';
+import { mock, MockProxy } from 'jest-mock-extended';
 import { v1 } from '@authzed/authzed-node';
 import { RequestContext, RequestContextType, SubjectContext } from '../../types';
-import { getRequestContext } from './entitlements-spicedb.query.spec-helper';
-import { SchemaNamespace } from '../../instances/schema-namespace';
-
-const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
+import { getRequestContext, LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 
 describe(SpiceDBQueryClient.name, () => {
 	let queryClient: SpiceDBQueryClient;

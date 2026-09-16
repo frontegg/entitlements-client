@@ -5,9 +5,7 @@ import {
 } from './lookup-request.builder';
 import { encodeObjectId } from './base64.utils';
 import { RequestContextType } from '../../types';
-import { SchemaNamespace } from '../../instances/schema-namespace';
-
-const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
+import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 
 describe('lookup-request.builder', () => {
 	describe('buildLookupTargetEntitiesRequest', () => {
