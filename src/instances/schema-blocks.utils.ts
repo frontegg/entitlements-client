@@ -1,8 +1,5 @@
 import { SchemaParseException } from './schema-parse.exception';
-
-const HEADER_KEYWORDS = ['definition', 'caveat'];
-const STRING_DELIMITERS = ['"""', "'''", '"', "'", '`'];
-const RAW_STRING_PREFIXES = ['r', 'rb', 'br'];
+import { SCHEMA_HEADER_KEYWORDS, SCHEMA_RAW_STRING_PREFIXES, SCHEMA_STRING_DELIMITERS } from './instance.constants';
 
 const isIdentifierChar = (char: string | undefined): boolean =>
 	char !== undefined &&
@@ -21,7 +18,7 @@ function headerKeywordAt(text: string, index: number): string | undefined {
 		return undefined;
 	}
 
-	return HEADER_KEYWORDS.find(
+	return SCHEMA_HEADER_KEYWORDS.find(
 		(keyword) => text.startsWith(keyword, index) && isWhitespace(text[index + keyword.length])
 	);
 }
@@ -50,7 +47,7 @@ function isRawString(text: string, index: number, delimiter: string): boolean {
 		start -= 1;
 	}
 
-	return RAW_STRING_PREFIXES.includes(text.slice(start, index).toLowerCase());
+	return SCHEMA_RAW_STRING_PREFIXES.includes(text.slice(start, index).toLowerCase());
 }
 
 function endOfString(text: string, index: number, delimiter: string): number {
@@ -115,7 +112,7 @@ export function filterSchemaBlocks(schemaText: string, prefix: string): string {
 			continue;
 		}
 
-		const delimiter = STRING_DELIMITERS.find((candidate) => schemaText.startsWith(candidate, index));
+		const delimiter = SCHEMA_STRING_DELIMITERS.find((candidate) => schemaText.startsWith(candidate, index));
 		if (delimiter) {
 			index = endOfString(schemaText, index, delimiter);
 			continue;
