@@ -11,7 +11,7 @@ import {
 import { SchemaNamespace } from '../../instances/schema-namespace';
 import { LEGACY_INSTANCE_ID } from '../../instances/instance.constants';
 
-export const LEGACY_NAMESPACE = new SchemaNamespace('', LEGACY_INSTANCE_ID);
+export const LEGACY_NAMESPACE = SchemaNamespace.legacy(LEGACY_INSTANCE_ID);
 
 export function getRequestContext(type: RequestContextType): RequestContext {
 	switch (type) {
