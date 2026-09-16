@@ -1,89 +1,275 @@
-const OBJECT_TYPE_FIELDS = new Set(['objectType', 'resourceObjectType', 'subjectObjectType', 'resourceType']);
-
-const SPICEDB_TYPE_SOURCE = '@authzed/authzed-node';
-
-function isNamespaceTypeCall(node) {
-	return (
-		node.type === 'CallExpression' &&
-		node.callee.type === 'MemberExpression' &&
-		!node.callee.computed &&
-		node.callee.property.type === 'Identifier' &&
-		node.callee.property.name === 'type'
-	);
-}
-
-function relatedTypes(type, depth = 0, seen = []) {
-	if (!type || depth > 4 || seen.includes(type)) {
-		return seen;
-	}
-	seen.push(type);
-
-	for (const group of [type.types, type.aliasTypeArguments, type.typeArguments]) {
-		if (Array.isArray(group)) {
-			for (const member of group) {
-				relatedTypes(member, depth + 1, seen);
-			}
-		}
-	}
-
-	return seen;
-}
-
-function declaredBySpiceDB(checker, tsNode) {
-	const type = checker.getContextualType(tsNode);
-	if (!type) {
-		return false;
-	}
-
-	return relatedTypes(type).some((candidate) => {
-		const symbol = candidate.aliasSymbol ?? candidate.symbol;
-		const declarations = symbol?.getDeclarations?.() ?? [];
-		return declarations.some((declaration) =>
-			declaration.getSourceFile().fileName.includes(SPICEDB_TYPE_SOURCE)
-		);
-	});
-}
+const {
+	OBJECT_TYPE_FIELDS,
+	OBJECT_TYPE_LIST_FIELDS,
+	TRANSPARENT_EXPRESSION_TYPES
+} = require('./require-namespaced-object-type.consts');
+const { MissingTypeInformationError } = require('./missing-type-information.error');
+const { isGenericCall, isSchemaNamespaceType, isSpiceDBType, resolvesToSpiceDBField } = require('./spicedb-type.utils');
+const { constantInitializer, enclosingFunction, staticPropertyName, unwrapExpression } = require('./expression.utils');
 
 module.exports = {
 	meta: {
 		type: 'problem',
 		docs: {
 			description:
-				'SpiceDB request object types must be built through SchemaNamespace.type() so every read is namespaced to one instance'
+				'SpiceDB message object types must be built through SchemaNamespace.type() so every read is namespaced to one instance'
 		},
 		schema: [],
 		messages: {
 			unnamespaced:
-				"'{{field}}' is a SpiceDB request field and must be built with namespace.type(...). " +
+				"'{{field}}' is a SpiceDB message field and must be built with namespace.type(...). " +
 				'An un-namespaced object type reads across every configured instance.'
 		}
 	},
 
 	create(context) {
-		const services = context.sourceCode.parserServices;
+		const { sourceCode } = context;
+		const services = sourceCode.parserServices;
 		if (!services?.program || !services.esTreeNodeToTSNodeMap) {
-			return {};
+			throw new MissingTypeInformationError(context.filename);
 		}
 		const checker = services.program.getTypeChecker();
+		const reported = new Set();
+
+		function tsNodeOf(node) {
+			return services.esTreeNodeToTSNodeMap.get(node);
+		}
+
+		function report(node, field) {
+			if (reported.has(node)) {
+				return;
+			}
+			reported.add(node);
+			context.report({ node, messageId: 'unnamespaced', data: { field } });
+		}
+
+		function isSchemaNamespaceTypeCall(node) {
+			return (
+				node.type === 'CallExpression' &&
+				node.callee.type === 'MemberExpression' &&
+				staticPropertyName(node.callee.property, node.callee.computed) === 'type' &&
+				isSchemaNamespaceType(checker, checker.getTypeAtLocation(tsNodeOf(node.callee.object)))
+			);
+		}
+
+		function everyValueBranch(node, isAccepted) {
+			const value = unwrapExpression(node);
+			if (value.type === 'ConditionalExpression') {
+				return everyValueBranch(value.consequent, isAccepted) && everyValueBranch(value.alternate, isAccepted);
+			}
+			if (value.type === 'LogicalExpression') {
+				return everyValueBranch(value.left, isAccepted) && everyValueBranch(value.right, isAccepted);
+			}
+			if (value.type === 'Identifier') {
+				const initializer = constantInitializer(sourceCode, value);
+				return initializer !== undefined && everyValueBranch(initializer, isAccepted);
+			}
+
+			return isAccepted(value);
+		}
+
+		function isNamespacedValue(node) {
+			return everyValueBranch(node, isSchemaNamespaceTypeCall);
+		}
+
+		function isNamespacedMapping(node) {
+			const callback = node.type === 'CallExpression' ? node.arguments[0] : undefined;
+
+			return (
+				node.type === 'CallExpression' &&
+				node.callee.type === 'MemberExpression' &&
+				staticPropertyName(node.callee.property, node.callee.computed) === 'map' &&
+				callback?.type === 'ArrowFunctionExpression' &&
+				callback.body.type !== 'BlockStatement' &&
+				isNamespacedValue(callback.body)
+			);
+		}
+
+		function isNamespacedListLiteral(node) {
+			if (node.type !== 'ArrayExpression') {
+				return isNamespacedMapping(node);
+			}
+
+			return node.elements.every(
+				(element) =>
+					element !== null &&
+					(element.type === 'SpreadElement' ? isNamespacedList(element.argument) : isNamespacedValue(element))
+			);
+		}
+
+		function isNamespacedList(node) {
+			return everyValueBranch(node, isNamespacedListLiteral);
+		}
+
+		function isNamespacedField(field, node) {
+			return OBJECT_TYPE_LIST_FIELDS.has(field) ? isNamespacedList(node) : isNamespacedValue(node);
+		}
+
+		function callArgumentStep(argument, path) {
+			const call = argument.parent;
+			const isGenericCallArgument =
+				call?.type === 'CallExpression' &&
+				call.arguments.includes(argument) &&
+				isGenericCall(checker, tsNodeOf(call));
+
+			return isGenericCallArgument ? { expression: call, path } : undefined;
+		}
+
+		function enclosingStep({ expression, path }) {
+			const parent = expression.parent;
+			if (TRANSPARENT_EXPRESSION_TYPES.has(parent?.type)) {
+				return { expression: parent, path };
+			}
+
+			switch (parent?.type) {
+				case 'Property': {
+					const name =
+						parent.value === expression && parent.parent.type === 'ObjectExpression'
+							? staticPropertyName(parent.key, parent.computed)
+							: undefined;
+					return name === undefined ? undefined : { expression: parent.parent, path: [name, ...path] };
+				}
+				case 'SpreadElement':
+					return ['ObjectExpression', 'ArrayExpression'].includes(parent.parent.type)
+						? { expression: parent.parent, path }
+						: undefined;
+				case 'ConditionalExpression':
+					return parent.test === expression ? undefined : { expression: parent, path };
+				case 'ArrayExpression':
+				case 'LogicalExpression':
+				case 'AwaitExpression':
+					return { expression: parent, path };
+				case 'ArrowFunctionExpression':
+					return parent.body === expression ? callArgumentStep(parent, path) : undefined;
+				case 'ReturnStatement': {
+					const returningFunction = enclosingFunction(parent);
+					return returningFunction ? callArgumentStep(returningFunction, path) : undefined;
+				}
+				case 'CallExpression':
+					return callArgumentStep(expression, path);
+				default:
+					return undefined;
+			}
+		}
+
+		function isSpiceDBFieldInContext(expression, field) {
+			for (let step = { expression, path: [field] }; step; step = enclosingStep(step)) {
+				const contextualType = checker.getContextualType(tsNodeOf(step.expression));
+				if (contextualType && resolvesToSpiceDBField(checker, contextualType, step.path)) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		function checkAgainstType(node, expectedType, path) {
+			const value = unwrapExpression(node);
+			switch (value.type) {
+				case 'Identifier': {
+					const initializer = constantInitializer(sourceCode, value);
+					if (initializer) {
+						checkAgainstType(initializer, expectedType, path);
+					}
+					return;
+				}
+				case 'ConditionalExpression':
+					checkAgainstType(value.consequent, expectedType, path);
+					checkAgainstType(value.alternate, expectedType, path);
+					return;
+				case 'ArrayExpression':
+					for (const element of value.elements) {
+						if (element) {
+							checkAgainstType(
+								element.type === 'SpreadElement' ? element.argument : element,
+								expectedType,
+								path
+							);
+						}
+					}
+					return;
+				case 'ObjectExpression':
+					checkObjectAgainstType(value, expectedType, path);
+					return;
+				default:
+					return;
+			}
+		}
+
+		function checkObjectAgainstType(node, expectedType, path) {
+			for (const member of node.properties) {
+				if (member.type === 'SpreadElement') {
+					checkAgainstType(member.argument, expectedType, path);
+					continue;
+				}
+
+				const name = staticPropertyName(member.key, member.computed);
+				if (name === undefined) {
+					continue;
+				}
+
+				const memberPath = [...path, name];
+				if (OBJECT_TYPE_FIELDS.has(name) && resolvesToSpiceDBField(checker, expectedType, memberPath)) {
+					if (!isNamespacedField(name, member.value)) {
+						report(member, name);
+					}
+					continue;
+				}
+
+				checkAgainstType(member.value, expectedType, memberPath);
+			}
+		}
 
 		return {
 			Property(node) {
-				if (node.computed || node.key.type !== 'Identifier' || !OBJECT_TYPE_FIELDS.has(node.key.name)) {
+				const field = staticPropertyName(node.key, node.computed);
+				if (!OBJECT_TYPE_FIELDS.has(field) || node.parent.type !== 'ObjectExpression') {
 					return;
 				}
-				if (node.parent?.type !== 'ObjectExpression') {
+				if (isNamespacedField(field, node.value)) {
 					return;
 				}
-				if (isNamespaceTypeCall(node.value)) {
+				if (isSpiceDBFieldInContext(node.parent, field)) {
+					report(node, field);
+				}
+			},
+
+			CallExpression(node) {
+				if (node.callee.type !== 'MemberExpression' || node.arguments.length === 0) {
+					return;
+				}
+				if (!isSpiceDBType(checker.getTypeAtLocation(tsNodeOf(node.callee.object)))) {
 					return;
 				}
 
-				const tsNode = services.esTreeNodeToTSNodeMap.get(node.parent);
-				if (!tsNode || !declaredBySpiceDB(checker, tsNode)) {
+				for (const argument of node.arguments) {
+					const expectedType =
+						argument.type === 'SpreadElement' ? undefined : checker.getContextualType(tsNodeOf(argument));
+					if (expectedType) {
+						checkAgainstType(argument, expectedType, []);
+					}
+				}
+			},
+
+			'TSAsExpression, TSTypeAssertion'(node) {
+				const assertedType = checker.getTypeAtLocation(tsNodeOf(node));
+				if (isSpiceDBType(assertedType)) {
+					checkAgainstType(node.expression, assertedType, []);
+				}
+			},
+
+			AssignmentExpression(node) {
+				if (node.left.type !== 'MemberExpression') {
 					return;
 				}
 
-				context.report({ node, messageId: 'unnamespaced', data: { field: node.key.name } });
+				const field = staticPropertyName(node.left.property, node.left.computed);
+				if (!OBJECT_TYPE_FIELDS.has(field) || isNamespacedField(field, node.right)) {
+					return;
+				}
+				if (resolvesToSpiceDBField(checker, checker.getTypeAtLocation(tsNodeOf(node.left.object)), [field])) {
+					report(node, field);
+				}
 			}
 		};
 	}
