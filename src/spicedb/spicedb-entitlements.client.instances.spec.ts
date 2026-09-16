@@ -44,7 +44,7 @@ function buildClient(
 		loggingClient,
 		false,
 		full.fallbackConfiguration,
-		new InstanceRegistry(full, full.defaultInstanceId)
+		new InstanceRegistry(full)
 	);
 	(client as unknown as { spiceDBQueryClient: SpiceDBQueryClient }).spiceDBQueryClient = queryClient;
 	return client;

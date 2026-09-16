@@ -4,7 +4,7 @@ import { EntitlementsDynamicQueryRequestContext, RequestContextType } from '../.
 import { FgaSpiceDBQuery } from './fga-spicedb.query';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 describe(FgaSpiceDBQuery.name, () => {
 	let queryClient: FgaSpiceDBQuery;

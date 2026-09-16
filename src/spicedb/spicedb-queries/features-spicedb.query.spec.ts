@@ -5,7 +5,7 @@ import { EntitlementsSpiceDBQueryCommonTests } from './entitlements-spicedb.quer
 import { EntitlementsDynamicQueryRequestContext, RequestContextType, UserSubjectContext } from '../../types';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 describe(FeaturesSpiceDBQuery.name, () => {
 	EntitlementsSpiceDBQueryCommonTests<FeaturesSpiceDBQuery, RequestContextType.Feature>(

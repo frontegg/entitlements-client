@@ -16,7 +16,7 @@ import { SpiceDBResponse } from '../types/spicedb.dto';
 import { ClientConfiguration } from '../client-configuration';
 import { SchemaNamespace } from '../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 // Helper function to create request contexts for each type
 function getRequestContext(type: RequestContextType): RequestContext {
@@ -301,11 +301,11 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			await cut.isEntitledToMany(subjectContext, requestContexts);
 
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:request', instanceId: 'default', subjectContext, requestContexts },
+				{ action: 'SpiceDB:isEntitledToMany:request', instanceId: 'legacy', subjectContext, requestContexts },
 				null
 			);
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:response', instanceId: 'default', subjectContext, requestContexts },
+				{ action: 'SpiceDB:isEntitledToMany:response', instanceId: 'legacy', subjectContext, requestContexts },
 				[{ result: true }]
 			);
 		});
