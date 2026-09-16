@@ -4,7 +4,7 @@ import { EntitlementsDynamicQueryRequestContext, RequestContextType, UserSubject
 import { RouteSpiceDBQuery } from './route-spicedb.query';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 describe(RouteSpiceDBQuery.name, () => {
 	let queryClient: RouteSpiceDBQuery;
