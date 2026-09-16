@@ -39,11 +39,11 @@ import {
 } from './spicedb-queries/lookup-response.mapper';
 import { SpiceDBEntities } from '../types/spicedb-consts';
 import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
-import { InstanceRegistry, ResolvedInstance } from '../instances/instance-registry';
+import { InstanceRegistry } from '../instances/instance-registry';
+import { InstanceOptions, ResolvedInstance } from '../instances/instance.types';
 import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaNamespace } from '../instances/schema-namespace';
-import { InstanceOptions } from '../instances/instance-options';
-import { filterSchemaBlocks } from '../instances/schema-blocks';
+import { filterSchemaBlocks } from '../instances/schema-blocks.utils';
 import { isInputError } from './input-error.utils';
 
 export class SpiceDBEntitlementsClient {
