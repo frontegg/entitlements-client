@@ -1,4 +1,4 @@
-import { filterSchemaBlocks } from './schema-blocks';
+import { filterSchemaBlocks } from './schema-blocks.utils';
 import { SchemaParseException } from './schema-parse.exception';
 
 const lines = (...parts: string[]): string => parts.join('\n');

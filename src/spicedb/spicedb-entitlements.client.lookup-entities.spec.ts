@@ -5,7 +5,7 @@ import { ClientConfiguration } from '../client-configuration';
 import { v1 } from '@authzed/authzed-node';
 import { LookupEntitiesRequest } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
-import { LEGACY_INSTANCE_ID } from '../instances/instance-registry';
+import { LEGACY_INSTANCE_ID } from '../instances/instance.constants';
 import { setSpiceClient } from './spicedb-entitlements.client.spec-helper';
 
 describe('SpiceDBEntitlementsClient.lookupEntities', () => {
