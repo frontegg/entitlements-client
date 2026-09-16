@@ -46,10 +46,9 @@ module.exports = tseslint.config(
             files: ['src/**/*.ts'],
             ignores: ['**/*.spec.ts', '**/*spec-helper.ts'],
             languageOptions: {
-                parser,
                 parserOptions: {
-                    sourceType: 'module',
                     project: './tsconfig.json',
+                    tsconfigRootDir: __dirname,
                 },
             },
             plugins: {'frontegg': {rules: {'require-namespaced-object-type': requireNamespacedObjectType}}},
