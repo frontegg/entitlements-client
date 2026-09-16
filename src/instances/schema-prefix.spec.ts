@@ -20,28 +20,29 @@ describe('schema-prefix', () => {
 	});
 
 	describe(isValidSchemaPrefix.name, () => {
-		it('should accept the empty legacy prefix', () => {
-			expect(isValidSchemaPrefix('')).toBe(true);
-		});
-
 		it('should accept a derived prefix', () => {
 			expect(isValidSchemaPrefix(deriveSchemaPrefix('2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b'))).toBe(true);
 		});
 
+		it('should accept the longest prefix SpiceDB allows before the separator', () => {
+			expect(isValidSchemaPrefix(`v${'a'.repeat(62)}`)).toBe(true);
+		});
+
+		it('should reject a prefix one character too long for SpiceDB', () => {
+			expect(isValidSchemaPrefix(`v${'a'.repeat(63)}`)).toBe(false);
+		});
+
 		it.each([
+			[''],
 			['V_UPPER'],
+			['_leading_underscore'],
 			['1leading_digit'],
 			['has/slash'],
 			['ends_with_'],
 			['ab'],
-			['_leading_underscore'],
-			[`v${'a'.repeat(64)}`]
-		])('should reject %s', (prefix) => {
+			['a-b']
+		])('should reject %j', (prefix) => {
 			expect(isValidSchemaPrefix(prefix)).toBe(false);
-		});
-
-		it('should accept the longest prefix SpiceDB allows', () => {
-			expect(isValidSchemaPrefix(`v${'a'.repeat(63)}`)).toBe(true);
 		});
 	});
 });

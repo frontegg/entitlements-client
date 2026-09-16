@@ -1,3 +1,4 @@
+export * from './instance-configuration';
 export * from './schema-namespace';
 export * from './schema-prefix';
 export * from './instance-registry';

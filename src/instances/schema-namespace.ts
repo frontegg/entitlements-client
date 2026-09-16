@@ -1,10 +1,14 @@
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 
 export class SchemaNamespace {
+	private readonly typePrefix: string;
+
 	constructor(
 		private readonly prefix: string,
-		public readonly instanceId: string = ''
-	) {}
+		public readonly instanceId: string
+	) {
+		this.typePrefix = prefix === '' ? '' : `${prefix}/`;
+	}
 
 	public get isLegacy(): boolean {
 		return this.prefix === '';
@@ -26,7 +30,7 @@ export class SchemaNamespace {
 			);
 		}
 
-		return `${this.prefix}/${objectType}`;
+		return `${this.typePrefix}${objectType}`;
 	}
 
 	public strip(objectType: string): string {
@@ -34,7 +38,17 @@ export class SchemaNamespace {
 			return objectType;
 		}
 
-		const namespacePrefix = `${this.prefix}/`;
-		return objectType.startsWith(namespacePrefix) ? objectType.slice(namespacePrefix.length) : objectType;
+		if (objectType.startsWith(this.typePrefix)) {
+			return objectType.slice(this.typePrefix.length);
+		}
+
+		if (objectType.includes('/')) {
+			throw new InvalidObjectTypeException(
+				objectType,
+				`Object type '${objectType}' belongs to another schema prefix; expected '${this.prefix}'.`
+			);
+		}
+
+		return objectType;
 	}
 }

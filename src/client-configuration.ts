@@ -1,18 +1,9 @@
 import { LoggingClient } from './logging';
 import { RequestContext, RequestContextType } from './types';
 
-export interface InstanceConfiguration {
-	instanceId: string;
-	vendorId: string;
-	schemaPrefix?: string;
-	fallbackConfiguration?: FallbackConfiguration;
-}
-
 export interface ClientConfiguration {
 	engineEndpoint: string;
 	engineToken: string;
-	instances?: InstanceConfiguration[];
-	defaultInstanceId?: string;
 	logging?: {
 		client?: LoggingClient;
 		logResults?: boolean;

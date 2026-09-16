@@ -1,9 +1,11 @@
-import { ClientConfiguration, FallbackConfiguration, InstanceConfiguration } from '../client-configuration';
+import { FallbackConfiguration } from '../client-configuration';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
+import { ConfigurationInputIsMissingException } from '../exceptions/configuration-input-is-missing.exception';
+import { InstanceConfiguration, InstancesConfiguration } from './instance-configuration';
 import { SchemaNamespace } from './schema-namespace';
-import { deriveSchemaPrefix, isValidSchemaPrefix } from './schema-prefix';
+import { deriveSchemaPrefix, isValidSchemaPrefix, SCHEMA_PREFIX_RULE } from './schema-prefix';
 
-export const LEGACY_INSTANCE_ID = 'default';
+export const LEGACY_INSTANCE_ID = 'legacy';
 
 export interface ResolvedInstance {
 	instanceId: string;
@@ -13,81 +15,74 @@ export interface ResolvedInstance {
 }
 
 export class InstanceRegistry {
-	private readonly instances: Map<string, ResolvedInstance>;
-	private readonly order: string[];
+	private readonly instances = new Map<string, ResolvedInstance>();
 
 	public readonly defaultInstanceId?: string;
+	public readonly implicitInstance?: ResolvedInstance;
 
-	constructor(
-		configuration: Pick<ClientConfiguration, 'instances' | 'defaultInstanceId'>,
-		defaultInstanceId: string | undefined = configuration.defaultInstanceId
-	) {
-		this.defaultInstanceId = defaultInstanceId;
-		const declared = configuration.instances;
-		this.instances = new Map();
-		this.order = [];
+	constructor(configuration: InstancesConfiguration) {
+		const declared = configuration.instances ?? [];
 
-		if (!declared || declared.length === 0) {
-			const legacy: ResolvedInstance = {
+		if (declared.length === 0) {
+			this.instances.set(LEGACY_INSTANCE_ID, {
 				instanceId: LEGACY_INSTANCE_ID,
-				namespace: new SchemaNamespace('')
-			};
-			this.instances.set(legacy.instanceId, legacy);
-			this.order.push(legacy.instanceId);
-		} else {
-			const seenVendorIds = new Set<string>();
-			const seenPrefixes = new Set<string>();
-			for (const instance of declared) {
-				this.assertInstance(instance, seenVendorIds, seenPrefixes);
-				const resolved: ResolvedInstance = {
-					instanceId: instance.instanceId,
-					vendorId: instance.vendorId,
-					namespace: new SchemaNamespace(this.resolvePrefix(instance), instance.instanceId),
-					fallbackConfiguration: instance.fallbackConfiguration
-				};
-				this.instances.set(resolved.instanceId, resolved);
-				this.order.push(resolved.instanceId);
-			}
+				namespace: new SchemaNamespace('', LEGACY_INSTANCE_ID)
+			});
 		}
 
-		if (defaultInstanceId !== undefined && !this.instances.has(defaultInstanceId)) {
+		const seenVendorIds = new Set<string>();
+		const seenPrefixes = new Set<string>();
+		for (const instance of declared) {
+			const prefix = this.assertInstance(instance, seenVendorIds, seenPrefixes);
+			this.instances.set(instance.instanceId, {
+				instanceId: instance.instanceId,
+				vendorId: instance.vendorId,
+				namespace: new SchemaNamespace(prefix, instance.instanceId),
+				fallbackConfiguration: instance.fallbackConfiguration
+			});
+		}
+
+		this.defaultInstanceId = configuration.defaultInstanceId;
+		if (this.defaultInstanceId !== undefined && !this.instances.has(this.defaultInstanceId)) {
 			throw new ConfigurationInputIsInvalidException(
-				`defaultInstanceId '${defaultInstanceId}' is not one of the configured instances: ${this.order.join(', ')}`
+				`defaultInstanceId '${this.defaultInstanceId}' is not one of the configured instances: ${this.instanceIds.join(', ')}`
 			);
 		}
+
+		this.implicitInstance = this.resolveImplicitInstance();
 	}
 
 	public get instanceIds(): string[] {
-		return [...this.order];
+		return [...this.instances.keys()];
 	}
 
 	public get size(): number {
-		return this.order.length;
-	}
-
-	public get onlyInstance(): ResolvedInstance {
-		return this.instances.get(this.order[0]) as ResolvedInstance;
+		return this.instances.size;
 	}
 
 	public get(instanceId: string): ResolvedInstance | undefined {
 		return this.instances.get(instanceId);
 	}
 
-	private resolvePrefix(instance: InstanceConfiguration): string {
-		if (instance.schemaPrefix !== undefined) {
-			return instance.schemaPrefix;
+	private resolveImplicitInstance(): ResolvedInstance | undefined {
+		if (this.defaultInstanceId !== undefined) {
+			return this.instances.get(this.defaultInstanceId);
 		}
 
-		return deriveSchemaPrefix(instance.vendorId);
+		if (this.instances.size === 1) {
+			return this.instances.values().next().value as ResolvedInstance;
+		}
+
+		return undefined;
 	}
 
 	private assertInstance(
 		instance: InstanceConfiguration,
 		seenVendorIds: Set<string>,
 		seenPrefixes: Set<string>
-	): void {
+	): string {
 		if (!instance.instanceId) {
-			throw new ConfigurationInputIsInvalidException('instanceId is required for every configured instance');
+			throw new ConfigurationInputIsMissingException('instanceId is required for every configured instance');
 		}
 
 		if (this.instances.has(instance.instanceId)) {
@@ -95,7 +90,7 @@ export class InstanceRegistry {
 		}
 
 		if (!instance.vendorId) {
-			throw new ConfigurationInputIsInvalidException(
+			throw new ConfigurationInputIsMissingException(
 				`vendorId is required for instance '${instance.instanceId}'`
 			);
 		}
@@ -107,7 +102,7 @@ export class InstanceRegistry {
 		}
 		seenVendorIds.add(instance.vendorId);
 
-		const prefix = this.resolvePrefix(instance);
+		const prefix = instance.schemaPrefix ?? deriveSchemaPrefix(instance.vendorId);
 
 		if (prefix === '') {
 			throw new ConfigurationInputIsInvalidException(
@@ -124,9 +119,13 @@ export class InstanceRegistry {
 
 		if (!isValidSchemaPrefix(prefix)) {
 			throw new ConfigurationInputIsInvalidException(
-				`Invalid schemaPrefix '${prefix}' for instance '${instance.instanceId}'. ` +
-					`Expected an empty string or a SpiceDB identifier matching /^[a-z_][a-z0-9_]{1,62}[a-z0-9]$/`
+				instance.schemaPrefix === undefined
+					? `Schema prefix '${prefix}' derived from vendorId '${instance.vendorId}' for instance '${instance.instanceId}' ` +
+						`is not a valid SpiceDB namespace (${SCHEMA_PREFIX_RULE}); set schemaPrefix explicitly`
+					: `Invalid schemaPrefix '${prefix}' for instance '${instance.instanceId}'. Expected ${SCHEMA_PREFIX_RULE}`
 			);
 		}
+
+		return prefix;
 	}
 }
