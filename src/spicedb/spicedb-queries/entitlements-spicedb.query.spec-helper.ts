@@ -10,7 +10,7 @@ import {
 } from '../../types';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 export function getRequestContext(type: RequestContextType): RequestContext {
 	switch (type) {

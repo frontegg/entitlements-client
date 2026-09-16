@@ -7,7 +7,7 @@ import { encodeObjectId } from './base64.utils';
 import { RequestContextType } from '../../types';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 describe('lookup-request.builder', () => {
 	describe('buildLookupTargetEntitiesRequest', () => {

@@ -5,7 +5,7 @@ import { RequestContext, RequestContextType, SubjectContext } from '../../types'
 import { getRequestContext } from './entitlements-spicedb.query.spec-helper';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 describe(SpiceDBQueryClient.name, () => {
 	let queryClient: SpiceDBQueryClient;

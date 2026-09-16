@@ -61,6 +61,41 @@ const e10sClient = EntitlementsClientFactory.create({
 });
 ```
 
+### Multiple Frontegg instances
+
+One SpiceDB can serve several Frontegg instances. Each instance is a vendor, and the SDK
+namespaces every read to that instance's schema prefix, derived from its `vendorId`
+(`v_` + the vendorId lowercased with `-` replaced by `_`). Configure the instances once and
+pick one per call with `instanceId`:
+
+```typescript
+const e10sClient = EntitlementsClientFactory.create({
+	engineEndpoint: 'localhost:50051',
+	engineToken: 'your-engine-token',
+	instances: [
+		{ instanceId: 'eu', vendorId: '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b' },
+		{ instanceId: 'us', vendorId: '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f', schemaPrefix: 'v_us' }
+	],
+	defaultInstanceId: 'eu'
+});
+
+await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us' });
+```
+
+- `instanceId` is optional on every call. With one instance configured, or with
+  `defaultInstanceId` set, it can be omitted; otherwise the call throws
+  `InstanceIdRequiredException`. An unknown id throws `UnknownInstanceException`. Both
+  extend `InstanceResolutionException` and are thrown rather than answered with the
+  fallback.
+- `schemaPrefix` overrides the derived prefix. It must be 3 to 63 characters, start with
+  `a-z`, contain only `a-z`, `0-9` and `_`, and end with `a-z` or `0-9`.
+- Each instance may carry its own `fallbackConfiguration`; the client-wide one applies
+  otherwise.
+- Object types passed to the SDK must not contain `/`; the prefix is applied and stripped
+  by the SDK.
+- With no `instances` configured, the client behaves exactly as before: nothing is
+  prefixed.
+
 ### Setting up the Subject Context
 
 Subject context describes the user which performs the action, these can be taken from Frontegg JWT if authenticating with Frontegg

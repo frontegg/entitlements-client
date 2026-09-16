@@ -12,7 +12,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { encodeObjectId } from './base64.utils';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
-const LEGACY_NAMESPACE = new SchemaNamespace('');
+const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
 
 // Create a concrete test implementation to test the abstract class
 class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
