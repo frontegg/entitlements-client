@@ -224,3 +224,18 @@ describe('a keyword that is really a field access', () => {
 		expect(filterSchemaBlocks(schema, 'v_bbb')).toBe('definition secret {}');
 	});
 });
+
+describe('a comment between the keyword and the name', () => {
+	const schema = ['definition /* own */ v_aaa/user {}', 'definition // next', 'v_bbb/secret {}'].join('\n');
+
+	it('should read the name past a block comment rather than dropping the block', () => {
+		const filtered = filterSchemaBlocks(schema, 'v_aaa');
+
+		expect(filtered).toContain('user');
+		expect(filtered).not.toContain('v_bbb');
+	});
+
+	it('should read the name past a line comment', () => {
+		expect(filterSchemaBlocks(schema, 'v_bbb')).toContain('secret');
+	});
+});
