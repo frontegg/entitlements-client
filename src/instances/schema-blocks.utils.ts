@@ -1,5 +1,10 @@
 import { SchemaParseException } from './schema-parse.exception';
-import { SCHEMA_HEADER_KEYWORDS, SCHEMA_RAW_STRING_PREFIXES, SCHEMA_STRING_DELIMITERS } from './instance.constants';
+import {
+	FIELD_ACCESSOR,
+	SCHEMA_HEADER_KEYWORDS,
+	SCHEMA_RAW_STRING_PREFIXES,
+	SCHEMA_STRING_DELIMITERS
+} from './instance.constants';
 
 const isIdentifierChar = (char: string | undefined): boolean =>
 	char !== undefined &&
@@ -9,7 +14,7 @@ const isWhitespace = (char: string | undefined): boolean =>
 	char === ' ' || char === '\t' || char === '\n' || char === '\r';
 
 const isIdentifierStart = (text: string, index: number): boolean =>
-	!isIdentifierChar(text[index - 1]) && text[index - 1] !== '/';
+	!isIdentifierChar(text[index - 1]) && text[index - 1] !== '/' && text[index - 1] !== FIELD_ACCESSOR;
 
 const lineAt = (text: string, index: number): number => text.slice(0, index).split('\n').length;
 
