@@ -42,12 +42,9 @@ import { decodeObjectId, encodeObjectId } from './spicedb-queries/base64.utils';
 import { InstanceRegistry, ResolvedInstance } from '../instances/instance-registry';
 import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaNamespace } from '../instances/schema-namespace';
-import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
-import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
-
-export interface InstanceOptions {
-	instanceId?: string;
-}
+import { InstanceOptions } from '../instances/instance-options';
+import { filterSchemaBlocks } from '../instances/schema-blocks';
+import { isInputError } from './input-error.utils';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -60,10 +57,9 @@ export class SpiceDBEntitlementsClient {
 		private readonly configuration: ClientConfiguration,
 		private readonly loggingClient: LoggingClient,
 		private readonly logResults = false,
-		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false },
-		registry?: InstanceRegistry
+		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
 	) {
-		this.registry = registry ?? new InstanceRegistry(configuration);
+		this.registry = new InstanceRegistry(configuration);
 
 		try {
 			this.spiceClient = v1.NewClient(
@@ -89,7 +85,7 @@ export class SpiceDBEntitlementsClient {
 		requestContext: RequestContext,
 		options?: InstanceOptions
 	): Promise<EntitlementsResult> {
-		const instance = this.resolve(options?.instanceId);
+		const instance = resolveInstance(this.registry, options?.instanceId);
 		return this.executeEntitlementQuery(subjectContext, requestContext, instance, 'SpiceDB:isEntitledTo');
 	}
 
@@ -98,7 +94,7 @@ export class SpiceDBEntitlementsClient {
 		requestContexts: RequestContext[],
 		options?: InstanceOptions
 	): Promise<EntitlementsManyResult> {
-		const instance = this.resolve(options?.instanceId);
+		const instance = resolveInstance(this.registry, options?.instanceId);
 		if (this.logResults) {
 			await this.loggingClient.logRequest(
 				{
@@ -140,7 +136,7 @@ export class SpiceDBEntitlementsClient {
 							result: await this.executeEntitlementQuery(subjectContext, requestContext, instance)
 						};
 					} catch (err) {
-						return { index, result: this.toItemFailure(err) };
+						return { index, result: await this.toItemFailure(err, instance) };
 					}
 				})
 			)
@@ -172,7 +168,8 @@ export class SpiceDBEntitlementsClient {
 		req: LookupTargetEntitiesRequest,
 		options?: InstanceOptions
 	): Promise<LookupTargetEntitiesResponse> {
-		const { namespace } = this.resolve(options?.instanceId);
+		const instance = resolveInstance(this.registry, options?.instanceId);
+		const { namespace } = instance;
 		try {
 			const limit = req.limit ? req.limit : DEFAULT_LOOKUP_LIMIT;
 			const request = buildLookupTargetEntitiesRequest(
@@ -195,7 +192,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return mapLookupTargetEntitiesResponse(results, req.TargetEntityType, limit);
 		} catch (err) {
-			await this.loggingClient.error(err);
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			throw err;
 		}
 	}
@@ -204,7 +201,8 @@ export class SpiceDBEntitlementsClient {
 		req: LookupEntitiesRequest,
 		options?: InstanceOptions
 	): Promise<LookupEntitiesResponse> {
-		const { namespace } = this.resolve(options?.instanceId);
+		const instance = resolveInstance(this.registry, options?.instanceId);
+		const { namespace } = instance;
 		try {
 			const request = buildLookupEntitiesRequest(
 				{
@@ -224,7 +222,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return mapLookupEntitiesResponse(results, req.entityType);
 		} catch (err) {
-			await this.loggingClient.error(err);
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			throw err;
 		}
 	}
@@ -233,7 +231,8 @@ export class SpiceDBEntitlementsClient {
 		req: LookupEntitlementsRequest,
 		options?: InstanceOptions
 	): Promise<LookupEntitlementsResponse> {
-		const { namespace } = this.resolve(options?.instanceId);
+		const instance = resolveInstance(this.registry, options?.instanceId);
+		const { namespace } = instance;
 		try {
 			if (!(await this.isLookupEntitlementsTenantMember(req, namespace))) {
 				return {
@@ -274,7 +273,7 @@ export class SpiceDBEntitlementsClient {
 				)
 			};
 		} catch (err) {
-			await this.loggingClient.error(err);
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			throw err;
 		}
 	}
@@ -305,96 +304,11 @@ export class SpiceDBEntitlementsClient {
 		return result.permissionship === v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION;
 	}
 
-	private resolve(instanceId?: string): ResolvedInstance {
-		return resolveInstance(this.registry, instanceId);
-	}
-
-	/** Read-only view, not writable back: only definition and caveat blocks survive, so top-level directives are dropped. */
-	public async readSchemaFor(instanceId?: string): Promise<string> {
-		const { namespace } = this.resolve(instanceId);
+	public async readSchemaFor(options?: InstanceOptions): Promise<string> {
+		const { namespace } = resolveInstance(this.registry, options?.instanceId);
 		const { schemaText } = await this.spiceClient.readSchema({});
 
-		if (namespace.isLegacy) {
-			return schemaText;
-		}
-
-		const marker = `${namespace.schemaPrefix}/`;
-		return this.splitSchemaBlocks(schemaText)
-			.filter((block) => {
-				const header = block[0].trim();
-				return header.startsWith(`definition ${marker}`) || header.startsWith(`caveat ${marker}`);
-			})
-			.map((block) => block.join('\n'))
-			.join('\n');
-	}
-
-	private splitSchemaBlocks(schemaText: string): string[][] {
-		const blocks: string[][] = [];
-		const scan = { inBlockComment: false };
-		let current: string[] | undefined;
-		let depth = 0;
-
-		for (const line of schemaText.split('\n')) {
-			const trimmed = line.trim();
-			const isBlockHeader =
-				!scan.inBlockComment && (trimmed.startsWith('definition ') || trimmed.startsWith('caveat '));
-
-			if (depth === 0 && isBlockHeader) {
-				current = [line];
-				blocks.push(current);
-			} else if (current) {
-				current.push(line);
-			}
-
-			depth += this.braceDelta(line, scan);
-			if (depth === 0) {
-				current = undefined;
-			}
-		}
-
-		return blocks;
-	}
-
-	private braceDelta(line: string, scan: { inBlockComment: boolean }): number {
-		let delta = 0;
-		let quote: string | undefined;
-
-		for (let index = 0; index < line.length; index += 1) {
-			const char = line[index] as string;
-			const next = line[index + 1];
-
-			if (scan.inBlockComment) {
-				if (char === '*' && next === '/') {
-					scan.inBlockComment = false;
-					index += 1;
-				}
-				continue;
-			}
-
-			if (quote !== undefined) {
-				if (char === '\\') {
-					index += 1;
-				} else if (char === quote) {
-					quote = undefined;
-				}
-				continue;
-			}
-
-			if (char === '"' || char === "'") {
-				quote = char;
-			} else if (char === '/' && next === '/') {
-				break;
-			} else if (char === '/' && next === '*') {
-				scan.inBlockComment = true;
-				index += 1;
-			} else if (char === '{') {
-				delta += 1;
-			} else if (char === '}') {
-				delta -= 1;
-			}
-		}
-
-		return delta;
+		return namespace.isLegacy ? schemaText : filterSchemaBlocks(schemaText, namespace.schemaPrefix);
 	}
 
 	private async executeEntitlementQuery(
@@ -427,7 +341,7 @@ export class SpiceDBEntitlementsClient {
 			}
 
 			if (res.result.monitoring || this.logResults) {
-				await this.loggingClient.log(subjectContext, requestContext, res);
+				await this.loggingClient.log(subjectContext, requestContext, res, { instanceId: instance.instanceId });
 			}
 
 			if (res.result.monitoring) {
@@ -435,10 +349,10 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			if (err instanceof ConfigurationInputIsInvalidException || err instanceof InvalidObjectTypeException) {
+			if (isInputError(err)) {
 				throw err;
 			}
-			await this.loggingClient.error(err);
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			return this.constructFallbackResult(requestContext, instance);
 		}
 	}
@@ -602,11 +516,7 @@ export class SpiceDBEntitlementsClient {
 				result: res.result[requestContext.featureKey] ?? { result: false }
 			}));
 		} catch (err) {
-			if (err instanceof ConfigurationInputIsInvalidException || err instanceof InvalidObjectTypeException) {
-				const failure = this.toItemFailure(err);
-				return featureRequests.map(({ index }) => ({ index, result: failure }));
-			}
-			await this.loggingClient.error(err);
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			return Promise.all(
 				featureRequests.map(async ({ requestContext, index }) => ({
 					index,
@@ -616,19 +526,20 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	private toItemFailure(err: unknown): EntitlementsResult {
-		if (err instanceof ConfigurationInputIsInvalidException || err instanceof InvalidObjectTypeException) {
-			return { error: err.message };
+	private async toItemFailure(err: unknown, instance: ResolvedInstance): Promise<EntitlementsResult> {
+		if (!isInputError(err)) {
+			throw err;
 		}
 
-		throw err;
+		await this.loggingClient.error(err, { instanceId: instance.instanceId });
+		return { result: false, error: err.message };
 	}
 
 	private async constructFallbackResult(
 		requestContext: RequestContext,
-		instance?: ResolvedInstance
+		instance: ResolvedInstance
 	): Promise<EntitlementsResult> {
-		const configuration = instance?.fallbackConfiguration ?? this.fallbackConfiguration;
+		const configuration = instance.fallbackConfiguration ?? this.fallbackConfiguration;
 		const fallback =
 			configuration instanceof Function
 				? await configuration(requestContext)

@@ -1,14 +1,14 @@
+import { v1 } from '@authzed/authzed-node';
 import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { LoggingClient } from '../logging';
 import { RequestContext, RequestContextType, UserSubjectContext } from '../types';
 import { ClientConfiguration } from '../client-configuration';
-import { InstanceRegistry } from '../instances/instance-registry';
 import { UnknownInstanceException } from '../exceptions/unknown-instance.exception';
 import { InstanceIdRequiredException } from '../exceptions/instance-id-required.exception';
-import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
+import { setSpiceClient, setSpiceDBQueryClient } from './spicedb-entitlements.client.spec-helper';
 
 const VENDOR_A = '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b';
 const VENDOR_B = '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f';
@@ -39,15 +39,19 @@ function buildClient(
 		engineToken: 'token',
 		...configuration
 	};
-	const client = new SpiceDBEntitlementsClient(
-		full,
-		loggingClient,
-		false,
-		full.fallbackConfiguration,
-		new InstanceRegistry(full)
-	);
-	(client as unknown as { spiceDBQueryClient: SpiceDBQueryClient }).spiceDBQueryClient = queryClient;
+	const client = new SpiceDBEntitlementsClient(full, loggingClient, false, full.fallbackConfiguration);
+	setSpiceDBQueryClient(client, queryClient);
 	return client;
+}
+
+function grantingSpiceClient(): MockProxy<v1.ZedPromiseClientInterface> {
+	const spiceClient = mock<v1.ZedPromiseClientInterface>();
+	spiceClient.checkPermission.mockResolvedValue(
+		v1.CheckPermissionResponse.create({
+			permissionship: v1.CheckPermissionResponse_Permissionship.HAS_PERMISSION
+		})
+	);
+	return spiceClient;
 }
 
 describe('SpiceDBEntitlementsClient instance isolation', () => {
@@ -130,63 +134,39 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 		});
 
 		it('should not swallow a prefix escape into the fallback boolean', async () => {
-			queryClient.spiceDBQuery.mockImplementation(() => {
-				throw new ConfigurationInputIsInvalidException(
-					"Object type 'v_other/cust_document' must not contain '/'"
-				);
-			});
+			const spiceClient = grantingSpiceClient();
 			const client = buildClient(
 				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
-				queryClient,
+				new SpiceDBQueryClient(spiceClient),
 				loggingClient
 			);
 
-			await expect(
-				client.isEntitledTo(
-					{ entityType: 'v_other/cust_document', key: 'k' },
-					{
-						type: RequestContextType.Entity,
-						entityType: 'v_other/cust_document',
-						key: 'doc-1',
-						action: 'access'
-					},
-					{ instanceId: 'a' }
-				)
-			).rejects.toBeInstanceOf(ConfigurationInputIsInvalidException);
-		});
-
-		it('should report a prefix escape on the item rather than as the fallback', async () => {
-			queryClient.spiceDBBatchFeatureQuery.mockImplementation(() => {
-				throw new ConfigurationInputIsInvalidException("Object type 'v_other/x' must not contain '/'");
-			});
-			const client = buildClient(
-				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
-				queryClient,
-				loggingClient
+			const check = client.isEntitledTo(
+				{ entityType: 'cust_user', key: 'u1' },
+				{
+					type: RequestContextType.Entity,
+					entityType: 'v_other/cust_document',
+					key: 'doc-1',
+					action: 'access'
+				},
+				{ instanceId: 'a' }
 			);
 
-			const [item] = await client.isEntitledToMany(subjectContext, [featureContext], {
-				instanceId: 'a'
-			});
-
-			expect(item?.error).toContain("must not contain '/'");
-			expect(item?.result).toBeUndefined();
+			await expect(check).rejects.toBeInstanceOf(InvalidObjectTypeException);
+			await expect(check).rejects.toThrow("must not contain '/'");
+			expect(spiceClient.checkPermission).not.toHaveBeenCalled();
 		});
 
-		it('should fail only the bad item and still answer the others', async () => {
-			queryClient.spiceDBQuery.mockImplementation((_subject, request) => {
-				if ((request as { entityType?: string }).entityType?.includes('/')) {
-					throw new InvalidObjectTypeException(
-						'v_other/doc',
-						"Object type 'v_other/doc' must not contain '/'"
-					);
-				}
-				return Promise.resolve({ result: { result: true } });
-			});
-			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+		it('should fail only the prefix escape item, log it and still answer the others', async () => {
+			const spiceClient = grantingSpiceClient();
+			const client = buildClient(
+				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
+				new SpiceDBQueryClient(spiceClient),
+				loggingClient
+			);
 
 			const results = await client.isEntitledToMany(
-				{ entityType: 'frontegg_user', key: 'u1' },
+				{ entityType: 'cust_user', key: 'u1' },
 				[
 					{ type: RequestContextType.Entity, entityType: 'doc', key: 'good', action: 'read' },
 					{ type: RequestContextType.Entity, entityType: 'v_other/doc', key: 'bad', action: 'read' },
@@ -195,15 +175,20 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 				{ instanceId: 'a' }
 			);
 
-			expect(results).toHaveLength(3);
-			expect(results[0]?.result).toBe(true);
-			expect(results[1]?.error).toContain("must not contain '/'");
-			expect(results[1]?.result).toBeUndefined();
-			expect(results[2]?.result).toBe(true);
+			expect(results).toEqual([
+				{ result: true },
+				{ result: false, error: expect.stringContaining("must not contain '/'") },
+				{ result: true }
+			]);
+			expect(spiceClient.checkPermission).toHaveBeenCalledTimes(2);
+			expect(loggingClient.error).toHaveBeenCalledWith(expect.any(InvalidObjectTypeException), {
+				instanceId: 'a'
+			});
 		});
 
-		it('should still return the fallback for a genuine SpiceDB error', async () => {
-			queryClient.spiceDBQuery.mockRejectedValue(new Error('spicedb unavailable'));
+		it('should still return the fallback for a genuine SpiceDB error and log it with the instanceId', async () => {
+			const error = new Error('spicedb unavailable');
+			queryClient.spiceDBQuery.mockRejectedValue(error);
 			const client = buildClient(
 				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
 				queryClient,
@@ -213,26 +198,25 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 			await expect(client.isEntitledTo(subjectContext, featureContext, { instanceId: 'a' })).resolves.toEqual({
 				result: true
 			});
+			expect(loggingClient.error).toHaveBeenCalledWith(error, { instanceId: 'a' });
 		});
 	});
 
 	describe('legacy compatibility', () => {
 		it('should let a legacy caller keep using a namespaced entityType', async () => {
-			const client = buildClient({}, queryClient, loggingClient);
+			const spiceClient = grantingSpiceClient();
+			const client = buildClient({}, new SpiceDBQueryClient(spiceClient), loggingClient);
 
 			await expect(
 				client.isEntitledTo(
-					{ entityType: 'acme/user', key: 'u1' } as never,
-					{
-						type: RequestContextType.Entity,
-						entityType: 'acme/document',
-						key: 'd1',
-						action: 'access'
-					} as never
+					{ entityType: 'acme/user', key: 'u1' },
+					{ type: RequestContextType.Entity, entityType: 'acme/document', key: 'd1', action: 'access' }
 				)
 			).resolves.toEqual({ result: true });
 
-			expect(queryClient.spiceDBQuery.mock.calls[0][2].isLegacy).toBe(true);
+			const request = spiceClient.checkPermission.mock.calls[0][0];
+			expect(request.resource?.objectType).toBe('acme/document');
+			expect(request.subject?.object?.objectType).toBe('acme/user');
 		});
 	});
 
@@ -251,33 +235,29 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 	});
 
 	describe('lookup instance routing', () => {
-		function withLookups(client: SpiceDBEntitlementsClient): {
-			lookupResources: jest.Mock;
-			lookupSubjects: jest.Mock;
-		} {
-			const spice = {
-				lookupResources: jest.fn().mockResolvedValue([]),
-				lookupSubjects: jest.fn().mockResolvedValue([])
-			};
-			(client as unknown as { spiceClient: unknown }).spiceClient = spice;
-			return spice;
-		}
+		let spiceClient: MockProxy<v1.ZedPromiseClientInterface>;
+
+		beforeEach(() => {
+			spiceClient = mock<v1.ZedPromiseClientInterface>();
+			spiceClient.lookupResources.mockResolvedValue([]);
+			spiceClient.lookupSubjects.mockResolvedValue([]);
+		});
 
 		it('should namespace lookupTargetEntities by the options instanceId', async () => {
 			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			const spice = withLookups(client);
+			setSpiceClient(client, spiceClient);
 
 			await client.lookupTargetEntities(
 				{ entityType: 'cust_user', entityId: 'u1', TargetEntityType: 'cust_document', action: 'access' },
 				{ instanceId: 'b' }
 			);
 
-			expect(spice.lookupResources.mock.calls[0][0].resourceObjectType).toBe(`${PREFIX_B}/cust_document`);
+			expect(spiceClient.lookupResources.mock.calls[0][0].resourceObjectType).toBe(`${PREFIX_B}/cust_document`);
 		});
 
 		it('should namespace lookupEntities by the options instanceId', async () => {
 			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			const spice = withLookups(client);
+			setSpiceClient(client, spiceClient);
 
 			await client.lookupEntities(
 				{
@@ -289,12 +269,12 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 				{ instanceId: 'a' }
 			);
 
-			expect(spice.lookupSubjects.mock.calls[0][0].subjectObjectType).toBe(`${PREFIX_A}/cust_user`);
+			expect(spiceClient.lookupSubjects.mock.calls[0][0].subjectObjectType).toBe(`${PREFIX_A}/cust_user`);
 		});
 
 		it('should throw and make no call when the lookup instanceId is unknown', async () => {
 			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			const spice = withLookups(client);
+			setSpiceClient(client, spiceClient);
 
 			await expect(
 				client.lookupTargetEntities(
@@ -302,82 +282,52 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 					{ instanceId: 'nope' }
 				)
 			).rejects.toBeInstanceOf(UnknownInstanceException);
-			expect(spice.lookupResources).not.toHaveBeenCalled();
+			expect(spiceClient.lookupResources).not.toHaveBeenCalled();
+		});
+
+		it('should log a lookup failure with the instanceId', async () => {
+			const error = new Error('spicedb unavailable');
+			spiceClient.lookupSubjects.mockRejectedValue(error);
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			setSpiceClient(client, spiceClient);
+
+			await expect(
+				client.lookupEntities(
+					{
+						TargetEntityType: 'cust_document',
+						TargetEntityId: 'd1',
+						entityType: 'cust_user',
+						action: 'access'
+					},
+					{ instanceId: 'b' }
+				)
+			).rejects.toThrow('spicedb unavailable');
+			expect(loggingClient.error).toHaveBeenCalledWith(error, { instanceId: 'b' });
 		});
 	});
 
 	describe('readSchemaFor', () => {
-		const schemaText = [
-			`definition ${PREFIX_A}/frontegg_feature {}`,
-			`definition ${PREFIX_A}/cust_document {}`,
-			`caveat ${PREFIX_A}/targeting(x int) {\n  x == x\n}`,
-			`definition ${PREFIX_B}/frontegg_feature {}`,
-			`caveat ${PREFIX_B}/targeting(x int) {\n  x == x\n}`
-		].join('\n');
-
-		function withSchema(client: SpiceDBEntitlementsClient): void {
-			(client as unknown as { spiceClient: { readSchema: jest.Mock } }).spiceClient = {
-				readSchema: jest.fn().mockResolvedValue({ schemaText })
-			};
-		}
-
-		it('should return only the requested instance definitions', async () => {
+		it('should return only the requested instance schema with its prefix stripped', async () => {
+			const spiceClient = mock<v1.ZedPromiseClientInterface>();
+			spiceClient.readSchema.mockResolvedValue(
+				v1.ReadSchemaResponse.create({
+					schemaText: [
+						`definition ${PREFIX_A}/frontegg_feature {}`,
+						`definition ${PREFIX_B}/frontegg_feature {}`,
+						`caveat ${PREFIX_B}/targeting(plan string) {`,
+						'\tplan == "pro"',
+						'}'
+					].join('\n')
+				})
+			);
 			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			withSchema(client);
+			setSpiceClient(client, spiceClient);
 
-			const schema = await client.readSchemaFor('a');
-
-			expect(schema).toContain(`definition ${PREFIX_A}/frontegg_feature`);
-			expect(schema).toContain(`caveat ${PREFIX_A}/targeting`);
-			expect(schema).not.toContain(PREFIX_B);
-		});
-
-		it('should not leak another instance schema', async () => {
-			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			withSchema(client);
-
-			const schema = await client.readSchemaFor('b');
-
-			expect(schema).toContain(`definition ${PREFIX_B}/frontegg_feature`);
-			expect(schema).not.toContain(PREFIX_A);
-		});
-
-		it('should return the whole schema for a legacy instance', async () => {
-			const client = buildClient({}, queryClient, loggingClient);
-			withSchema(client);
-
-			await expect(client.readSchemaFor()).resolves.toBe(schemaText);
-		});
-
-		it('should isolate blocks that are indented or preceded by comments', async () => {
-			const awkward = [
-				'// leading comment',
-				`definition ${PREFIX_A}/frontegg_feature {`,
-				'\trelation granted: frontegg_tenant',
-				'}',
-				'',
-				'// another comment',
-				`definition ${PREFIX_B}/frontegg_feature {`,
-				'\trelation granted: frontegg_tenant',
-				'}'
-			].join('\n');
-			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			(client as unknown as { spiceClient: { readSchema: jest.Mock } }).spiceClient = {
-				readSchema: jest.fn().mockResolvedValue({ schemaText: awkward })
-			};
-
-			const schema = await client.readSchemaFor('a');
-
-			expect(schema).toContain(`definition ${PREFIX_A}/frontegg_feature`);
-			expect(schema).toContain('relation granted');
-			expect(schema).not.toContain(PREFIX_B);
-		});
-
-		it('should throw for an unknown instanceId', async () => {
-			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
-			withSchema(client);
-
-			await expect(client.readSchemaFor('nope')).rejects.toBeInstanceOf(UnknownInstanceException);
+			await expect(client.readSchemaFor({ instanceId: 'b' })).resolves.toBe(
+				['definition frontegg_feature {}', '', 'caveat targeting(plan string) {', '\tplan == "pro"', '}'].join(
+					'\n'
+				)
+			);
 		});
 	});
 

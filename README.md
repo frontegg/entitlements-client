@@ -91,10 +91,30 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
   `a-z`, contain only `a-z`, `0-9` and `_`, and end with `a-z` or `0-9`.
 - Each instance may carry its own `fallbackConfiguration`; the client-wide one applies
   otherwise.
-- Object types passed to the SDK must not contain `/`; the prefix is applied and stripped
-  by the SDK.
-- With no `instances` configured, the client behaves exactly as before: nothing is
-  prefixed.
+- With `instances` configured, object types passed to the SDK must not contain `/`, because
+  the SDK applies the prefix itself. Such a type throws `InvalidObjectTypeException` from
+  `isEntitledTo`, `lookupTargetEntities` and `lookupEntities` instead of being answered with
+  the fallback. In
+  `isEntitledToMany` only that item fails: it comes back as
+  `{ result: false, error: '<reason>' }` while the other items are still answered, so treat
+  any `result !== true` as denied.
+- With no `instances` configured, the client behaves as before: every read is unprefixed and
+  object types are passed through unchanged, so a type such as `acme/document` keeps working.
+- Log payloads carry the resolved `instanceId` (`legacy` when no `instances` are configured).
+  `LoggingClient.log` and `LoggingClient.error` receive it as an optional trailing
+  `{ instanceId }` argument, so existing implementations keep working.
+
+#### Reading an instance schema
+
+```typescript
+const schema = await e10sClient.readSchemaFor({ instanceId: 'us' });
+```
+
+`readSchemaFor` returns only that instance's `definition` and `caveat` blocks, with its schema
+prefix stripped from their names and type references. It is a read-only view: top-level
+directives are dropped, so it cannot be written back. If the schema cannot be split into
+blocks safely it throws `SchemaParseException` rather than risk returning another instance's
+definitions. With no `instances` configured it returns the whole schema unchanged.
 
 ### Setting up the Subject Context
 
