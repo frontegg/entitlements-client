@@ -32,23 +32,4 @@ export class SchemaNamespace {
 
 		return `${this.typePrefix}${objectType}`;
 	}
-
-	public strip(objectType: string): string {
-		if (this.isLegacy) {
-			return objectType;
-		}
-
-		if (objectType.startsWith(this.typePrefix)) {
-			return objectType.slice(this.typePrefix.length);
-		}
-
-		if (objectType.includes('/')) {
-			throw new InvalidObjectTypeException(
-				objectType,
-				`Object type '${objectType}' belongs to another schema prefix; expected '${this.prefix}'.`
-			);
-		}
-
-		return objectType;
-	}
 }

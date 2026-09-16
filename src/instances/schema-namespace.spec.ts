@@ -17,18 +17,6 @@ describe(SchemaNamespace.name, () => {
 			expect(namespace.type('frontegg_feature')).toBe(`${PREFIX}/frontegg_feature`);
 		});
 
-		it('should round-trip type and strip', () => {
-			expect(namespace.strip(namespace.type('document'))).toBe('document');
-		});
-
-		it('should return an unprefixed object type unchanged when stripping', () => {
-			expect(namespace.strip('document')).toBe('document');
-		});
-
-		it('should reject a foreign prefix when stripping', () => {
-			expect(() => namespace.strip('v_other/document')).toThrow(InvalidObjectTypeException);
-		});
-
 		it('should reject an object type that already contains a prefix separator', () => {
 			expect(() => namespace.type('v_other/document')).toThrow(InvalidObjectTypeException);
 		});
@@ -44,12 +32,10 @@ describe(SchemaNamespace.name, () => {
 
 		it('should return the object type unchanged', () => {
 			expect(namespace.type('frontegg_feature')).toBe('frontegg_feature');
-			expect(namespace.strip('frontegg_feature')).toBe('frontegg_feature');
 		});
 
 		it('should pass a namespaced object type through, since that is valid SpiceDB syntax', () => {
 			expect(namespace.type('acme/document')).toBe('acme/document');
-			expect(namespace.strip('acme/document')).toBe('acme/document');
 		});
 	});
 });

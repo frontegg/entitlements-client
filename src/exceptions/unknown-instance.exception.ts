@@ -5,6 +5,10 @@ export class UnknownInstanceException extends InstanceResolutionException {
 		public readonly instanceId: string,
 		public readonly configuredInstanceIds: string[]
 	) {
-		super(`Unknown instanceId '${instanceId}'`);
+		super(
+			configuredInstanceIds.length === 0
+				? `Unknown instanceId '${instanceId}'; no instances are configured`
+				: `Unknown instanceId '${instanceId}'; configured instances: ${configuredInstanceIds.join(', ')}`
+		);
 	}
 }

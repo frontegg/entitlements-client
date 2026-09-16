@@ -5,6 +5,7 @@ import { LoggingClient } from '../logging';
 import {
 	EntitlementsBatchResult,
 	EntitlementsResult,
+	FallbackConfiguration,
 	FGASubjectContext,
 	RequestContext,
 	RequestContextType,
@@ -12,7 +13,7 @@ import {
 	UserSubjectContext
 } from '../types';
 import { SpiceDBResponse } from '../types/spicedb.dto';
-import { ClientConfiguration, FallbackConfiguration } from '../client-configuration';
+import { ClientConfiguration } from '../client-configuration';
 
 // Helper function to create request contexts for each type
 function getRequestContext(type: RequestContextType): RequestContext {

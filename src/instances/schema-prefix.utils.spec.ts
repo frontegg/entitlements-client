@@ -1,4 +1,4 @@
-import { deriveSchemaPrefix, isValidSchemaPrefix } from './schema-prefix';
+import { deriveSchemaPrefix, isValidSchemaPrefix } from './schema-prefix.utils';
 
 describe('schema-prefix', () => {
 	describe(deriveSchemaPrefix.name, () => {

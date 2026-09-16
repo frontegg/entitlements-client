@@ -1,19 +1,20 @@
-import { InstanceRegistry, ResolvedInstance } from './instance-registry';
+import { InstanceRegistry } from './instance-registry';
+import { ResolvedInstance } from './instance.types';
 import { UnknownInstanceException } from '../exceptions/unknown-instance.exception';
 import { InstanceIdRequiredException } from '../exceptions/instance-id-required.exception';
 
 export function resolveInstance(registry: InstanceRegistry, instanceId?: string | null): ResolvedInstance {
-	if (instanceId) {
-		const instance = registry.get(instanceId);
-		if (!instance) {
-			throw new UnknownInstanceException(instanceId, registry.instanceIds);
+	if (instanceId === undefined || instanceId === null) {
+		if (registry.implicitInstance) {
+			return registry.implicitInstance;
 		}
-		return instance;
+
+		throw new InstanceIdRequiredException(registry.instanceIds);
 	}
 
-	if (registry.implicitInstance) {
-		return registry.implicitInstance;
+	const instance = registry.get(instanceId);
+	if (!instance) {
+		throw new UnknownInstanceException(instanceId, registry.instanceIds);
 	}
-
-	throw new InstanceIdRequiredException(registry.instanceIds);
+	return instance;
 }
