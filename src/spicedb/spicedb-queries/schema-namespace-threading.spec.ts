@@ -12,7 +12,7 @@ import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 import { LoggingClient } from '../../logging';
 
 const PREFIX = 'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b';
-const NAMESPACED = new SchemaNamespace(PREFIX, 'eu');
+const NAMESPACED = SchemaNamespace.prefixed(PREFIX, 'eu');
 
 const userSubject: UserSubjectContext = {
 	tenantId: 'tenant-1',
@@ -202,7 +202,7 @@ describe('schema namespace threading', () => {
 	describe('route cache isolation', () => {
 		it('should not share cached route relationships across instances', async () => {
 			const query = new RouteSpiceDBQuery(client);
-			const other = new SchemaNamespace('v_8b1d0e77_3c5a_4f2b_9d6e_7a8b9c0d1e2f', 'other');
+			const other = SchemaNamespace.prefixed('v_8b1d0e77_3c5a_4f2b_9d6e_7a8b9c0d1e2f', 'other');
 			const requestContext = { type: RequestContextType.Route as const, method: 'GET', path: '/a' };
 
 			await query.query({ requestContext, subjectContext: userSubject }, NAMESPACED);
