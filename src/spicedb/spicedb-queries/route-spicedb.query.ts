@@ -9,7 +9,7 @@ import { LoggingClient } from '../../logging';
 import { SchemaNamespace } from '../../instances/schema-namespace';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	private readonly cache: LRUCache<string, any>;
+	private readonly cache: LRUCache<string, v1.ReadRelationshipsResponse[]>;
 	private static readonly CACHE_TTL = 30 * 1000;
 
 	constructor(
@@ -43,11 +43,10 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			}
 		});
 
-		const cacheKey = `routes-relations:${namespace.schemaPrefix}`;
-		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get(cacheKey);
+		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get(namespace.schemaPrefix);
 		if (!relations) {
 			relations = await this.client.readRelationships(request);
-			this.cache.set(cacheKey, relations);
+			this.cache.set(namespace.schemaPrefix, relations);
 		}
 		let objects = relations
 			.filter((relation: v1.ReadRelationshipsResponse) => {
@@ -76,7 +75,6 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 				return {
 					relation: relation.relationship?.relation,
-					resourceType: relation.relationship?.resource?.objectType,
 					resourceId: relation.relationship?.resource?.objectId,
 					subjectId: relation.relationship?.subject?.object?.objectId,
 					policyType,
@@ -84,7 +82,6 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				};
 			}) as {
 			relation: string;
-			resourceType: string;
 			resourceId: string;
 			subjectId: string;
 			policyType: string;
@@ -118,7 +115,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 		const bulkRequest = this.createBulkPermissionsRequest(
 			namespace,
-			namespace.strip(firstRule.resourceType),
+			SpiceDBEntities.Route,
 			firstRule.resourceId,
 			context,
 			caveatContext,
@@ -133,7 +130,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				{
 					action: 'SpiceDB:checkBulkPermissions:request',
 					instanceId: namespace.instanceId,
-					objectType: firstRule.resourceType,
+					objectType: SpiceDBEntities.Route,
 					objectId: firstRule.resourceId,
 					subjectContext: context,
 					routeContext: requestContext
@@ -149,7 +146,7 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				{
 					action: 'SpiceDB:checkBulkPermissions:response',
 					instanceId: namespace.instanceId,
-					objectType: firstRule.resourceType,
+					objectType: SpiceDBEntities.Route,
 					objectId: firstRule.resourceId,
 					routeContext: requestContext
 				},

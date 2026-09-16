@@ -10,9 +10,7 @@ import {
 } from '../../types';
 import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { encodeObjectId } from './base64.utils';
-import { SchemaNamespace } from '../../instances/schema-namespace';
-
-const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
+import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 
 // Create a concrete test implementation to test the abstract class
 class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
@@ -37,11 +35,10 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		resourceObjectId: string,
 		subjectObjectType: string,
 		subjectObjectId: string,
-		caveatContext: v1.PbStruct,
-		namespace: SchemaNamespace = LEGACY_NAMESPACE
+		caveatContext: v1.PbStruct
 	): v1.CheckBulkPermissionsRequestItem {
 		return this.createBulkPermissionRequestItem(
-			namespace,
+			LEGACY_NAMESPACE,
 			resourceObjectType,
 			resourceObjectId,
 			subjectObjectType,
@@ -54,20 +51,18 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		objectType: string,
 		objectId: string,
 		context: UserSubjectContext,
-		caveatContext: v1.PbStruct,
-		namespace: SchemaNamespace = LEGACY_NAMESPACE
+		caveatContext: v1.PbStruct
 	): v1.CheckBulkPermissionsRequest {
-		return this.createBulkPermissionsRequest(namespace, objectType, objectId, context, caveatContext);
+		return this.createBulkPermissionsRequest(LEGACY_NAMESPACE, objectType, objectId, context, caveatContext);
 	}
 
 	public testCreateManyBulkPermissionsRequest(
 		objectType: string,
 		objectIds: string[],
 		context: UserSubjectContext,
-		caveatContext: v1.PbStruct,
-		namespace: SchemaNamespace = LEGACY_NAMESPACE
+		caveatContext: v1.PbStruct
 	): v1.CheckBulkPermissionsRequest {
-		return this.createManyBulkPermissionsRequest(namespace, objectType, objectIds, context, caveatContext);
+		return this.createManyBulkPermissionsRequest(LEGACY_NAMESPACE, objectType, objectIds, context, caveatContext);
 	}
 
 	public testProcessCheckBulkPermissionsResponse(res: v1.CheckBulkPermissionsResponse): boolean {
@@ -84,32 +79,26 @@ class TestEntitlementsSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	public testExecuteCommonQuery(
 		objectType: string,
 		objectId: string,
-		subjectContext: UserSubjectContext,
-		namespace: SchemaNamespace = LEGACY_NAMESPACE
+		subjectContext: UserSubjectContext
 	): Promise<SpiceDBResponse<EntitlementsResult>> {
-		return this.executeCommonQuery(namespace, objectType, objectId, subjectContext);
+		return this.executeCommonQuery(LEGACY_NAMESPACE, objectType, objectId, subjectContext);
 	}
 
 	public testExecuteManyCommonQuery(
 		objectType: string,
 		objectIds: string[],
-		subjectContext: UserSubjectContext,
-		namespace: SchemaNamespace = LEGACY_NAMESPACE
+		subjectContext: UserSubjectContext
 	): Promise<SpiceDBResponse<EntitlementsBatchResult>> {
-		return this.executeManyCommonQuery(namespace, objectType, objectIds, subjectContext);
+		return this.executeManyCommonQuery(LEGACY_NAMESPACE, objectType, objectIds, subjectContext);
 	}
 }
 
 describe(EntitlementsSpiceDBQuery.name, () => {
 	let queryClient: TestEntitlementsSpiceDBQuery;
 	let mockClient: MockProxy<v1.ZedPromiseClientInterface>;
-	let mockSpiceDBEndpoint: string;
-	let mockSpiceDBToken: string;
 
 	beforeAll(() => {
 		mockClient = mock<v1.ZedPromiseClientInterface>();
-		mockSpiceDBEndpoint = 'mock-endpoint';
-		mockSpiceDBToken = 'mock-token';
 
 		// Create a new instance of the test query class with the mock client
 		queryClient = new TestEntitlementsSpiceDBQuery(mockClient);

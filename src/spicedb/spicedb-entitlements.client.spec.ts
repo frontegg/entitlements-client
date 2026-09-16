@@ -14,9 +14,9 @@ import {
 } from '../types';
 import { SpiceDBResponse } from '../types/spicedb.dto';
 import { ClientConfiguration } from '../client-configuration';
-import { SchemaNamespace } from '../instances/schema-namespace';
-
-const LEGACY_NAMESPACE = new SchemaNamespace('', 'legacy');
+import { LEGACY_INSTANCE_ID } from '../instances/instance.constants';
+import { LEGACY_NAMESPACE } from './spicedb-queries/entitlements-spicedb.query.spec-helper';
+import { setSpiceDBQueryClient } from './spicedb-entitlements.client.spec-helper';
 
 // Helper function to create request contexts for each type
 function getRequestContext(type: RequestContextType): RequestContext {
@@ -47,10 +47,6 @@ function getRequestContext(type: RequestContextType): RequestContext {
 		default:
 			throw new Error(`Unknown request context type: ${type}`);
 	}
-}
-
-function setSpiceDBQueryClient(client: SpiceDBEntitlementsClient, spiceDBQueryClient: SpiceDBQueryClient): void {
-	(client as unknown as { spiceDBQueryClient: SpiceDBQueryClient }).spiceDBQueryClient = spiceDBQueryClient;
 }
 
 describe(SpiceDBEntitlementsClient.name, () => {
@@ -114,7 +110,9 @@ describe(SpiceDBEntitlementsClient.name, () => {
 					LEGACY_NAMESPACE
 				);
 				expect(result).toEqual({ result: true });
-				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, spiceDBResult);
+				expect(mockLoggingClient.log).toHaveBeenCalledWith(subjectContext, requestContext, spiceDBResult, {
+					instanceId: LEGACY_INSTANCE_ID
+				});
 			});
 
 			it('should return the correct result from SpiceDB response', async () => {
@@ -175,7 +173,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 					requestContext,
 					LEGACY_NAMESPACE
 				);
-				expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+				expect(mockLoggingClient.error).toHaveBeenCalledWith(error, { instanceId: LEGACY_INSTANCE_ID });
 				expect(result).toEqual({ result: false });
 			});
 
@@ -193,7 +191,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 					requestContext,
 					LEGACY_NAMESPACE
 				);
-				expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+				expect(mockLoggingClient.error).toHaveBeenCalledWith(error, { instanceId: LEGACY_INSTANCE_ID });
 				expect(result).toEqual({ result: true });
 			});
 		}
@@ -301,11 +299,21 @@ describe(SpiceDBEntitlementsClient.name, () => {
 			await cut.isEntitledToMany(subjectContext, requestContexts);
 
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:request', instanceId: 'legacy', subjectContext, requestContexts },
+				{
+					action: 'SpiceDB:isEntitledToMany:request',
+					instanceId: LEGACY_INSTANCE_ID,
+					subjectContext,
+					requestContexts
+				},
 				null
 			);
 			expect(mockLoggingClient.logRequest).toHaveBeenCalledWith(
-				{ action: 'SpiceDB:isEntitledToMany:response', instanceId: 'legacy', subjectContext, requestContexts },
+				{
+					action: 'SpiceDB:isEntitledToMany:response',
+					instanceId: LEGACY_INSTANCE_ID,
+					subjectContext,
+					requestContexts
+				},
 				[{ result: true }]
 			);
 		});
@@ -329,7 +337,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				{ type: RequestContextType.Feature, featureKey: 'feature-b' }
 			]);
 
-			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(error, { instanceId: LEGACY_INSTANCE_ID });
 			expect(result).toEqual([{ result: true }, { result: false }]);
 		});
 
@@ -477,7 +485,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				requestContext,
 				LEGACY_NAMESPACE
 			);
-			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(error, { instanceId: LEGACY_INSTANCE_ID });
 			expect(result).toEqual(expectedResult);
 		});
 	});
@@ -561,7 +569,7 @@ describe(SpiceDBEntitlementsClient.name, () => {
 				requestContext,
 				LEGACY_NAMESPACE
 			);
-			expect(mockLoggingClient.error).toHaveBeenCalledWith(error);
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(error, { instanceId: LEGACY_INSTANCE_ID });
 			expect(result).toEqual(expectedResult);
 		});
 	});
@@ -633,7 +641,9 @@ describe(SpiceDBEntitlementsClient.name, () => {
 
 			// If logging fails, it goes to the error path and returns fallback result
 			expect(mockSpiceDBQueryClient.spiceDBQuery).toHaveBeenCalled();
-			expect(mockLoggingClient.error).toHaveBeenCalledWith(new Error('Logging failed'));
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(new Error('Logging failed'), {
+				instanceId: LEGACY_INSTANCE_ID
+			});
 			expect(result).toEqual({ result: false });
 		});
 
