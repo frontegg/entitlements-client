@@ -6,9 +6,10 @@ import { LRUCache } from 'lru-cache';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
 import { encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
+import { SchemaNamespace } from '../../instances/schema-namespace';
 
 export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
-	private readonly cache: LRUCache<string, any>;
+	private readonly cache: LRUCache<string, v1.ReadRelationshipsResponse[]>;
 	private static readonly CACHE_TTL = 30 * 1000;
 
 	constructor(
@@ -30,22 +31,22 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		return { result };
 	}
 
-	async query({
-		subjectContext,
-		requestContext
-	}: EntitlementsDynamicQuery<RequestContextType.Route>): Promise<SpiceDBResponse<EntitlementsResult>> {
+	async query(
+		{ subjectContext, requestContext }: EntitlementsDynamicQuery<RequestContextType.Route>,
+		namespace: SchemaNamespace
+	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as UserSubjectContext;
 		let isMonitoringEnabled = false;
 		const request = v1.ReadRelationshipsRequest.create({
 			relationshipFilter: {
-				resourceType: SpiceDBEntities.Route
+				resourceType: namespace.type(SpiceDBEntities.Route)
 			}
 		});
 
-		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get('routes-relations');
+		let relations: v1.ReadRelationshipsResponse[] | undefined = this.cache.get(namespace.schemaPrefix);
 		if (!relations) {
 			relations = await this.client.readRelationships(request);
-			this.cache.set('routes-relations', relations);
+			this.cache.set(namespace.schemaPrefix, relations);
 		}
 		let objects = relations
 			.filter((relation: v1.ReadRelationshipsResponse) => {
@@ -74,7 +75,6 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 
 				return {
 					relation: relation.relationship?.relation,
-					resourceType: relation.relationship?.resource?.objectType,
 					resourceId: relation.relationship?.resource?.objectId,
 					subjectId: relation.relationship?.subject?.object?.objectId,
 					policyType,
@@ -82,7 +82,6 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 				};
 			}) as {
 			relation: string;
-			resourceType: string;
 			resourceId: string;
 			subjectId: string;
 			policyType: string;
@@ -115,7 +114,8 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		const caveatContext = this.createCaveatContext(context);
 
 		const bulkRequest = this.createBulkPermissionsRequest(
-			firstRule.resourceType,
+			namespace,
+			SpiceDBEntities.Route,
 			firstRule.resourceId,
 			context,
 			caveatContext,
@@ -129,7 +129,8 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			await this.loggingClient?.logRequest(
 				{
 					action: 'SpiceDB:checkBulkPermissions:request',
-					objectType: firstRule.resourceType,
+					instanceId: namespace.instanceId,
+					objectType: SpiceDBEntities.Route,
 					objectId: firstRule.resourceId,
 					subjectContext: context,
 					routeContext: requestContext
@@ -144,7 +145,8 @@ export class RouteSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			await this.loggingClient?.logRequest(
 				{
 					action: 'SpiceDB:checkBulkPermissions:response',
-					objectType: firstRule.resourceType,
+					instanceId: namespace.instanceId,
+					objectType: SpiceDBEntities.Route,
 					objectId: firstRule.resourceId,
 					routeContext: requestContext
 				},

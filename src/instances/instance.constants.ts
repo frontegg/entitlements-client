@@ -19,3 +19,9 @@ export const SCHEMA_PREFIX_RULE =
 export const VENDOR_ID_SCHEMA_PREFIX_RULE =
 	`at most ${SCHEMA_PREFIX_MAX_LENGTH - VENDOR_SCHEMA_PREFIX_START.length} characters ` +
 	`containing only a-z, 0-9 and '-', and not ending with '-'`;
+export const FIELD_ACCESSOR = '.';
+
+export const SCHEMA_HEADER_KEYWORDS = ['definition', 'caveat'];
+
+export const SCHEMA_STRING_DELIMITERS = ['"""', "'''", '"', "'", '`'];
+export const SCHEMA_RAW_STRING_PREFIXES = ['r', 'rb', 'br'];
