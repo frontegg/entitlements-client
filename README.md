@@ -65,8 +65,8 @@ const e10sClient = EntitlementsClientFactory.create({
 
 One SpiceDB can serve several Frontegg instances. Each instance is a vendor, and the SDK
 namespaces every read to that instance's schema prefix, derived from its `vendorId`
-(`v_` + the vendorId lowercased with `-` replaced by `_`). Configure the instances once and
-pick one per call with `instanceId`:
+(`v_` + the vendorId with `-` replaced by `_`). Configure the instances once and pick one per
+call with `instanceId`:
 
 ```typescript
 const e10sClient = EntitlementsClientFactory.create({
@@ -74,7 +74,7 @@ const e10sClient = EntitlementsClientFactory.create({
 	engineToken: 'your-engine-token',
 	instances: [
 		{ instanceId: 'eu', vendorId: '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b' },
-		{ instanceId: 'us', vendorId: '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f', schemaPrefix: 'v_us' }
+		{ instanceId: 'us', vendorId: '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f' }
 	],
 	defaultInstanceId: 'eu'
 });
@@ -87,8 +87,10 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
   `InstanceIdRequiredException`. An unknown id throws `UnknownInstanceException`. Both
   extend `InstanceResolutionException` and are thrown rather than answered with the
   fallback.
-- `schemaPrefix` overrides the derived prefix. It must be 3 to 63 characters, start with
-  `a-z`, contain only `a-z`, `0-9` and `_`, and end with `a-z` or `0-9`.
+- The prefix always comes from the `vendorId` and cannot be set directly. A `vendorId` may
+  contain only `a-z`, `0-9` and `-`, be at most 61 characters, and not end with `-`; anything
+  else, including uppercase letters and `_`, throws `ConfigurationInputIsInvalidException`
+  when the client is created. `legacy` is reserved and cannot be used as an `instanceId`.
 - Each instance may carry its own `fallbackConfiguration`; the client-wide one applies
   otherwise.
 - With `instances` configured, object types passed to the SDK must not contain `/`, because
