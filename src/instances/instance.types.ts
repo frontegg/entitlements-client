@@ -21,3 +21,14 @@ export interface ResolvedInstance {
 export interface InstanceOptions {
 	instanceId?: string;
 }
+
+export interface PrefixedSchemaBlockOwnership {
+	kind: 'prefixed';
+	prefix: string;
+}
+
+export interface UnprefixedSchemaBlockOwnership {
+	kind: 'unprefixed';
+}
+
+export type SchemaBlockOwnership = PrefixedSchemaBlockOwnership | UnprefixedSchemaBlockOwnership;
