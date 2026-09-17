@@ -1,4 +1,4 @@
-import { SchemaParseException } from './schema-parse.exception';
+import { SchemaParseException } from '../exceptions/schema-parse.exception';
 import {
 	FIELD_ACCESSOR,
 	SCHEMA_HEADER_KEYWORDS,
