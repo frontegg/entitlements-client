@@ -1,6 +1,6 @@
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
-import { SCHEMA_PREFIX_RULE } from './instance.constants';
+import { SCHEMA_PREFIX_RULE, VENDOR_SCHEMA_PREFIX_START } from './instance.constants';
 import { isValidSchemaPrefix } from './schema-prefix.utils';
 
 export class SchemaNamespace {
@@ -29,6 +29,13 @@ export class SchemaNamespace {
 
 	public type(objectType: string): string {
 		if (this.isLegacy) {
+			if (objectType.startsWith(VENDOR_SCHEMA_PREFIX_START)) {
+				throw new InvalidObjectTypeException(
+					objectType,
+					`Object type '${objectType}' must not start with the reserved vendor schema prefix '${VENDOR_SCHEMA_PREFIX_START}'.`
+				);
+			}
+
 			return objectType;
 		}
 

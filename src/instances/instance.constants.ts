@@ -1,5 +1,11 @@
 export const LEGACY_INSTANCE_ID = 'legacy';
 
+export const INSTANCE_ID_MAX_LENGTH = 63;
+
+export const INSTANCE_ID_RULE =
+	`1 to ${INSTANCE_ID_MAX_LENGTH} characters containing only a-z, 0-9, '-' and '_', ` +
+	`and starting with a-z or 0-9`;
+
 export const VENDOR_SCHEMA_PREFIX_START = 'v_';
 
 export const SCHEMA_PREFIX_MIN_LENGTH = 3;

@@ -1,6 +1,7 @@
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { ConfigurationInputIsMissingException } from '../exceptions/configuration-input-is-missing.exception';
-import { LEGACY_INSTANCE_ID, VENDOR_ID_SCHEMA_PREFIX_RULE } from './instance.constants';
+import { isValidInstanceId } from './instance-id.utils';
+import { INSTANCE_ID_RULE, LEGACY_INSTANCE_ID, VENDOR_ID_SCHEMA_PREFIX_RULE } from './instance.constants';
 import { InstanceConfiguration, InstancesConfiguration, ResolvedInstance } from './instance.types';
 import { SchemaNamespace } from './schema-namespace';
 import { deriveSchemaPrefix } from './schema-prefix.utils';
@@ -80,6 +81,12 @@ export class InstanceRegistry {
 				instance.vendorId
 					? `instanceId is required for instances[${index}] (vendorId '${instance.vendorId}')`
 					: `instanceId is required for instances[${index}]`
+			);
+		}
+
+		if (!isValidInstanceId(instance.instanceId)) {
+			throw new ConfigurationInputIsInvalidException(
+				`instanceId ${JSON.stringify(instance.instanceId)} on instances[${index}] is invalid; expected ${INSTANCE_ID_RULE}`
 			);
 		}
 

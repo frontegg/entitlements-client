@@ -1,6 +1,7 @@
 import { SchemaNamespace } from './schema-namespace';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
+import { CallerInputException } from '../exceptions/caller-input.exception';
 
 const PREFIX = 'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b';
 
@@ -20,6 +21,10 @@ describe(SchemaNamespace.name, () => {
 
 		it('should reject an object type that already contains a prefix separator', () => {
 			expect(() => namespace.type('v_other/document')).toThrow(InvalidObjectTypeException);
+		});
+
+		it('should raise the rejection as caller input so every read path fails closed on it', () => {
+			expect(() => namespace.type('v_other/document')).toThrow(expect.any(CallerInputException));
 		});
 
 		it('should name the offending object type in the error', () => {
@@ -55,5 +60,19 @@ describe(SchemaNamespace.name, () => {
 		it('should pass a namespaced object type through, since that is valid SpiceDB syntax', () => {
 			expect(namespace.type('acme/document')).toBe('acme/document');
 		});
+
+		it.each([['v_other/document'], ['v_other']])(
+			'should reject %j because it addresses the reserved vendor schema prefix',
+			(objectType) => {
+				const type = (): string => namespace.type(objectType);
+
+				expect(type).toThrow(InvalidObjectTypeException);
+				expect(type).toThrow(expect.any(CallerInputException));
+				expect(type).toThrow(
+					`Object type '${objectType}' must not start with the reserved vendor schema prefix 'v_'.`
+				);
+				expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
+			}
+		);
 	});
 });

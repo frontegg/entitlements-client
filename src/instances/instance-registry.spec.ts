@@ -111,6 +111,79 @@ describe(InstanceRegistry.name, () => {
 			expect(construct).toThrow(message);
 		});
 
+		it.each([
+			['a single character', 'a'],
+			['a leading digit', '1eu'],
+			['a dash and an underscore', 'eu-west_1'],
+			['the longest allowed length', 'a'.repeat(63)]
+		])('should accept an instanceId with %s', (_case, instanceId) => {
+			const registry = new InstanceRegistry({ instances: [{ instanceId, vendorId: VENDOR_A }] });
+
+			expect(registry.get(instanceId)?.instanceId).toBe(instanceId);
+		});
+
+		it.each([
+			['a colon', 'a:b'],
+			['a slash', 'a/b'],
+			['a dot', 'a.b'],
+			['a space', 'a b'],
+			['a tab', 'a\tb'],
+			['a newline', 'a\nb'],
+			['a double quote', 'a"b'],
+			['a single quote', "a'b"],
+			['an uppercase letter', 'Eu'],
+			['a non-ascii letter', 'eé'],
+			['a leading dash', '-eu'],
+			['a leading underscore', '_eu'],
+			['more than 63 characters', 'a'.repeat(64)]
+		])('should reject an instanceId with %s', (_case, instanceId) => {
+			const construct = (): InstanceRegistry =>
+				new InstanceRegistry({
+					instances: [
+						{ instanceId: 'a', vendorId: VENDOR_A },
+						{ instanceId, vendorId: VENDOR_B }
+					]
+				});
+
+			expect(construct).toThrow(ConfigurationInputIsInvalidException);
+			expect(construct).toThrow(
+				`instanceId ${JSON.stringify(instanceId)} on instances[1] is invalid; ` +
+					"expected 1 to 63 characters containing only a-z, 0-9, '-' and '_', and starting with a-z or 0-9"
+			);
+		});
+
+		it.each([
+			[
+				'a:b',
+				[
+					{ instanceId: 'a:b', vendorId: VENDOR_A },
+					{ instanceId: 'x', vendorId: VENDOR_B }
+				]
+			],
+			[
+				'b:x',
+				[
+					{ instanceId: 'a', vendorId: VENDOR_A },
+					{ instanceId: 'b:x', vendorId: VENDOR_B }
+				]
+			]
+		])(
+			'should reject %j so instanceIds joined with a colon can never build the same cache key',
+			(instanceId, instances) => {
+				expect(() => new InstanceRegistry({ instances })).toThrow(
+					`instanceId ${JSON.stringify(instanceId)} on instances`
+				);
+			}
+		);
+
+		it('should escape a newline in the rejected instanceId so the message stays on one line', () => {
+			const construct = (): InstanceRegistry =>
+				new InstanceRegistry({ instances: [{ instanceId: 'eu\nforged', vendorId: VENDOR_A }] });
+
+			expect(construct).toThrow('instanceId "eu\\nforged" on instances[0] is invalid');
+			expect(construct).not.toThrow('\n');
+		});
+
 		it('should reject an instance that claims the reserved legacy instanceId', () => {
 			const construct = (): InstanceRegistry =>
 				new InstanceRegistry({ instances: [{ instanceId: LEGACY_INSTANCE_ID, vendorId: VENDOR_A }] });
