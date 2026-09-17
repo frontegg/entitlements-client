@@ -1,3 +1,4 @@
+import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { SchemaParseException } from '../exceptions/schema-parse.exception';
 import {
 	FIELD_ACCESSOR,
@@ -5,6 +6,7 @@ import {
 	SCHEMA_RAW_STRING_PREFIXES,
 	SCHEMA_STRING_DELIMITERS
 } from './instance.constants';
+import { SchemaBlockOwnership } from './instance.types';
 
 const isIdentifierChar = (char: string | undefined): boolean =>
 	char !== undefined &&
@@ -106,8 +108,25 @@ function withoutMarkers(text: string, [start, end]: [number, number], markers: n
 	return result + text.slice(cursor, end);
 }
 
-export function filterSchemaBlocks(schemaText: string, prefix: string): string {
-	const marker = `${prefix}/`;
+function markerFor(ownership: SchemaBlockOwnership): string | undefined {
+	if (ownership.kind === 'unprefixed') {
+		return undefined;
+	}
+
+	if (ownership.prefix === '') {
+		throw new ConfigurationInputIsInvalidException(
+			'Schema prefix must not be empty; filter the legacy instance by unprefixed ownership'
+		);
+	}
+
+	return `${ownership.prefix}/`;
+}
+
+const isOwnBlockName = (name: string, marker: string | undefined): boolean =>
+	marker === undefined ? !name.includes('/') : name.startsWith(marker);
+
+export function filterSchemaBlocks(schemaText: string, ownership: SchemaBlockOwnership): string {
+	const marker = markerFor(ownership);
 	const ownBlocks: [number, number][] = [];
 	const markers: number[] = [];
 	let depth = 0;
@@ -159,12 +178,12 @@ export function filterSchemaBlocks(schemaText: string, prefix: string): string {
 				);
 			}
 			blockStart = index;
-			isOwnBlock = blockNameAfter(schemaText, index + keyword.length).startsWith(marker);
+			isOwnBlock = isOwnBlockName(blockNameAfter(schemaText, index + keyword.length), marker);
 			index += keyword.length;
 			continue;
 		}
 
-		if (isIdentifierStart(schemaText, index) && schemaText.startsWith(marker, index)) {
+		if (marker !== undefined && isIdentifierStart(schemaText, index) && schemaText.startsWith(marker, index)) {
 			markers.push(index);
 			index += marker.length;
 			continue;
@@ -177,5 +196,5 @@ export function filterSchemaBlocks(schemaText: string, prefix: string): string {
 		throw new SchemaParseException(lineAt(schemaText, schemaText.length), 'Unclosed block at end of schema');
 	}
 
-	return ownBlocks.map((span) => withoutMarkers(schemaText, span, markers, marker.length)).join('\n\n');
+	return ownBlocks.map((span) => withoutMarkers(schemaText, span, markers, marker?.length ?? 0)).join('\n\n');
 }

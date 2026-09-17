@@ -90,7 +90,9 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
 - The prefix always comes from the `vendorId` and cannot be set directly. A `vendorId` may
   contain only `a-z`, `0-9` and `-`, be at most 61 characters, and not end with `-`; anything
   else, including uppercase letters and `_`, throws `ConfigurationInputIsInvalidException`
-  when the client is created. `legacy` is reserved and cannot be used as an `instanceId`.
+  when the client is created. An `instanceId` must be 1 to 63 characters of `a-z`, `0-9`, `-`
+  and `_`, starting with a letter or digit, and `legacy` is reserved; anything else throws
+  `ConfigurationInputIsInvalidException` when the client is created.
 - Each instance may carry its own `fallbackConfiguration`; the client-wide one applies
   otherwise.
 - With `instances` configured, object types passed to the SDK must not contain `/`, because
@@ -102,6 +104,9 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
   any `result !== true` as denied.
 - With no `instances` configured, the client behaves as before: every read is unprefixed and
   object types are passed through unchanged, so a type such as `acme/document` keeps working.
+  The one exception is a type starting with the reserved vendor prefix `v_`, which throws
+  `InvalidObjectTypeException`, so a legacy client can never address a vendor's namespace on a
+  shared SpiceDB.
 - Log payloads carry the resolved `instanceId` (`legacy` when no `instances` are configured).
   `LoggingClient.log` and `LoggingClient.error` receive it as an optional trailing
   `{ instanceId }` argument, so existing implementations keep working.
@@ -116,7 +121,8 @@ const schema = await e10sClient.readSchemaFor({ instanceId: 'us' });
 prefix stripped from their names and type references. It is a read-only view: top-level
 directives are dropped, so it cannot be written back. If the schema cannot be split into
 blocks safely it throws `SchemaParseException` rather than risk returning another instance's
-definitions. With no `instances` configured it returns the whole schema unchanged.
+definitions. With no `instances` configured it returns only the unprefixed `definition` and
+`caveat` blocks, unchanged, and never another vendor's prefixed blocks.
 
 ### Setting up the Subject Context
 

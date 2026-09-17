@@ -136,7 +136,7 @@ export class SpiceDBEntitlementsClient {
 							result: await this.executeEntitlementQuery(subjectContext, requestContext, instance)
 						};
 					} catch (err) {
-						return { index, result: await this.toItemFailure(err, instance) };
+						return { index, result: this.toItemFailure(err) };
 					}
 				})
 			)
@@ -308,7 +308,10 @@ export class SpiceDBEntitlementsClient {
 		const { namespace } = resolveInstance(this.registry, options?.instanceId);
 		const { schemaText } = await this.spiceClient.readSchema({});
 
-		return namespace.isLegacy ? schemaText : filterSchemaBlocks(schemaText, namespace.schemaPrefix);
+		return filterSchemaBlocks(
+			schemaText,
+			namespace.isLegacy ? { kind: 'unprefixed' } : { kind: 'prefixed', prefix: namespace.schemaPrefix }
+		);
 	}
 
 	private async executeEntitlementQuery(
@@ -349,10 +352,10 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			if (err instanceof CallerInputException) {
 				throw err;
 			}
-			await this.loggingClient.error(err, { instanceId: instance.instanceId });
 			return this.constructFallbackResult(requestContext, instance);
 		}
 	}
@@ -526,12 +529,11 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	private async toItemFailure(err: unknown, instance: ResolvedInstance): Promise<EntitlementsResult> {
+	private toItemFailure(err: unknown): EntitlementsResult {
 		if (!(err instanceof CallerInputException)) {
 			throw err;
 		}
 
-		await this.loggingClient.error(err, { instanceId: instance.instanceId });
 		return { result: false, error: err.message };
 	}
 

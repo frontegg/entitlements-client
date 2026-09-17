@@ -157,6 +157,31 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 			expect(spiceClient.checkPermission).not.toHaveBeenCalled();
 		});
 
+		it('should log the prefix escape exactly once with the instanceId before rethrowing it', async () => {
+			const client = buildClient(
+				{ instances: TWO_INSTANCES, fallbackConfiguration: { defaultFallback: true } },
+				new SpiceDBQueryClient(grantingSpiceClient()),
+				loggingClient
+			);
+
+			await expect(
+				client.isEntitledTo(
+					{ entityType: 'cust_user', key: 'u1' },
+					{
+						type: RequestContextType.Entity,
+						entityType: 'v_other/cust_document',
+						key: 'doc-1',
+						action: 'access'
+					},
+					{ instanceId: 'a' }
+				)
+			).rejects.toBeInstanceOf(InvalidObjectTypeException);
+			expect(loggingClient.error).toHaveBeenCalledTimes(1);
+			expect(loggingClient.error).toHaveBeenCalledWith(expect.any(InvalidObjectTypeException), {
+				instanceId: 'a'
+			});
+		});
+
 		it('should fail only the prefix escape item, log it and still answer the others', async () => {
 			const spiceClient = grantingSpiceClient();
 			const client = buildClient(
@@ -181,6 +206,7 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 				{ result: true }
 			]);
 			expect(spiceClient.checkPermission).toHaveBeenCalledTimes(2);
+			expect(loggingClient.error).toHaveBeenCalledTimes(1);
 			expect(loggingClient.error).toHaveBeenCalledWith(expect.any(InvalidObjectTypeException), {
 				instanceId: 'a'
 			});
@@ -217,6 +243,28 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 			const request = spiceClient.checkPermission.mock.calls[0][0];
 			expect(request.resource?.objectType).toBe('acme/document');
 			expect(request.subject?.object?.objectType).toBe('acme/user');
+		});
+
+		it('should reject a legacy caller addressing a vendor namespace instead of answering with the fallback', async () => {
+			const spiceClient = grantingSpiceClient();
+			const client = buildClient(
+				{ fallbackConfiguration: { defaultFallback: true } },
+				new SpiceDBQueryClient(spiceClient),
+				loggingClient
+			);
+
+			await expect(
+				client.isEntitledTo(
+					{ entityType: 'acme/user', key: 'u1' },
+					{ type: RequestContextType.Entity, entityType: 'v_other/document', key: 'd1', action: 'access' }
+				)
+			).rejects.toThrow(
+				"Object type 'v_other/document' must not start with the reserved vendor schema prefix 'v_'."
+			);
+			expect(spiceClient.checkPermission).not.toHaveBeenCalled();
+			expect(loggingClient.error).toHaveBeenCalledWith(expect.any(InvalidObjectTypeException), {
+				instanceId: 'legacy'
+			});
 		});
 	});
 
@@ -325,6 +373,34 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 
 			await expect(client.readSchemaFor({ instanceId: 'b' })).resolves.toBe(
 				['definition frontegg_feature {}', '', 'caveat targeting(plan string) {', '\tplan == "pro"', '}'].join(
+					'\n'
+				)
+			);
+		});
+	});
+
+	describe('legacy readSchemaFor', () => {
+		it('should return only the unprefixed blocks of a shared schema, never another vendor blocks', async () => {
+			const spiceClient = mock<v1.ZedPromiseClientInterface>();
+			spiceClient.readSchema.mockResolvedValue(
+				v1.ReadSchemaResponse.create({
+					schemaText: [
+						'definition frontegg_feature {}',
+						`definition ${PREFIX_A}/frontegg_feature {}`,
+						`caveat ${PREFIX_B}/targeting(plan string) {`,
+						'\tplan == "pro"',
+						'}',
+						'caveat targeting(plan string) {',
+						'\tplan == "free"',
+						'}'
+					].join('\n')
+				})
+			);
+			const client = buildClient({}, queryClient, loggingClient);
+			setSpiceClient(client, spiceClient);
+
+			await expect(client.readSchemaFor()).resolves.toBe(
+				['definition frontegg_feature {}', '', 'caveat targeting(plan string) {', '\tplan == "free"', '}'].join(
 					'\n'
 				)
 			);
