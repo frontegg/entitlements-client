@@ -44,7 +44,7 @@ import { InstanceOptions, ResolvedInstance } from '../instances/instance.types';
 import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaNamespace } from '../instances/schema-namespace';
 import { filterSchemaBlocks } from '../instances/schema-blocks.utils';
-import { isInputError } from './input-error.utils';
+import { CallerInputException } from '../exceptions/caller-input.exception';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -349,7 +349,7 @@ export class SpiceDBEntitlementsClient {
 			}
 			return res.result;
 		} catch (err) {
-			if (isInputError(err)) {
+			if (err instanceof CallerInputException) {
 				throw err;
 			}
 			await this.loggingClient.error(err, { instanceId: instance.instanceId });
@@ -527,7 +527,7 @@ export class SpiceDBEntitlementsClient {
 	}
 
 	private async toItemFailure(err: unknown, instance: ResolvedInstance): Promise<EntitlementsResult> {
-		if (!isInputError(err)) {
+		if (!(err instanceof CallerInputException)) {
 			throw err;
 		}
 
