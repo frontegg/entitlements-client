@@ -5,3 +5,4 @@ export * from './caller-input.exception';
 export * from './unknown-instance.exception';
 export * from './instance-id-required.exception';
 export * from './invalid-object-type.exception';
+export * from './schema-parse.exception';
