@@ -1,5 +1,6 @@
 import { filterSchemaBlocks } from './schema-blocks.utils';
 import { SchemaParseException } from '../exceptions/schema-parse.exception';
+import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 
 const lines = (...parts: string[]): string => parts.join('\n');
 
@@ -26,13 +27,13 @@ describe(filterSchemaBlocks.name, () => {
 		);
 
 		it('should keep only the requested prefix blocks, not those of a look-alike prefix', () => {
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
 				lines('definition user {}', '', 'caveat targeting(plan string) {', '\tplan == "pro"', '}')
 			);
 		});
 
 		it('should keep only the other instance blocks when its prefix is requested', () => {
-			expect(filterSchemaBlocks(schema, 'v_bbb')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_bbb' })).toBe(
 				lines(
 					'definition secret {',
 					'\trelation owner: user',
@@ -46,7 +47,66 @@ describe(filterSchemaBlocks.name, () => {
 		});
 
 		it('should return nothing when no block belongs to the prefix', () => {
-			expect(filterSchemaBlocks(schema, 'v_ccc')).toBe('');
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_ccc' })).toBe('');
+		});
+	});
+
+	describe('unprefixed ownership', () => {
+		const schema = lines(
+			'use expiration',
+			'',
+			'definition user {}',
+			'',
+			'definition v_aaa/secret {',
+			'\trelation owner: v_aaa/user',
+			'}',
+			'',
+			'caveat targeting(plan string) {',
+			'\tplan == "pro"',
+			'}',
+			'',
+			'caveat v_bbb/hidden(flag bool) {',
+			'\tflag',
+			'}',
+			'',
+			'definition acme/document {}',
+			'',
+			'definition document {',
+			'\trelation viewer: user',
+			'}'
+		);
+
+		it('should keep only the blocks whose name has no prefix, unchanged', () => {
+			expect(filterSchemaBlocks(schema, { kind: 'unprefixed' })).toBe(
+				lines(
+					'definition user {}',
+					'',
+					'caveat targeting(plan string) {',
+					'\tplan == "pro"',
+					'}',
+					'',
+					'definition document {',
+					'\trelation viewer: user',
+					'}'
+				)
+			);
+		});
+
+		it('should fail closed on a schema it cannot split', () => {
+			expect(() =>
+				filterSchemaBlocks(lines('definition user {', 'definition v_aaa/secret {}'), { kind: 'unprefixed' })
+			).toThrow(SchemaParseException);
+		});
+	});
+
+	describe('empty prefix', () => {
+		it('should refuse an empty prefix instead of returning no blocks', () => {
+			const filter = (): string => filterSchemaBlocks('definition user {}', { kind: 'prefixed', prefix: '' });
+
+			expect(filter).toThrow(ConfigurationInputIsInvalidException);
+			expect(filter).toThrow(
+				'Schema prefix must not be empty; filter the legacy instance by unprefixed ownership'
+			);
 		});
 	});
 
@@ -59,7 +119,7 @@ describe(filterSchemaBlocks.name, () => {
 				'definition v_bbb/secret {}'
 			);
 
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
 				lines('caveat allowed(plan string) {', '\t{"pro": true, "free": false}[plan]', '}')
 			);
 		});
@@ -76,7 +136,7 @@ describe(filterSchemaBlocks.name, () => {
 				'definition v_bbb/secret {}'
 			);
 
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
 				lines(
 					'definition user {',
 					'\t/* closing } here',
@@ -98,7 +158,7 @@ describe(filterSchemaBlocks.name, () => {
 				'definition v_bbb/secret {}'
 			);
 
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
 				lines('caveat banner(text string) {', '\ttext == """}', 'definition v_bbb/leak {"""', '}')
 			);
 		});
@@ -112,7 +172,9 @@ describe(filterSchemaBlocks.name, () => {
 		])('should ignore braces inside %s', (_label, body) => {
 			const schema = lines('caveat v_aaa/c(x string) {', body, '}', 'definition v_bbb/secret {}');
 
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(lines('caveat c(x string) {', body, '}'));
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
+				lines('caveat c(x string) {', body, '}')
+			);
 		});
 	});
 
@@ -145,8 +207,10 @@ describe(filterSchemaBlocks.name, () => {
 				'Unterminated block comment at line 2'
 			]
 		])('should throw on %s', (_label, schema, message) => {
-			expect(() => filterSchemaBlocks(schema, 'v_aaa')).toThrow(SchemaParseException);
-			expect(() => filterSchemaBlocks(schema, 'v_aaa')).toThrow(message);
+			expect(() => filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toThrow(
+				SchemaParseException
+			);
+			expect(() => filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toThrow(message);
 		});
 	});
 
@@ -163,7 +227,7 @@ describe(filterSchemaBlocks.name, () => {
 				'}'
 			);
 
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
 				lines(
 					'definition user {}',
 					'',
@@ -189,7 +253,7 @@ describe(filterSchemaBlocks.name, () => {
 				'}'
 			);
 
-			expect(filterSchemaBlocks(schema, 'v_aaa')).toBe(
+			expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' })).toBe(
 				lines(
 					'definition document {',
 					'\trelation owner: v_bbb/user | xv_aaa/user',
@@ -214,14 +278,14 @@ describe('a keyword that is really a field access', () => {
 	].join('\n');
 
 	it('should not read attrs.definition as the start of a block', () => {
-		const filtered = filterSchemaBlocks(schema, 'v_aaa');
+		const filtered = filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' });
 
 		expect(filtered).toContain('attrs.definition == 1');
 		expect(filtered).not.toContain('v_bbb');
 	});
 
 	it('should still read a real definition that follows a caveat body', () => {
-		expect(filterSchemaBlocks(schema, 'v_bbb')).toBe('definition secret {}');
+		expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_bbb' })).toBe('definition secret {}');
 	});
 });
 
@@ -229,13 +293,13 @@ describe('a comment between the keyword and the name', () => {
 	const schema = ['definition /* own */ v_aaa/user {}', 'definition // next', 'v_bbb/secret {}'].join('\n');
 
 	it('should read the name past a block comment rather than dropping the block', () => {
-		const filtered = filterSchemaBlocks(schema, 'v_aaa');
+		const filtered = filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_aaa' });
 
 		expect(filtered).toContain('user');
 		expect(filtered).not.toContain('v_bbb');
 	});
 
 	it('should read the name past a line comment', () => {
-		expect(filterSchemaBlocks(schema, 'v_bbb')).toContain('secret');
+		expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_bbb' })).toContain('secret');
 	});
 });
