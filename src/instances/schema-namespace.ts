@@ -1,7 +1,16 @@
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
-import { SCHEMA_PREFIX_RULE, VENDOR_SCHEMA_PREFIX_START } from './instance.constants';
-import { isValidSchemaPrefix } from './schema-prefix.utils';
+import { SCHEMA_NAME_RULE, TYPE_PATH_SEPARATOR, VENDOR_SCHEMA_PREFIX_START } from './instance.constants';
+import { isValidSchemaName } from './schema-prefix.utils';
+
+function assertValidObjectType(objectType: string, segments: string[]): void {
+	if (!segments.every(isValidSchemaName)) {
+		throw new InvalidObjectTypeException(
+			objectType,
+			`Object type '${objectType}' is not a valid SpiceDB name; expected ${SCHEMA_NAME_RULE}`
+		);
+	}
+}
 
 export class SchemaNamespace {
 	private constructor(
@@ -10,9 +19,9 @@ export class SchemaNamespace {
 	) {}
 
 	public static prefixed(schemaPrefix: string, instanceId: string): SchemaNamespace {
-		if (!isValidSchemaPrefix(schemaPrefix)) {
+		if (!isValidSchemaName(schemaPrefix)) {
 			throw new ConfigurationInputIsInvalidException(
-				`Invalid schema prefix '${schemaPrefix}' for instance '${instanceId}'; expected ${SCHEMA_PREFIX_RULE}`
+				`Invalid schema prefix '${schemaPrefix}' for instance '${instanceId}'; expected ${SCHEMA_NAME_RULE}`
 			);
 		}
 
@@ -28,21 +37,27 @@ export class SchemaNamespace {
 	}
 
 	public type(objectType: string): string {
+		const segments = objectType.split(TYPE_PATH_SEPARATOR);
+
 		if (this.isLegacy) {
-			if (objectType.startsWith(VENDOR_SCHEMA_PREFIX_START)) {
+			if (segments.length > 1 && segments[0].startsWith(VENDOR_SCHEMA_PREFIX_START)) {
 				throw new InvalidObjectTypeException(
 					objectType,
 					`Object type '${objectType}' must not start with the reserved vendor schema prefix '${VENDOR_SCHEMA_PREFIX_START}'.`
 				);
 			}
 
+			assertValidObjectType(objectType, segments);
+
 			return objectType;
 		}
 
-		if (objectType.includes('/')) {
+		if (segments.length > 1) {
 			throw new InvalidObjectTypeException(objectType);
 		}
 
-		return `${this.schemaPrefix}/${objectType}`;
+		assertValidObjectType(objectType, segments);
+
+		return `${this.schemaPrefix}${TYPE_PATH_SEPARATOR}${objectType}`;
 	}
 }
