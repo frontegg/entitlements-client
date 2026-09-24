@@ -1,4 +1,6 @@
 const {
+	ARRAY_FACTORY,
+	LIST_MAPPING_METHODS,
 	OBJECT_TYPE_FIELDS,
 	OBJECT_TYPE_LIST_FIELDS,
 	TRANSPARENT_EXPRESSION_TYPES
@@ -72,17 +74,43 @@ module.exports = {
 			return everyValueBranch(node, isSchemaNamespaceTypeCall);
 		}
 
-		function isNamespacedMapping(node) {
-			const callback = node.type === 'CallExpression' ? node.arguments[0] : undefined;
+		function mappingCallback(node) {
+			if (node.type !== 'CallExpression' || node.callee.type !== 'MemberExpression') {
+				return undefined;
+			}
 
-			return (
-				node.type === 'CallExpression' &&
-				node.callee.type === 'MemberExpression' &&
-				staticPropertyName(node.callee.property, node.callee.computed) === 'map' &&
-				callback?.type === 'ArrowFunctionExpression' &&
-				callback.body.type !== 'BlockStatement' &&
-				isNamespacedValue(callback.body)
-			);
+			const method = staticPropertyName(node.callee.property, node.callee.computed);
+			const receiver = unwrapExpression(node.callee.object);
+			if (
+				receiver.type === 'Identifier' &&
+				receiver.name === ARRAY_FACTORY.object &&
+				method === ARRAY_FACTORY.method
+			) {
+				return node.arguments[ARRAY_FACTORY.callbackIndex];
+			}
+
+			return LIST_MAPPING_METHODS.has(method) ? node.arguments[0] : undefined;
+		}
+
+		function returnedExpression(callback) {
+			if (callback?.type !== 'ArrowFunctionExpression') {
+				return undefined;
+			}
+			if (callback.body.type !== 'BlockStatement') {
+				return callback.body;
+			}
+
+			const [statement] = callback.body.body;
+
+			return callback.body.body.length === 1 && statement.type === 'ReturnStatement'
+				? statement.argument ?? undefined
+				: undefined;
+		}
+
+		function isNamespacedMapping(node) {
+			const returned = returnedExpression(mappingCallback(node));
+
+			return returned !== undefined && (isNamespacedValue(returned) || isNamespacedListLiteral(returned));
 		}
 
 		function isNamespacedListLiteral(node) {

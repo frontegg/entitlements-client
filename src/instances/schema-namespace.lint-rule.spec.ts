@@ -107,6 +107,40 @@ runRequireNamespacedObjectType({
 			)
 		},
 		{
+			name: 'watch object types built with flatMap',
+			code: source(
+				'v1.WatchRequest.create({',
+				'	optionalObjectTypes: documentIds.flatMap((type) => [namespace.type(type)])',
+				'});'
+			)
+		},
+		{
+			name: 'watch object types built with Array.from and a mapper',
+			code: source(
+				'v1.WatchRequest.create({',
+				'	optionalObjectTypes: Array.from(documentIds, (type) => namespace.type(type))',
+				'});'
+			)
+		},
+		{
+			name: 'watch object types built in a block-bodied map callback',
+			code: source(
+				'v1.WatchRequest.create({',
+				'	optionalObjectTypes: documentIds.map((type) => {',
+				'		return namespace.type(type);',
+				'	})',
+				'});'
+			)
+		},
+		{
+			name: 'watch object types built by a filtered map',
+			code: source(
+				'v1.WatchRequest.create({',
+				"	optionalObjectTypes: documentIds.filter((type) => type !== '').map((type) => namespace.type(type))",
+				'});'
+			)
+		},
+		{
 			name: 'namespace.type behind optional chaining, a non-null assertion and a type assertion',
 			code: source(
 				'v1.ObjectReference.create({',
@@ -304,6 +338,33 @@ runRequireNamespacedObjectType({
 			name: 'a raw watch object type',
 			code: source("v1.WatchRequest.create({ optionalObjectTypes: [namespace.type('document'), 'folder'] });"),
 			errors: unnamespaced('optionalObjectTypes')
+		},
+		{
+			name: 'a raw watch object type built with flatMap',
+			code: source(
+				'v1.WatchRequest.create({',
+				'	optionalObjectTypes: documentIds.flatMap((type) => [type])',
+				'});'
+			),
+			errors: unnamespaced('optionalObjectTypes')
+		},
+		{
+			name: 'a raw watch object type built by a filter that never namespaces',
+			code: source(
+				'v1.WatchRequest.create({',
+				"	optionalObjectTypes: documentIds.filter((type) => type !== '')",
+				'});'
+			),
+			errors: unnamespaced('optionalObjectTypes')
+		},
+		{
+			name: 'an object type nested deeper than the rule can follow',
+			code: source(
+				'type DeeplyNested = { objectType: string; objectId: string }[][][][][][][][][][][][][][];',
+				"const deeplyNested: DeeplyNested = [[[[[[[[[[[[[[{ objectType: 'document', objectId: '1' }]]]]]]]]]]]]]];",
+				'export { deeplyNested };'
+			),
+			errors: unnamespaced('objectType')
 		},
 		{
 			name: 'a conditional with a raw branch',
