@@ -103,10 +103,15 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
   `{ result: false, error: '<reason>' }` while the other items are still answered, so treat
   any `result !== true` as denied.
 - With no `instances` configured, the client behaves as before: every read is unprefixed and
-  object types are passed through unchanged, so a type such as `acme/document` keeps working.
-  The one exception is a type starting with the reserved vendor prefix `v_`, which throws
-  `InvalidObjectTypeException`, so a legacy client can never address a vendor's namespace on a
-  shared SpiceDB.
+  object types are passed through unchanged, so a type such as `acme/document` keeps working,
+  and so does a plain name of your own such as `v_user`. The one exception is a namespaced type
+  whose prefix starts with the reserved vendor prefix `v_`, such as `v_acme/document`, which
+  throws `InvalidObjectTypeException`, so a legacy client can never address a vendor's namespace
+  on a shared SpiceDB.
+- In both modes an object type must be a valid SpiceDB name: 3 to 63 characters, starting with
+  `a-z`, containing only `a-z`, `0-9` and `_`, and ending with `a-z` or `0-9`. Anything else,
+  such as `Document`, `my-entity` or `a`, throws `InvalidObjectTypeException` instead of
+  reaching SpiceDB as a parse error.
 - Log payloads carry the resolved `instanceId` (`legacy` when no `instances` are configured).
   `LoggingClient.log` and `LoggingClient.error` receive it as an optional trailing
   `{ instanceId }` argument, so existing implementations keep working.
@@ -123,6 +128,9 @@ directives are dropped, so it cannot be written back. If the schema cannot be sp
 blocks safely it throws `SchemaParseException` rather than risk returning another instance's
 definitions. With no `instances` configured it returns only the unprefixed `definition` and
 `caveat` blocks, unchanged, and never another vendor's prefixed blocks.
+
+SpiceDB has no partial schema read, so every call reads the whole cluster schema and filters it
+here. Treat `readSchemaFor` as an administrative call and keep it off the request path.
 
 ### Setting up the Subject Context
 

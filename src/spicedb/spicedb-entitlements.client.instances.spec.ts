@@ -3,12 +3,14 @@ import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
 import { mock, MockProxy } from 'jest-mock-extended';
 import { SpiceDBQueryClient } from './spicedb-queries/spicedb-query.client';
 import { LoggingClient } from '../logging';
-import { RequestContext, RequestContextType, UserSubjectContext } from '../types';
+import { PermissionsEntitlementsContext, RequestContext, RequestContextType, UserSubjectContext } from '../types';
 import { ClientConfiguration } from '../client-configuration';
 import { UnknownInstanceException } from '../exceptions/unknown-instance.exception';
 import { InstanceIdRequiredException } from '../exceptions/instance-id-required.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 import { setSpiceClient, setSpiceDBQueryClient } from './spicedb-entitlements.client.spec-helper';
+import { UNEXPECTED_ITEM_FAILURE_MESSAGE } from './entitlements.constants';
+import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 
 const VENDOR_A = '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b';
 const VENDOR_B = '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f';
@@ -23,6 +25,21 @@ const subjectContext: UserSubjectContext = {
 };
 
 const featureContext: RequestContext = { type: RequestContextType.Feature, featureKey: 'premium' };
+
+const BATCH_SIZE = 20;
+
+const FAILING_ITEM_INDEX = 6;
+
+const permissionKeyOf = (index: number): string => (index === FAILING_ITEM_INDEX ? 'boom' : `permission_${index}`);
+
+const permissionBatch = (): RequestContext[] =>
+	Array.from({ length: BATCH_SIZE }, (unused, index) => ({
+		type: RequestContextType.Permission,
+		permissionKey: permissionKeyOf(index)
+	}));
+
+const isFailingItem = (requestContext: RequestContext): boolean =>
+	(requestContext as PermissionsEntitlementsContext).permissionKey === 'boom';
 
 const TWO_INSTANCES: ClientConfiguration['instances'] = [
 	{ instanceId: 'a', vendorId: VENDOR_A },
@@ -403,6 +420,129 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 				['definition frontegg_feature {}', '', 'caveat targeting(plan string) {', '\tplan == "free"', '}'].join(
 					'\n'
 				)
+			);
+		});
+	});
+
+	describe('batch isolation', () => {
+		it('should fail only the item whose unexpected error escaped and still answer the others', async () => {
+			queryClient.spiceDBQuery.mockImplementation(async (subjectContext, requestContext) => {
+				if (isFailingItem(requestContext)) {
+					throw new Error('spicedb unavailable');
+				}
+				return { result: { result: true } };
+			});
+			const client = buildClient(
+				{
+					instances: TWO_INSTANCES,
+					fallbackConfiguration: (requestContext): boolean => {
+						if (isFailingItem(requestContext)) {
+							throw new Error('fallback exploded');
+						}
+						return false;
+					}
+				},
+				queryClient,
+				loggingClient
+			);
+
+			const results = await client.isEntitledToMany(subjectContext, permissionBatch(), { instanceId: 'a' });
+
+			expect(results).toHaveLength(BATCH_SIZE);
+			expect(results[FAILING_ITEM_INDEX]).toEqual({
+				result: false,
+				error: UNEXPECTED_ITEM_FAILURE_MESSAGE
+			});
+			expect(results.filter((result) => result.result === true)).toHaveLength(BATCH_SIZE - 1);
+		});
+
+		it('should log the unexpected item error once with the instanceId', async () => {
+			const fallbackError = new Error('fallback exploded');
+			queryClient.spiceDBQuery.mockImplementation(async (subjectContext, requestContext) => {
+				if (isFailingItem(requestContext)) {
+					throw new Error('spicedb unavailable');
+				}
+				return { result: { result: true } };
+			});
+			const client = buildClient(
+				{
+					instances: TWO_INSTANCES,
+					fallbackConfiguration: (requestContext): boolean => {
+						if (isFailingItem(requestContext)) {
+							throw fallbackError;
+						}
+						return false;
+					}
+				},
+				queryClient,
+				loggingClient
+			);
+
+			await client.isEntitledToMany(subjectContext, permissionBatch(), { instanceId: 'a' });
+
+			expect(loggingClient.error.mock.calls.filter(([error]) => error === fallbackError)).toEqual([
+				[fallbackError, { instanceId: 'a' }]
+			]);
+		});
+
+		it('should still answer every item when the logger itself fails', async () => {
+			loggingClient.error.mockImplementation(() => {
+				throw new Error('logger unavailable');
+			});
+			queryClient.spiceDBQuery.mockImplementation(async (subjectContext, requestContext) => {
+				if (isFailingItem(requestContext)) {
+					throw new Error('spicedb unavailable');
+				}
+				return { result: { result: true } };
+			});
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+
+			const results = await client.isEntitledToMany(subjectContext, permissionBatch(), { instanceId: 'a' });
+
+			expect(results).toHaveLength(BATCH_SIZE);
+			expect(results[FAILING_ITEM_INDEX]).toEqual({
+				result: false,
+				error: UNEXPECTED_ITEM_FAILURE_MESSAGE
+			});
+			expect(results.filter((result) => result.result === true)).toHaveLength(BATCH_SIZE - 1);
+		});
+	});
+
+	describe('instance configuration logging', () => {
+		it.each([
+			[
+				'a duplicate vendorId',
+				[
+					{ instanceId: 'a', vendorId: VENDOR_A },
+					{ instanceId: 'b', vendorId: VENDOR_A }
+				]
+			],
+			['a vendorId that cannot become a prefix', [{ instanceId: 'a', vendorId: 'ACME' }]]
+		])('should log %s once and still throw', (unused, instances) => {
+			const construct = (): SpiceDBEntitlementsClient => buildClient({ instances }, queryClient, loggingClient);
+
+			expect(construct).toThrow(ConfigurationInputIsInvalidException);
+			expect(loggingClient.error).toHaveBeenCalledTimes(1);
+			expect(loggingClient.error).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: 'SpiceDBClient:instances:error',
+					error: expect.any(ConfigurationInputIsInvalidException)
+				})
+			);
+		});
+
+		it('should log an unknown defaultInstanceId once and still throw', () => {
+			const construct = (): SpiceDBEntitlementsClient =>
+				buildClient({ instances: TWO_INSTANCES, defaultInstanceId: 'nope' }, queryClient, loggingClient);
+
+			expect(construct).toThrow(ConfigurationInputIsInvalidException);
+			expect(loggingClient.error).toHaveBeenCalledTimes(1);
+			expect(loggingClient.error).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: 'SpiceDBClient:instances:error',
+					instanceIds: ['a', 'b'],
+					defaultInstanceId: 'nope'
+				})
 			);
 		});
 	});

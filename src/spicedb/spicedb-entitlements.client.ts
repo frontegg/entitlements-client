@@ -45,6 +45,7 @@ import { resolveInstance } from '../instances/resolve-instance';
 import { SchemaNamespace } from '../instances/schema-namespace';
 import { filterSchemaBlocks } from '../instances/schema-blocks.utils';
 import { CallerInputException } from '../exceptions/caller-input.exception';
+import { UNEXPECTED_ITEM_FAILURE_MESSAGE } from './entitlements.constants';
 
 export class SpiceDBEntitlementsClient {
 	private static readonly MONITORING_RESULT: EntitlementsResult = { monitoring: true, result: true };
@@ -59,7 +60,18 @@ export class SpiceDBEntitlementsClient {
 		private readonly logResults = false,
 		private readonly fallbackConfiguration: FallbackConfiguration = { defaultFallback: false }
 	) {
-		this.registry = new InstanceRegistry(configuration);
+		try {
+			this.registry = new InstanceRegistry(configuration);
+		} catch (instancesError) {
+			void this.loggingClient.error({
+				action: 'SpiceDBClient:instances:error',
+				instanceIds: (configuration.instances ?? []).map((instance) => instance.instanceId),
+				defaultInstanceId: configuration.defaultInstanceId,
+				error: instancesError,
+				message: 'Failed to build the SpiceDB instance registry'
+			});
+			throw instancesError;
+		}
 
 		try {
 			this.spiceClient = v1.NewClient(
@@ -136,7 +148,7 @@ export class SpiceDBEntitlementsClient {
 							result: await this.executeEntitlementQuery(subjectContext, requestContext, instance)
 						};
 					} catch (err) {
-						return { index, result: this.toItemFailure(err) };
+						return { index, result: await this.toItemFailure(err, instance) };
 					}
 				})
 			)
@@ -529,12 +541,22 @@ export class SpiceDBEntitlementsClient {
 		}
 	}
 
-	private toItemFailure(err: unknown): EntitlementsResult {
-		if (!(err instanceof CallerInputException)) {
-			throw err;
+	private async toItemFailure(err: unknown, instance: ResolvedInstance): Promise<EntitlementsResult> {
+		if (err instanceof CallerInputException) {
+			return { result: false, error: err.message };
 		}
 
-		return { result: false, error: err.message };
+		await this.logItemFailure(err, instance);
+
+		return { result: false, error: UNEXPECTED_ITEM_FAILURE_MESSAGE };
+	}
+
+	private async logItemFailure(err: unknown, instance: ResolvedInstance): Promise<void> {
+		try {
+			await this.loggingClient.error(err, { instanceId: instance.instanceId });
+		} catch {
+			return;
+		}
 	}
 
 	private async constructFallbackResult(
