@@ -15,43 +15,57 @@ function isDeclaredBySpiceDB(symbol) {
 }
 
 function collectRelatedTypes(type, depth, related) {
-	if (!type || depth > RELATED_TYPE_DEPTH || related.has(type)) {
-		return related;
+	if (!type || related.has(type)) {
+		return false;
+	}
+	if (depth > RELATED_TYPE_DEPTH) {
+		return true;
 	}
 	related.add(type);
 
+	let isTruncated = false;
 	for (const group of [type.types, type.aliasTypeArguments, type.typeArguments]) {
 		for (const member of group ?? []) {
-			collectRelatedTypes(member, depth + 1, related);
+			isTruncated = collectRelatedTypes(member, depth + 1, related) || isTruncated;
 		}
 	}
 
-	return related;
+	return isTruncated;
 }
 
 function relatedTypes(type) {
-	return [...collectRelatedTypes(type, 0, new Set())];
+	const related = new Set();
+	const isTruncated = collectRelatedTypes(type, 0, related);
+
+	return { candidates: [...related], isTruncated };
 }
 
 function isSpiceDBType(type) {
-	return relatedTypes(type).some(
-		(candidate) => isDeclaredBySpiceDB(candidate.aliasSymbol) || isDeclaredBySpiceDB(candidate.getSymbol())
+	const { candidates, isTruncated } = relatedTypes(type);
+
+	return (
+		candidates.some(
+			(candidate) => isDeclaredBySpiceDB(candidate.aliasSymbol) || isDeclaredBySpiceDB(candidate.getSymbol())
+		) || isTruncated
 	);
 }
 
 function resolvesToSpiceDBField(checker, type, path) {
 	const [name, ...rest] = path;
+	const { candidates, isTruncated } = relatedTypes(type);
 
-	return relatedTypes(type).some((candidate) => {
-		const property = checker.getPropertyOfType(candidate, name);
-		if (!property) {
-			return false;
-		}
+	return (
+		candidates.some((candidate) => {
+			const property = checker.getPropertyOfType(candidate, name);
+			if (!property) {
+				return false;
+			}
 
-		return rest.length === 0
-			? isDeclaredBySpiceDB(property)
-			: resolvesToSpiceDBField(checker, checker.getTypeOfSymbol(property), rest);
-	});
+			return rest.length === 0
+				? isDeclaredBySpiceDB(property)
+				: resolvesToSpiceDBField(checker, checker.getTypeOfSymbol(property), rest);
+		}) || isTruncated
+	);
 }
 
 function isSchemaNamespaceType(checker, type) {
