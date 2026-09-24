@@ -5,6 +5,8 @@ import { CallerInputException } from '../exceptions/caller-input.exception';
 
 const PREFIX = 'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b';
 
+const INVALID_OBJECT_TYPES = [['Document'], ['my-entity'], ['1document'], [''], ['a'], ['a'.repeat(64)]];
+
 describe(SchemaNamespace.name, () => {
 	describe('prefixed namespace', () => {
 		const namespace = SchemaNamespace.prefixed(PREFIX, 'eu');
@@ -36,6 +38,15 @@ describe(SchemaNamespace.name, () => {
 			);
 		});
 
+		it.each(INVALID_OBJECT_TYPES)('should reject the malformed object type %j', (objectType) => {
+			const type = (): string => namespace.type(objectType);
+
+			expect(type).toThrow(InvalidObjectTypeException);
+			expect(type).toThrow(expect.any(CallerInputException));
+			expect(type).toThrow(`Object type '${objectType}' is not a valid SpiceDB name`);
+			expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
+		});
+
 		it.each([[''], ['V_UPPER'], ['has/slash'], ['ends_with_']])('should refuse the schema prefix %j', (prefix) => {
 			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(prefix, 'eu');
 
@@ -61,8 +72,8 @@ describe(SchemaNamespace.name, () => {
 			expect(namespace.type('acme/document')).toBe('acme/document');
 		});
 
-		it.each([['v_other/document'], ['v_other']])(
-			'should reject %j because it addresses the reserved vendor schema prefix',
+		it.each([['v_other/document'], ['v_acme/document']])(
+			'should reject %j because it escapes into the reserved vendor schema prefix',
 			(objectType) => {
 				const type = (): string => namespace.type(objectType);
 
@@ -74,5 +85,25 @@ describe(SchemaNamespace.name, () => {
 				expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
 			}
 		);
+
+		it.each([['v_user'], ['v_account'], ['v_other']])(
+			'should accept the plain name %j, which cannot escape another vendor namespace',
+			(objectType) => {
+				expect(namespace.type(objectType)).toBe(objectType);
+			}
+		);
+
+		it.each(INVALID_OBJECT_TYPES)('should reject the malformed object type %j', (objectType) => {
+			const type = (): string => namespace.type(objectType);
+
+			expect(type).toThrow(InvalidObjectTypeException);
+			expect(type).toThrow(expect.any(CallerInputException));
+			expect(type).toThrow(`Object type '${objectType}' is not a valid SpiceDB name`);
+			expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
+		});
+
+		it('should reject a malformed name behind a valid legacy prefix', () => {
+			expect(() => namespace.type('acme/Document')).toThrow(InvalidObjectTypeException);
+		});
 	});
 });
