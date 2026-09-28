@@ -28,10 +28,20 @@ function findVariable(scope, name) {
 	return undefined;
 }
 
-function constantInitializer(sourceCode, identifier) {
+function soleVariableDefinition(sourceCode, identifier) {
 	const variable = findVariable(sourceCode.getScope(identifier), identifier.name);
 	const definition = variable?.defs.length === 1 ? variable.defs[0] : undefined;
-	if (definition?.type !== 'Variable' || definition.parent.kind !== 'const' || !definition.node.init) {
+
+	return definition?.type === 'Variable' && definition.node.init ? definition : undefined;
+}
+
+function variableInitializer(sourceCode, identifier) {
+	return soleVariableDefinition(sourceCode, identifier)?.node.init;
+}
+
+function constantInitializer(sourceCode, identifier) {
+	const definition = soleVariableDefinition(sourceCode, identifier);
+	if (definition === undefined || definition.parent.kind !== 'const') {
 		return undefined;
 	}
 
@@ -54,5 +64,6 @@ module.exports = {
 	unwrapExpression,
 	staticPropertyName,
 	constantInitializer,
+	variableInitializer,
 	enclosingFunction
 };

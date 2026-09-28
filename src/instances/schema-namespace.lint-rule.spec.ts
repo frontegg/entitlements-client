@@ -1,8 +1,21 @@
+import { existsSync, readFileSync } from 'fs';
+import { RELATED_TYPE_DEPTH } from '../../eslint-rules/require-namespaced-object-type.consts';
 import { MissingTypeInformationError } from '../../eslint-rules/missing-type-information.error';
 import {
+	RULE_TESTER_ANCHOR,
 	lintWithoutTypeInformation,
 	runRequireNamespacedObjectType
 } from '../../eslint-rules/require-namespaced-object-type.spec-helper';
+
+describe('rule tester anchor', () => {
+	it('should exist, because eslint-rules/fixtures/tsconfig.json includes *.ts and the rule tester needs a filename inside that include to get type information', () => {
+		expect(existsSync(RULE_TESTER_ANCHOR)).toBe(true);
+	});
+
+	it('should stay empty, because every rule tester case supplies its own source text and nothing ever reads this file', () => {
+		expect(readFileSync(RULE_TESTER_ANCHOR, 'utf8')).toBe('');
+	});
+});
 
 const PREAMBLE = [
 	"import { v1 } from '@authzed/authzed-node';",
@@ -18,8 +31,14 @@ function source(...lines: string[]): string {
 	return [...PREAMBLE, ...lines].join('\n');
 }
 
-function unnamespaced(...fields: string[]): { messageId: string; data: { field: string } }[] {
-	return fields.map((field) => ({ messageId: 'unnamespaced', data: { field } }));
+type ExpectedError = { messageId: string; data: { field: string; depth: number } };
+
+function unnamespaced(...fields: string[]): ExpectedError[] {
+	return fields.map((field) => ({ messageId: 'unnamespaced', data: { field, depth: RELATED_TYPE_DEPTH } }));
+}
+
+function unprovable(...fields: string[]): ExpectedError[] {
+	return fields.map((field) => ({ messageId: 'unprovable', data: { field, depth: RELATED_TYPE_DEPTH } }));
 }
 
 runRequireNamespacedObjectType({
@@ -186,6 +205,13 @@ runRequireNamespacedObjectType({
 				'	return { objectType: namespace.type(reference.objectType), objectId: reference.objectId };',
 				'}',
 				"v1.CheckPermissionRequest.create({ resource: toReference({ objectType: 'document', objectId: '1' }) });"
+			)
+		},
+		{
+			name: 'a const request whose nested object type is already namespaced',
+			code: source(
+				"const resource = { objectType: namespace.type('document'), objectId: '1' };",
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
 			)
 		},
 		{
@@ -358,13 +384,37 @@ runRequireNamespacedObjectType({
 			errors: unnamespaced('optionalObjectTypes')
 		},
 		{
+			name: 'a reassignable request whose object type the rule cannot follow',
+			code: source(
+				"let resource = { objectType: 'document', objectId: '1' };",
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a request bound after the call that uses it',
+			code: source(
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource: hoisted, permission: 'view' }));",
+				"const hoisted = { objectType: 'document', objectId: '1' };"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a reassignable subject whose nested object type the rule cannot follow',
+			code: source(
+				"let subject = { object: { objectType: 'user', objectId: '2' }, optionalRelation: '' };",
+				"client.checkPermission(v1.CheckPermissionRequest.create({ permission: 'view', subject }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
 			name: 'an object type nested deeper than the rule can follow',
 			code: source(
 				'type DeeplyNested = { objectType: string; objectId: string }[][][][][][][][][][][][][][];',
 				"const deeplyNested: DeeplyNested = [[[[[[[[[[[[[[{ objectType: 'document', objectId: '1' }]]]]]]]]]]]]]];",
 				'export { deeplyNested };'
 			),
-			errors: unnamespaced('objectType')
+			errors: unprovable('objectType')
 		},
 		{
 			name: 'a conditional with a raw branch',

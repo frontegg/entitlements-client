@@ -15,6 +15,12 @@ const SCHEMA_NAMESPACE_SOURCE = '/src/instances/schema-namespace.ts';
 
 const RELATED_TYPE_DEPTH = 12;
 
+const FIELD_RESOLUTION = {
+	spiceDB: 'spiceDB',
+	unprovable: 'unprovable',
+	unrelated: 'unrelated'
+};
+
 const LIST_MAPPING_METHODS = new Set(['map', 'flatMap']);
 
 const ARRAY_FACTORY = { object: 'Array', method: 'from', callbackIndex: 1 };
@@ -35,6 +41,7 @@ module.exports = {
 	SPICEDB_TYPE_SOURCE,
 	SCHEMA_NAMESPACE_SOURCE,
 	RELATED_TYPE_DEPTH,
+	FIELD_RESOLUTION,
 	LIST_MAPPING_METHODS,
 	ARRAY_FACTORY,
 	TRANSPARENT_EXPRESSION_TYPES,
