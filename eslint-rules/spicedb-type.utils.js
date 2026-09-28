@@ -1,4 +1,5 @@
 const {
+	FIELD_RESOLUTION,
 	RELATED_TYPE_DEPTH,
 	SCHEMA_NAMESPACE_SOURCE,
 	SPICEDB_TYPE_SOURCE
@@ -50,22 +51,33 @@ function isSpiceDBType(type) {
 	);
 }
 
-function resolvesToSpiceDBField(checker, type, path) {
+function resolvePropertyField(checker, property, rest) {
+	if (rest.length === 0) {
+		return isDeclaredBySpiceDB(property) ? FIELD_RESOLUTION.spiceDB : FIELD_RESOLUTION.unrelated;
+	}
+
+	return resolveSpiceDBField(checker, checker.getTypeOfSymbol(property), rest);
+}
+
+function resolveSpiceDBField(checker, type, path) {
 	const [name, ...rest] = path;
 	const { candidates, isTruncated } = relatedTypes(type);
+	let isUnprovable = isTruncated;
 
-	return (
-		candidates.some((candidate) => {
-			const property = checker.getPropertyOfType(candidate, name);
-			if (!property) {
-				return false;
-			}
+	for (const candidate of candidates) {
+		const property = checker.getPropertyOfType(candidate, name);
+		if (!property) {
+			continue;
+		}
 
-			return rest.length === 0
-				? isDeclaredBySpiceDB(property)
-				: resolvesToSpiceDBField(checker, checker.getTypeOfSymbol(property), rest);
-		}) || isTruncated
-	);
+		const resolution = resolvePropertyField(checker, property, rest);
+		if (resolution === FIELD_RESOLUTION.spiceDB) {
+			return FIELD_RESOLUTION.spiceDB;
+		}
+		isUnprovable = isUnprovable || resolution === FIELD_RESOLUTION.unprovable;
+	}
+
+	return isUnprovable ? FIELD_RESOLUTION.unprovable : FIELD_RESOLUTION.unrelated;
 }
 
 function isSchemaNamespaceType(checker, type) {
@@ -82,7 +94,7 @@ function isGenericCall(checker, tsCall) {
 
 module.exports = {
 	isSpiceDBType,
-	resolvesToSpiceDBField,
+	resolveSpiceDBField,
 	isSchemaNamespaceType,
 	isGenericCall
 };

@@ -1,13 +1,21 @@
 const {
 	ARRAY_FACTORY,
+	FIELD_RESOLUTION,
 	LIST_MAPPING_METHODS,
 	OBJECT_TYPE_FIELDS,
 	OBJECT_TYPE_LIST_FIELDS,
+	RELATED_TYPE_DEPTH,
 	TRANSPARENT_EXPRESSION_TYPES
 } = require('./require-namespaced-object-type.consts');
 const { MissingTypeInformationError } = require('./missing-type-information.error');
-const { isGenericCall, isSchemaNamespaceType, isSpiceDBType, resolvesToSpiceDBField } = require('./spicedb-type.utils');
-const { constantInitializer, enclosingFunction, staticPropertyName, unwrapExpression } = require('./expression.utils');
+const { isGenericCall, isSchemaNamespaceType, isSpiceDBType, resolveSpiceDBField } = require('./spicedb-type.utils');
+const {
+	constantInitializer,
+	enclosingFunction,
+	staticPropertyName,
+	unwrapExpression,
+	variableInitializer
+} = require('./expression.utils');
 
 module.exports = {
 	meta: {
@@ -20,7 +28,11 @@ module.exports = {
 		messages: {
 			unnamespaced:
 				"'{{field}}' is a SpiceDB message field and must be built with namespace.type(...). " +
-				'An un-namespaced object type reads across every configured instance.'
+				'An un-namespaced object type reads across every configured instance.',
+			unprovable:
+				"'{{field}}' sits in a type this rule could not resolve within {{depth}} levels of nesting, " +
+				'so it cannot tell whether the field is a SpiceDB message field. ' +
+				'Build it with namespace.type(...) or narrow the type so it resolves.'
 		}
 	},
 
@@ -37,12 +49,16 @@ module.exports = {
 			return services.esTreeNodeToTSNodeMap.get(node);
 		}
 
-		function report(node, field) {
+		function report(node, field, resolution) {
 			if (reported.has(node)) {
 				return;
 			}
 			reported.add(node);
-			context.report({ node, messageId: 'unnamespaced', data: { field } });
+			context.report({
+				node,
+				messageId: resolution === FIELD_RESOLUTION.unprovable ? 'unprovable' : 'unnamespaced',
+				data: { field, depth: RELATED_TYPE_DEPTH }
+			});
 		}
 
 		function isSchemaNamespaceTypeCall(node) {
@@ -180,22 +196,29 @@ module.exports = {
 			}
 		}
 
-		function isSpiceDBFieldInContext(expression, field) {
+		function fieldResolutionInContext(expression, field) {
+			let resolution = FIELD_RESOLUTION.unrelated;
 			for (let step = { expression, path: [field] }; step; step = enclosingStep(step)) {
 				const contextualType = checker.getContextualType(tsNodeOf(step.expression));
-				if (contextualType && resolvesToSpiceDBField(checker, contextualType, step.path)) {
-					return true;
+				const stepResolution = contextualType
+					? resolveSpiceDBField(checker, contextualType, step.path)
+					: FIELD_RESOLUTION.unrelated;
+				if (stepResolution === FIELD_RESOLUTION.spiceDB) {
+					return FIELD_RESOLUTION.spiceDB;
+				}
+				if (stepResolution === FIELD_RESOLUTION.unprovable) {
+					resolution = FIELD_RESOLUTION.unprovable;
 				}
 			}
 
-			return false;
+			return resolution;
 		}
 
 		function checkAgainstType(node, expectedType, path) {
 			const value = unwrapExpression(node);
 			switch (value.type) {
 				case 'Identifier': {
-					const initializer = constantInitializer(sourceCode, value);
+					const initializer = variableInitializer(sourceCode, value);
 					if (initializer) {
 						checkAgainstType(initializer, expectedType, path);
 					}
@@ -237,9 +260,12 @@ module.exports = {
 				}
 
 				const memberPath = [...path, name];
-				if (OBJECT_TYPE_FIELDS.has(name) && resolvesToSpiceDBField(checker, expectedType, memberPath)) {
+				const resolution = OBJECT_TYPE_FIELDS.has(name)
+					? resolveSpiceDBField(checker, expectedType, memberPath)
+					: FIELD_RESOLUTION.unrelated;
+				if (resolution !== FIELD_RESOLUTION.unrelated) {
 					if (!isNamespacedField(name, member.value)) {
-						report(member, name);
+						report(member, name, resolution);
 					}
 					continue;
 				}
@@ -257,8 +283,9 @@ module.exports = {
 				if (isNamespacedField(field, node.value)) {
 					return;
 				}
-				if (isSpiceDBFieldInContext(node.parent, field)) {
-					report(node, field);
+				const resolution = fieldResolutionInContext(node.parent, field);
+				if (resolution !== FIELD_RESOLUTION.unrelated) {
+					report(node, field, resolution);
 				}
 			},
 
@@ -295,8 +322,11 @@ module.exports = {
 				if (!OBJECT_TYPE_FIELDS.has(field) || isNamespacedField(field, node.right)) {
 					return;
 				}
-				if (resolvesToSpiceDBField(checker, checker.getTypeAtLocation(tsNodeOf(node.left.object)), [field])) {
-					report(node, field);
+				const resolution = resolveSpiceDBField(checker, checker.getTypeAtLocation(tsNodeOf(node.left.object)), [
+					field
+				]);
+				if (resolution !== FIELD_RESOLUTION.unrelated) {
+					report(node, field, resolution);
 				}
 			}
 		};

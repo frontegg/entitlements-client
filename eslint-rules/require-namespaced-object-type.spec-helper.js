@@ -5,10 +5,10 @@ const requireNamespacedObjectType = require('./require-namespaced-object-type');
 
 const RULE_NAME = 'require-namespaced-object-type';
 const FIXTURES_DIRECTORY = path.join(__dirname, 'fixtures');
-const LINTED_SOURCE = path.join(FIXTURES_DIRECTORY, 'linted-source.ts');
+const RULE_TESTER_ANCHOR = path.join(FIXTURES_DIRECTORY, 'rule-tester-anchor.ts');
 
-function asLintedSource(testCase) {
-	return { ...testCase, filename: LINTED_SOURCE };
+function anchoredInFixtures(testCase) {
+	return { ...testCase, filename: RULE_TESTER_ANCHOR };
 }
 
 function runRequireNamespacedObjectType({ valid, invalid }) {
@@ -20,8 +20,8 @@ function runRequireNamespacedObjectType({ valid, invalid }) {
 	});
 
 	ruleTester.run(RULE_NAME, requireNamespacedObjectType, {
-		valid: valid.map(asLintedSource),
-		invalid: invalid.map(asLintedSource)
+		valid: valid.map(anchoredInFixtures),
+		invalid: invalid.map(anchoredInFixtures)
 	});
 }
 
@@ -36,8 +36,8 @@ function lintWithoutTypeInformation(code) {
 				rules: { [`frontegg/${RULE_NAME}`]: 'error' }
 			}
 		],
-		LINTED_SOURCE
+		RULE_TESTER_ANCHOR
 	);
 }
 
-module.exports = { runRequireNamespacedObjectType, lintWithoutTypeInformation };
+module.exports = { RULE_TESTER_ANCHOR, runRequireNamespacedObjectType, lintWithoutTypeInformation };

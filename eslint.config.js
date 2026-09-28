@@ -43,6 +43,21 @@ module.exports = tseslint.config(
             },
         },
         {
+            files: ['eslint-rules/**/*.js'],
+            languageOptions: {
+                sourceType: 'commonjs',
+                globals: {
+                    __dirname: 'readonly',
+                    module: 'writable',
+                    require: 'readonly'
+                }
+            },
+            rules: {
+                '@typescript-eslint/explicit-function-return-type': 'off',
+                '@typescript-eslint/no-var-requires': 'off'
+            }
+        },
+        {
             files: ['src/**/*.ts'],
             ignores: ['**/*.spec.ts', '**/*spec-helper.ts'],
             languageOptions: {
