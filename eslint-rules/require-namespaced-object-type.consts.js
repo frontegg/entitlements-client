@@ -35,6 +35,10 @@ const TRANSPARENT_EXPRESSION_TYPES = new Set([
 
 const FUNCTION_TYPES = new Set(['ArrowFunctionExpression', 'FunctionExpression', 'FunctionDeclaration']);
 
+const UNRESOLVABLE_STEP = Object.freeze({ isResolvable: false });
+
+const UNRESOLVED_SELECTION = Object.freeze({ values: [], isExact: false });
+
 module.exports = {
 	OBJECT_TYPE_FIELDS,
 	OBJECT_TYPE_LIST_FIELDS,
@@ -45,5 +49,7 @@ module.exports = {
 	LIST_MAPPING_METHODS,
 	ARRAY_FACTORY,
 	TRANSPARENT_EXPRESSION_TYPES,
-	FUNCTION_TYPES
+	FUNCTION_TYPES,
+	UNRESOLVABLE_STEP,
+	UNRESOLVED_SELECTION
 };

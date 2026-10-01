@@ -215,6 +215,22 @@ runRequireNamespacedObjectType({
 			)
 		},
 		{
+			name: 'an object type destructured from a map of namespaced types',
+			code: source(
+				"const types = { document: namespace.type('document'), user: namespace.type('user') };",
+				'const { document: documentType } = types;',
+				"v1.ObjectReference.create({ objectType: documentType, objectId: '1' });"
+			)
+		},
+		{
+			name: 'a namespaced resource destructured from beside an unrelated raw object type',
+			code: source(
+				"const event = { objectType: 'audit', resource: { objectType: namespace.type('document'), objectId: '1' } };",
+				'const { resource } = event;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			)
+		},
+		{
 			name: 'an object type key inside a caveat context',
 			code: source(
 				"v1.CheckPermissionRequest.create({ context: v1.PbStruct.fromJson({ objectType: 'document' }) });"
@@ -404,6 +420,79 @@ runRequireNamespacedObjectType({
 			code: source(
 				"let subject = { object: { objectType: 'user', objectId: '2' }, optionalRelation: '' };",
 				"client.checkPermission(v1.CheckPermissionRequest.create({ permission: 'view', subject }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw resource taken out of a request by object destructuring',
+			code: source(
+				"const request = { resource: { objectType: 'document', objectId: '1' }, permission: 'view' };",
+				'const { resource } = request;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw resource taken out of a request under another name',
+			code: source(
+				"const request = { resource: { objectType: 'document', objectId: '1' }, permission: 'view' };",
+				'const { resource: documentResource } = request;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource: documentResource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw resource taken out of a nested destructuring pattern',
+			code: source(
+				"const envelope = { check: { resource: { objectType: 'document', objectId: '1' }, permission: 'view' } };",
+				'const { check: { resource } } = envelope;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw resource taken out of an array by position',
+			code: source(
+				"const requests = [{ resource: { objectType: 'document', objectId: '1' }, permission: 'view' }];",
+				'const [{ resource }] = requests;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw default for a destructured resource',
+			code: source(
+				"const request = { resource: { objectType: namespace.type('document'), objectId: '1' }, permission: 'view' };",
+				"const { resource = { objectType: 'document', objectId: '1' } } = request;",
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw source behind a namespaced default for a destructured resource',
+			code: source(
+				"const request = { resource: { objectType: 'document', objectId: '1' }, permission: 'view' };",
+				"const { resource = { objectType: namespace.type('document'), objectId: '1' } } = request;",
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw resource left in a rest element',
+			code: source(
+				"const envelope = { check: { resource: { objectType: 'document', objectId: '1' }, permission: 'view' } };",
+				'const { check: { permission, ...rest } } = envelope;',
+				'client.checkPermission(v1.CheckPermissionRequest.create({ ...rest, permission }));'
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw resource taken out under a computed key',
+			code: source(
+				"const request = { resource: { objectType: 'document', objectId: '1' }, permission: 'view' };",
+				"const field = 'resource';",
+				'const { [field]: resource } = request;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
 			),
 			errors: unnamespaced('objectType')
 		},
