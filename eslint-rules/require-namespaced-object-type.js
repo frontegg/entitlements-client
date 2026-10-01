@@ -10,11 +10,12 @@ const {
 const { MissingTypeInformationError } = require('./missing-type-information.error');
 const { isGenericCall, isSchemaNamespaceType, isSpiceDBType, resolveSpiceDBField } = require('./spicedb-type.utils');
 const {
-	constantInitializer,
+	boundValues,
+	constantSources,
 	enclosingFunction,
 	staticPropertyName,
 	unwrapExpression,
-	variableInitializer
+	variableSources
 } = require('./expression.utils');
 
 module.exports = {
@@ -79,11 +80,23 @@ module.exports = {
 				return everyValueBranch(value.left, isAccepted) && everyValueBranch(value.right, isAccepted);
 			}
 			if (value.type === 'Identifier') {
-				const initializer = constantInitializer(sourceCode, value);
-				return initializer !== undefined && everyValueBranch(initializer, isAccepted);
+				const bound = boundValues(value, constantSourcesOf);
+				return (
+					bound.isExact &&
+					bound.values.length > 0 &&
+					bound.values.every((branch) => everyValueBranch(branch, isAccepted))
+				);
 			}
 
 			return isAccepted(value);
+		}
+
+		function constantSourcesOf(identifier) {
+			return constantSources(sourceCode, identifier);
+		}
+
+		function variableSourcesOf(identifier) {
+			return variableSources(sourceCode, identifier);
 		}
 
 		function isNamespacedValue(node) {
@@ -217,13 +230,11 @@ module.exports = {
 		function checkAgainstType(node, expectedType, path) {
 			const value = unwrapExpression(node);
 			switch (value.type) {
-				case 'Identifier': {
-					const initializer = variableInitializer(sourceCode, value);
-					if (initializer) {
-						checkAgainstType(initializer, expectedType, path);
+				case 'Identifier':
+					for (const bound of boundValues(value, variableSourcesOf).values) {
+						checkAgainstType(bound, expectedType, path);
 					}
 					return;
-				}
 				case 'ConditionalExpression':
 					checkAgainstType(value.consequent, expectedType, path);
 					checkAgainstType(value.alternate, expectedType, path);
