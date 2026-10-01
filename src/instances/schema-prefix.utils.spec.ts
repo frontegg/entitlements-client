@@ -1,4 +1,4 @@
-import { deriveSchemaPrefix, isValidSchemaName } from './schema-prefix.utils';
+import { deriveSchemaPrefix, isValidSchemaName, isValidSchemaPrefix } from './schema-prefix.utils';
 
 describe('schema-prefix', () => {
 	describe(deriveSchemaPrefix.name, () => {
@@ -36,17 +36,34 @@ describe('schema-prefix', () => {
 		});
 	});
 
-	describe(isValidSchemaName.name, () => {
+	describe(isValidSchemaPrefix.name, () => {
 		it('should accept a uuid-derived prefix', () => {
-			expect(isValidSchemaName('v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b')).toBe(true);
+			expect(isValidSchemaPrefix('v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b')).toBe(true);
 		});
 
 		it('should accept the longest prefix SpiceDB allows before the separator', () => {
-			expect(isValidSchemaName(`v${'a'.repeat(62)}`)).toBe(true);
+			expect(isValidSchemaPrefix(`v${'a'.repeat(62)}`)).toBe(true);
 		});
 
 		it('should reject a prefix one character too long for SpiceDB', () => {
-			expect(isValidSchemaName(`v${'a'.repeat(63)}`)).toBe(false);
+			expect(isValidSchemaPrefix(`v${'a'.repeat(63)}`)).toBe(false);
+		});
+
+		it.each([[''], ['V_UPPER'], ['_leading_underscore'], ['has/slash'], ['ends_with_'], ['ab']])(
+			'should reject %j',
+			(prefix) => {
+				expect(isValidSchemaPrefix(prefix)).toBe(false);
+			}
+		);
+	});
+
+	describe(isValidSchemaName.name, () => {
+		it('should accept the longest name SpiceDB allows after the separator', () => {
+			expect(isValidSchemaName(`d${'a'.repeat(63)}`)).toBe(true);
+		});
+
+		it('should reject a name one character too long for SpiceDB', () => {
+			expect(isValidSchemaName(`d${'a'.repeat(64)}`)).toBe(false);
 		});
 
 		it.each([
@@ -58,8 +75,8 @@ describe('schema-prefix', () => {
 			['ends_with_'],
 			['ab'],
 			['a-b']
-		])('should reject %j', (prefix) => {
-			expect(isValidSchemaName(prefix)).toBe(false);
+		])('should reject %j', (name) => {
+			expect(isValidSchemaName(name)).toBe(false);
 		});
 	});
 });
