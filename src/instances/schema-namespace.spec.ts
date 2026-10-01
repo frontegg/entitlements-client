@@ -5,7 +5,11 @@ import { CallerInputException } from '../exceptions/caller-input.exception';
 
 const PREFIX = 'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b';
 
-const INVALID_OBJECT_TYPES = [['Document'], ['my-entity'], ['1document'], [''], ['a'], ['a'.repeat(64)]];
+const INVALID_OBJECT_TYPES = [['Document'], ['my-entity'], ['1document'], [''], ['a'], ['a'.repeat(65)]];
+
+const LONGEST_NAME = 'a'.repeat(64);
+
+const LONGEST_PREFIX_SEGMENT = 'a'.repeat(63);
 
 describe(SchemaNamespace.name, () => {
 	describe('prefixed namespace', () => {
@@ -19,6 +23,36 @@ describe(SchemaNamespace.name, () => {
 
 		it('should prefix an object type', () => {
 			expect(namespace.type('frontegg_feature')).toBe(`${PREFIX}/frontegg_feature`);
+		});
+
+		it('should accept the longest object type name SpiceDB allows', () => {
+			expect(namespace.type(LONGEST_NAME)).toBe(`${PREFIX}/${LONGEST_NAME}`);
+		});
+
+		it('should accept the longest object type name behind a short prefix', () => {
+			expect(SchemaNamespace.prefixed('v_abc', 'eu').type(LONGEST_NAME)).toBe(`v_abc/${LONGEST_NAME}`);
+		});
+
+		it('should name the object type bound when the name is one character too long', () => {
+			expect(() => namespace.type(`${LONGEST_NAME}a`)).toThrow(
+				`Object type '${LONGEST_NAME}a' is not a valid SpiceDB name; expected 3 to 64 characters`
+			);
+		});
+
+		it('should accept the longest schema prefix SpiceDB allows', () => {
+			const longest = `v_${'a'.repeat(61)}`;
+
+			expect(SchemaNamespace.prefixed(longest, 'eu').type('document')).toBe(`${longest}/document`);
+		});
+
+		it('should refuse a schema prefix one character too long and name the prefix bound', () => {
+			const tooLong = `v_${'a'.repeat(62)}`;
+			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(tooLong, 'eu');
+
+			expect(construct).toThrow(ConfigurationInputIsInvalidException);
+			expect(construct).toThrow(
+				`Invalid schema prefix '${tooLong}' for instance 'eu'; expected 3 to 63 characters`
+			);
 		});
 
 		it('should reject an object type that already contains a prefix separator', () => {
@@ -105,5 +139,50 @@ describe(SchemaNamespace.name, () => {
 		it('should reject a malformed name behind a valid legacy prefix', () => {
 			expect(() => namespace.type('acme/Document')).toThrow(InvalidObjectTypeException);
 		});
+
+		it('should accept the longest object type name SpiceDB allows', () => {
+			expect(namespace.type(LONGEST_NAME)).toBe(LONGEST_NAME);
+		});
+
+		it('should accept the longest object type name behind a legacy prefix', () => {
+			expect(namespace.type(`acme/${LONGEST_NAME}`)).toBe(`acme/${LONGEST_NAME}`);
+		});
+
+		it('should accept the longest prefix segment SpiceDB allows', () => {
+			expect(namespace.type(`${LONGEST_PREFIX_SEGMENT}/document`)).toBe(`${LONGEST_PREFIX_SEGMENT}/document`);
+		});
+
+		it('should accept a path of several prefix segments', () => {
+			expect(namespace.type('acme/billing/document')).toBe('acme/billing/document');
+		});
+
+		it('should reject a name one character too long behind a legacy prefix and name the name bound', () => {
+			const objectType = `acme/${LONGEST_NAME}a`;
+			const type = (): string => namespace.type(objectType);
+
+			expect(type).toThrow(InvalidObjectTypeException);
+			expect(type).toThrow(
+				`Object type '${objectType}' is not a valid SpiceDB name; its name '${LONGEST_NAME}a' must be 3 to 64 characters`
+			);
+		});
+
+		it.each([[`${LONGEST_PREFIX_SEGMENT}a/document`], [`acme/${LONGEST_PREFIX_SEGMENT}a/document`]])(
+			'should reject %j because a prefix segment is one character too long, and name the prefix bound',
+			(objectType) => {
+				const type = (): string => namespace.type(objectType);
+
+				expect(type).toThrow(InvalidObjectTypeException);
+				expect(type).toThrow(
+					`Object type '${objectType}' is not a valid SpiceDB name; its prefix '${LONGEST_PREFIX_SEGMENT}a' must be 3 to 63 characters`
+				);
+			}
+		);
+
+		it.each([['/document'], ['acme/'], ['acme//document']])(
+			'should reject the empty segment in %j',
+			(objectType) => {
+				expect(() => namespace.type(objectType)).toThrow(InvalidObjectTypeException);
+			}
+		);
 	});
 });
