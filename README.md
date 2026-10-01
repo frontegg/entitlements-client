@@ -108,8 +108,9 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
   whose prefix starts with the reserved vendor prefix `v_`, such as `v_acme/document`, which
   throws `InvalidObjectTypeException`, so a legacy client can never address a vendor's namespace
   on a shared SpiceDB.
-- In both modes an object type must be a valid SpiceDB name: 3 to 63 characters, starting with
-  `a-z`, containing only `a-z`, `0-9` and `_`, and ending with `a-z` or `0-9`. Anything else,
+- In both modes an object type must be a valid SpiceDB name: 3 to 64 characters, starting with
+  `a-z`, containing only `a-z`, `0-9` and `_`, and ending with `a-z` or `0-9`. In legacy mode
+  each prefix before a `/` follows the same rules but is at most 63 characters. Anything else,
   such as `Document`, `my-entity` or `a`, throws `InvalidObjectTypeException` instead of
   reaching SpiceDB as a parse error.
 - Log payloads carry the resolved `instanceId` (`legacy` when no `instances` are configured).
