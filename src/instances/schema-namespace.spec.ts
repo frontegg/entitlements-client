@@ -1,4 +1,5 @@
 import { SchemaNamespace } from './schema-namespace';
+import { OBJECT_TYPE_RULE } from './instance.constants';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 import { CallerInputException } from '../exceptions/caller-input.exception';
@@ -15,12 +16,9 @@ const SYNCER_ACCEPTED_TYPE_PATHS = [['document'], ['acme/document'], ['acme/bill
 
 const SYNCER_REJECTED_TYPE_PATHS = [
 	['v_x/a/b', "Object type 'v_x/a/b' must not start with the reserved vendor schema prefix 'v_'."],
-	[
-		'acme//document',
-		"Object type 'acme//document' is not a valid SpiceDB name; its prefix '' must be 3 to 63 characters"
-	],
-	['/document', "Object type '/document' is not a valid SpiceDB name; its prefix '' must be 3 to 63 characters"],
-	['document/', "Object type 'document/' is not a valid SpiceDB name; its name '' must be 3 to 64 characters"]
+	['acme//document', `Object type 'acme//document' is not ${OBJECT_TYPE_RULE}`],
+	['/document', `Object type '/document' is not ${OBJECT_TYPE_RULE}`],
+	['document/', `Object type 'document/' is not ${OBJECT_TYPE_RULE}`]
 ];
 
 describe(SchemaNamespace.name, () => {
@@ -45,9 +43,9 @@ describe(SchemaNamespace.name, () => {
 			expect(SchemaNamespace.prefixed('v_abc', 'eu').type(LONGEST_NAME)).toBe(`v_abc/${LONGEST_NAME}`);
 		});
 
-		it('should name the object type bound when the name is one character too long', () => {
+		it('should name the object type and link the SpiceDB naming rules when the name is one character too long', () => {
 			expect(() => namespace.type(`${LONGEST_NAME}a`)).toThrow(
-				`Object type '${LONGEST_NAME}a' is not a valid SpiceDB name; expected 3 to 64 characters`
+				`Object type '${LONGEST_NAME}a' is not a valid SpiceDB object type; see https://authzed.com/docs/spicedb/concepts/schema#identifier-rules`
 			);
 		});
 
@@ -57,13 +55,13 @@ describe(SchemaNamespace.name, () => {
 			expect(SchemaNamespace.prefixed(longest, 'eu').type('document')).toBe(`${longest}/document`);
 		});
 
-		it('should refuse a schema prefix one character too long and name the prefix bound', () => {
+		it('should refuse a schema prefix one character too long and link the SpiceDB naming rules', () => {
 			const tooLong = `v_${'a'.repeat(62)}`;
 			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(tooLong, 'eu');
 
 			expect(construct).toThrow(ConfigurationInputIsInvalidException);
 			expect(construct).toThrow(
-				`Invalid schema prefix '${tooLong}' for instance 'eu'; expected 3 to 63 characters`
+				`Invalid schema prefix '${tooLong}' for instance 'eu'; expected a valid SpiceDB object type prefix; see https://authzed.com/docs/spicedb/concepts/schema#identifier-rules`
 			);
 		});
 
@@ -89,7 +87,7 @@ describe(SchemaNamespace.name, () => {
 
 			expect(type).toThrow(InvalidObjectTypeException);
 			expect(type).toThrow(expect.any(CallerInputException));
-			expect(type).toThrow(`Object type '${objectType}' is not a valid SpiceDB name`);
+			expect(type).toThrow(`Object type '${objectType}' is not ${OBJECT_TYPE_RULE}`);
 			expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
 		});
 
@@ -159,7 +157,7 @@ describe(SchemaNamespace.name, () => {
 
 			expect(type).toThrow(InvalidObjectTypeException);
 			expect(type).toThrow(expect.any(CallerInputException));
-			expect(type).toThrow(`Object type '${objectType}' is not a valid SpiceDB name`);
+			expect(type).toThrow(`Object type '${objectType}' is not ${OBJECT_TYPE_RULE}`);
 			expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
 		});
 
@@ -179,25 +177,21 @@ describe(SchemaNamespace.name, () => {
 			expect(namespace.type(`${LONGEST_PREFIX_SEGMENT}/document`)).toBe(`${LONGEST_PREFIX_SEGMENT}/document`);
 		});
 
-		it('should reject a name one character too long behind a legacy prefix and name the name bound', () => {
+		it('should reject a name one character too long behind a legacy prefix and name the object type', () => {
 			const objectType = `acme/${LONGEST_NAME}a`;
 			const type = (): string => namespace.type(objectType);
 
 			expect(type).toThrow(InvalidObjectTypeException);
-			expect(type).toThrow(
-				`Object type '${objectType}' is not a valid SpiceDB name; its name '${LONGEST_NAME}a' must be 3 to 64 characters`
-			);
+			expect(type).toThrow(`Object type '${objectType}' is not ${OBJECT_TYPE_RULE}`);
 		});
 
 		it.each([[`${LONGEST_PREFIX_SEGMENT}a/document`], [`acme/${LONGEST_PREFIX_SEGMENT}a/document`]])(
-			'should reject %j because a prefix segment is one character too long, and name the prefix bound',
+			'should reject %j because a prefix segment is one character too long, and name the object type',
 			(objectType) => {
 				const type = (): string => namespace.type(objectType);
 
 				expect(type).toThrow(InvalidObjectTypeException);
-				expect(type).toThrow(
-					`Object type '${objectType}' is not a valid SpiceDB name; its prefix '${LONGEST_PREFIX_SEGMENT}a' must be 3 to 63 characters`
-				);
+				expect(type).toThrow(`Object type '${objectType}' is not ${OBJECT_TYPE_RULE}`);
 			}
 		);
 	});

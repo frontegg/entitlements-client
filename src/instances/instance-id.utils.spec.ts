@@ -1,5 +1,5 @@
 import { isValidInstanceId } from './instance-id.utils';
-import { isValidSchemaName } from './schema-prefix.utils';
+import { SPICEDB_OBJECT_TYPE } from './instance.constants';
 
 const SEPARATOR = '_';
 
@@ -20,7 +20,7 @@ describe(isValidInstanceId.name, () => {
 
 	describe('joined with an object type by an underscore', () => {
 		it('should build a distinct key for every pair of a valid instanceId and a valid object type', () => {
-			VALID_OBJECT_TYPES.forEach((objectType) => expect(isValidSchemaName(objectType)).toBe(true));
+			VALID_OBJECT_TYPES.forEach((objectType) => expect(SPICEDB_OBJECT_TYPE.test(objectType)).toBe(true));
 
 			const keys = VALID_INSTANCE_IDS.flatMap((instanceId) =>
 				VALID_OBJECT_TYPES.map((objectType) => joinWithSeparator(instanceId, objectType))
@@ -44,8 +44,8 @@ describe(isValidInstanceId.name, () => {
 		it('should refuse the instanceId that would collide with another instance through its object type', () => {
 			expect(joinWithSeparator('a', 'bbb_ccc')).toBe(joinWithSeparator('a_bbb', 'ccc'));
 			expect(isValidInstanceId('a')).toBe(true);
-			expect(isValidSchemaName('bbb_ccc')).toBe(true);
-			expect(isValidSchemaName('ccc')).toBe(true);
+			expect(SPICEDB_OBJECT_TYPE.test('bbb_ccc')).toBe(true);
+			expect(SPICEDB_OBJECT_TYPE.test('ccc')).toBe(true);
 			expect(isValidInstanceId('a_bbb')).toBe(false);
 		});
 	});

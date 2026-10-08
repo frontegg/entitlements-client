@@ -1,4 +1,6 @@
-import { deriveSchemaPrefix, isValidSchemaName, isValidSchemaPrefix } from './schema-prefix.utils';
+import { v1 } from '@authzed/authzed-node';
+import { SCHEMA_PREFIX, SPICEDB_OBJECT_TYPE } from './instance.constants';
+import { deriveSchemaPrefix } from './schema-prefix.utils';
 
 describe('schema-prefix', () => {
 	describe(deriveSchemaPrefix.name, () => {
@@ -36,47 +38,56 @@ describe('schema-prefix', () => {
 		});
 	});
 
-	describe(isValidSchemaPrefix.name, () => {
+	describe('SCHEMA_PREFIX', () => {
 		it('should accept a uuid-derived prefix', () => {
-			expect(isValidSchemaPrefix('v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b')).toBe(true);
+			expect(SCHEMA_PREFIX.test('v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b')).toBe(true);
 		});
 
 		it('should accept the longest prefix SpiceDB allows before the separator', () => {
-			expect(isValidSchemaPrefix(`v${'a'.repeat(62)}`)).toBe(true);
+			expect(SCHEMA_PREFIX.test(`v${'a'.repeat(62)}`)).toBe(true);
 		});
 
 		it('should reject a prefix one character too long for SpiceDB', () => {
-			expect(isValidSchemaPrefix(`v${'a'.repeat(63)}`)).toBe(false);
+			expect(SCHEMA_PREFIX.test(`v${'a'.repeat(63)}`)).toBe(false);
 		});
 
 		it.each([[''], ['V_UPPER'], ['_leading_underscore'], ['has/slash'], ['ends_with_'], ['ab']])(
 			'should reject %j',
 			(prefix) => {
-				expect(isValidSchemaPrefix(prefix)).toBe(false);
+				expect(SCHEMA_PREFIX.test(prefix)).toBe(false);
 			}
 		);
 	});
 
-	describe(isValidSchemaName.name, () => {
+	describe('SPICEDB_OBJECT_TYPE', () => {
+		it('should be the object type pattern authzed-node publishes for SpiceDB', () => {
+			const objectType = v1.ObjectReference.fields.find((field) => field.name === 'object_type');
+			const publishedPattern = SPICEDB_OBJECT_TYPE.source.split('\\/').join('/');
+
+			expect(objectType?.options).toMatchObject({
+				'buf.validate.field': { string: { pattern: publishedPattern } },
+				'validate.rules': { string: { pattern: publishedPattern } }
+			});
+		});
+
 		it('should accept the longest name SpiceDB allows after the separator', () => {
-			expect(isValidSchemaName(`d${'a'.repeat(63)}`)).toBe(true);
+			expect(SPICEDB_OBJECT_TYPE.test(`d${'a'.repeat(63)}`)).toBe(true);
 		});
 
 		it('should reject a name one character too long for SpiceDB', () => {
-			expect(isValidSchemaName(`d${'a'.repeat(64)}`)).toBe(false);
+			expect(SPICEDB_OBJECT_TYPE.test(`d${'a'.repeat(64)}`)).toBe(false);
 		});
 
-		it.each([
-			[''],
-			['V_UPPER'],
-			['_leading_underscore'],
-			['1leading_digit'],
-			['has/slash'],
-			['ends_with_'],
-			['ab'],
-			['a-b']
-		])('should reject %j', (name) => {
-			expect(isValidSchemaName(name)).toBe(false);
+		it('should read a slash as the end of a prefix, not as part of a name', () => {
+			expect(SPICEDB_OBJECT_TYPE.test('has/slash')).toBe(true);
+			expect(SPICEDB_OBJECT_TYPE.test('ha/slash')).toBe(false);
 		});
+
+		it.each([[''], ['V_UPPER'], ['_leading_underscore'], ['1leading_digit'], ['ends_with_'], ['ab'], ['a-b']])(
+			'should reject %j',
+			(name) => {
+				expect(SPICEDB_OBJECT_TYPE.test(name)).toBe(false);
+			}
+		);
 	});
 });
