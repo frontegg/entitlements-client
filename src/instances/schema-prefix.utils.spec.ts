@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { v1 } from '@authzed/authzed-node';
 import { SCHEMA_PREFIX, SPICEDB_OBJECT_TYPE } from './instance.constants';
 import { deriveSchemaPrefix } from './schema-prefix.utils';
@@ -5,9 +6,9 @@ import { deriveSchemaPrefix } from './schema-prefix.utils';
 describe('schema-prefix', () => {
 	describe(deriveSchemaPrefix.name, () => {
 		it('should derive a prefix from a lowercase uuid vendorId', () => {
-			expect(deriveSchemaPrefix('2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b')).toBe(
-				'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b'
-			);
+			const vendorId = randomUUID();
+
+			expect(deriveSchemaPrefix(vendorId)).toBe(`v_${vendorId.split('-').join('_')}`);
 		});
 
 		it('should derive a prefix from a lowercase non-uuid vendorId', () => {
@@ -23,7 +24,7 @@ describe('schema-prefix', () => {
 		});
 
 		it.each([
-			['an uppercase uuid', '2F9C1A44-7B0E-4A1E-9F8A-1C2D3E4F5A6B'],
+			['an uppercase uuid', randomUUID().toUpperCase()],
 			['an uppercase letter', 'Acme-corp'],
 			['an underscore', 'acme_corp'],
 			['a slash', 'has/slash'],
@@ -40,7 +41,7 @@ describe('schema-prefix', () => {
 
 	describe('SCHEMA_PREFIX', () => {
 		it('should accept a uuid-derived prefix', () => {
-			expect(SCHEMA_PREFIX.test('v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b')).toBe(true);
+			expect(SCHEMA_PREFIX.test(`v_${randomUUID().split('-').join('_')}`)).toBe(true);
 		});
 
 		it('should accept the longest prefix SpiceDB allows before the separator', () => {

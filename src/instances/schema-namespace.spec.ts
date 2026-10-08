@@ -1,10 +1,13 @@
+import { randomUUID } from 'node:crypto';
 import { SchemaNamespace } from './schema-namespace';
 import { OBJECT_TYPE_RULE } from './instance.constants';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { InvalidObjectTypeException } from '../exceptions/invalid-object-type.exception';
 import { CallerInputException } from '../exceptions/caller-input.exception';
 
-const PREFIX = 'v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b';
+const INSTANCE_ID = randomUUID();
+
+const PREFIX = `v_${randomUUID().split('-').join('_')}`;
 
 const INVALID_OBJECT_TYPES = [['Document'], ['my-entity'], ['1document'], [''], ['a'], ['a'.repeat(65)]];
 
@@ -23,12 +26,12 @@ const SYNCER_REJECTED_TYPE_PATHS = [
 
 describe(SchemaNamespace.name, () => {
 	describe('prefixed namespace', () => {
-		const namespace = SchemaNamespace.prefixed(PREFIX, 'eu');
+		const namespace = SchemaNamespace.prefixed(PREFIX, INSTANCE_ID);
 
 		it('should report it is not legacy', () => {
 			expect(namespace.isLegacy).toBe(false);
 			expect(namespace.schemaPrefix).toBe(PREFIX);
-			expect(namespace.instanceId).toBe('eu');
+			expect(namespace.instanceId).toBe(INSTANCE_ID);
 		});
 
 		it('should prefix an object type', () => {
@@ -40,7 +43,7 @@ describe(SchemaNamespace.name, () => {
 		});
 
 		it('should accept the longest object type name behind a short prefix', () => {
-			expect(SchemaNamespace.prefixed('v_abc', 'eu').type(LONGEST_NAME)).toBe(`v_abc/${LONGEST_NAME}`);
+			expect(SchemaNamespace.prefixed('v_abc', INSTANCE_ID).type(LONGEST_NAME)).toBe(`v_abc/${LONGEST_NAME}`);
 		});
 
 		it('should name the object type and link the SpiceDB naming rules when the name is one character too long', () => {
@@ -52,16 +55,16 @@ describe(SchemaNamespace.name, () => {
 		it('should accept the longest schema prefix SpiceDB allows', () => {
 			const longest = `v_${'a'.repeat(61)}`;
 
-			expect(SchemaNamespace.prefixed(longest, 'eu').type('document')).toBe(`${longest}/document`);
+			expect(SchemaNamespace.prefixed(longest, INSTANCE_ID).type('document')).toBe(`${longest}/document`);
 		});
 
 		it('should refuse a schema prefix one character too long and link the SpiceDB naming rules', () => {
 			const tooLong = `v_${'a'.repeat(62)}`;
-			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(tooLong, 'eu');
+			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(tooLong, INSTANCE_ID);
 
 			expect(construct).toThrow(ConfigurationInputIsInvalidException);
 			expect(construct).toThrow(
-				`Invalid schema prefix '${tooLong}' for instance 'eu'; expected a valid SpiceDB object type prefix; see https://authzed.com/docs/spicedb/concepts/schema#identifier-rules`
+				`Invalid schema prefix '${tooLong}' for instance '${INSTANCE_ID}'; expected a valid SpiceDB object type prefix; see https://authzed.com/docs/spicedb/concepts/schema#identifier-rules`
 			);
 		});
 
@@ -92,10 +95,10 @@ describe(SchemaNamespace.name, () => {
 		});
 
 		it.each([[''], ['V_UPPER'], ['has/slash'], ['ends_with_']])('should refuse the schema prefix %j', (prefix) => {
-			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(prefix, 'eu');
+			const construct = (): SchemaNamespace => SchemaNamespace.prefixed(prefix, INSTANCE_ID);
 
 			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow(`Invalid schema prefix '${prefix}' for instance 'eu'`);
+			expect(construct).toThrow(`Invalid schema prefix '${prefix}' for instance '${INSTANCE_ID}'`);
 		});
 	});
 

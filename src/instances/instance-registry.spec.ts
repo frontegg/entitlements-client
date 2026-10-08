@@ -1,11 +1,17 @@
+import { randomUUID } from 'node:crypto';
 import { InstanceRegistry } from './instance-registry';
 import { LEGACY_INSTANCE_ID } from './instance.constants';
 import { InstanceConfiguration } from './instance.types';
 import { ConfigurationInputIsInvalidException } from '../exceptions/configuration-input-is-invalid.exception';
 import { ConfigurationInputIsMissingException } from '../exceptions/configuration-input-is-missing.exception';
 
-const VENDOR_A = '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b';
-const VENDOR_B = '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f';
+const VENDOR_A = randomUUID();
+const VENDOR_B = randomUUID();
+const INSTANCE_A = randomUUID();
+const INSTANCE_B = randomUUID();
+const UNKNOWN_INSTANCE = randomUUID();
+
+const prefixOf = (vendorId: string): string => `v_${vendorId.split('-').join('_')}`;
 
 describe(InstanceRegistry.name, () => {
 	describe('legacy', () => {
@@ -29,10 +35,10 @@ describe(InstanceRegistry.name, () => {
 		});
 
 		it('should say no instances are configured when a defaultInstanceId is set without instances', () => {
-			const construct = (): InstanceRegistry => new InstanceRegistry({ defaultInstanceId: 'eu' });
+			const construct = (): InstanceRegistry => new InstanceRegistry({ defaultInstanceId: INSTANCE_A });
 
 			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow("defaultInstanceId 'eu' is set but no instances are configured");
+			expect(construct).toThrow(`defaultInstanceId '${INSTANCE_A}' is set but no instances are configured`);
 		});
 	});
 
@@ -40,40 +46,44 @@ describe(InstanceRegistry.name, () => {
 		it('should derive a schema prefix from each vendorId', () => {
 			const registry = new InstanceRegistry({
 				instances: [
-					{ instanceId: 'a', vendorId: VENDOR_A },
-					{ instanceId: 'b', vendorId: VENDOR_B }
+					{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+					{ instanceId: INSTANCE_B, vendorId: VENDOR_B }
 				]
 			});
 
-			expect(registry.get('a')?.namespace.schemaPrefix).toBe('v_2f9c1a44_7b0e_4a1e_9f8a_1c2d3e4f5a6b');
-			expect(registry.get('b')?.namespace.schemaPrefix).toBe('v_8b1d0e77_3c5a_4f2b_9d6e_7a8b9c0d1e2f');
+			expect(registry.get(INSTANCE_A)?.namespace.schemaPrefix).toBe(prefixOf(VENDOR_A));
+			expect(registry.get(INSTANCE_B)?.namespace.schemaPrefix).toBe(prefixOf(VENDOR_B));
 		});
 
 		it.each([
 			['an uppercase letter', 'ACME-CORP'],
-			['an uppercase uuid', '2F9C1A44-7B0E-4A1E-9F8A-1C2D3E4F5A6B'],
-			['an underscore', 'acme_corp'],
-			['a space', 'acme corp'],
-			['a non-ascii letter', 'acmé-corp'],
-			['a trailing dash', 'acme-']
+			['an uppercase uuid', VENDOR_A.toUpperCase()],
+			['an underscore', VENDOR_A.split('-').join('_')],
+			['a space', VENDOR_A.split('-').join(' ')],
+			['a non-ascii letter', `${VENDOR_A}é`],
+			['a trailing dash', `${VENDOR_A}-`]
 		])('should reject a vendorId with %s because it cannot become a SpiceDB prefix', (_case, vendorId) => {
 			const construct = (): InstanceRegistry =>
-				new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId }] });
+				new InstanceRegistry({ instances: [{ instanceId: INSTANCE_A, vendorId }] });
 
 			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow(`vendorId '${vendorId}' for instance 'a' cannot become a SpiceDB schema prefix`);
+			expect(construct).toThrow(
+				`vendorId '${vendorId}' for instance '${INSTANCE_A}' cannot become a SpiceDB schema prefix`
+			);
 		});
 
 		it('should reject an invalid vendorId before reporting a duplicate instanceId', () => {
 			const construct = (): InstanceRegistry =>
 				new InstanceRegistry({
 					instances: [
-						{ instanceId: 'a', vendorId: VENDOR_A },
-						{ instanceId: 'a', vendorId: 'ACME' }
+						{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+						{ instanceId: INSTANCE_A, vendorId: VENDOR_B.toUpperCase() }
 					]
 				});
 
-			expect(construct).toThrow("vendorId 'ACME' for instance 'a' cannot become a SpiceDB schema prefix");
+			expect(construct).toThrow(
+				`vendorId '${VENDOR_B.toUpperCase()}' for instance '${INSTANCE_A}' cannot become a SpiceDB schema prefix`
+			);
 		});
 
 		it('should reject a vendorId that would alias the prefix another vendorId derives', () => {
@@ -81,11 +91,13 @@ describe(InstanceRegistry.name, () => {
 				() =>
 					new InstanceRegistry({
 						instances: [
-							{ instanceId: 'a', vendorId: 'acme-corp' },
-							{ instanceId: 'b', vendorId: 'acme_corp' }
+							{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+							{ instanceId: INSTANCE_B, vendorId: VENDOR_A.split('-').join('_') }
 						]
 					})
-			).toThrow("vendorId 'acme_corp' for instance 'b' cannot become a SpiceDB schema prefix");
+			).toThrow(
+				`vendorId '${VENDOR_A.split('-').join('_')}' for instance '${INSTANCE_B}' cannot become a SpiceDB schema prefix`
+			);
 		});
 	});
 
@@ -99,7 +111,7 @@ describe(InstanceRegistry.name, () => {
 			[
 				'by position alone',
 				[
-					{ instanceId: 'a', vendorId: VENDOR_A },
+					{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
 					{ instanceId: '', vendorId: '' }
 				],
 				'instanceId is required for instances[1]'
@@ -141,7 +153,7 @@ describe(InstanceRegistry.name, () => {
 			const construct = (): InstanceRegistry =>
 				new InstanceRegistry({
 					instances: [
-						{ instanceId: 'a', vendorId: VENDOR_A },
+						{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
 						{ instanceId, vendorId: VENDOR_B }
 					]
 				});
@@ -194,7 +206,7 @@ describe(InstanceRegistry.name, () => {
 		});
 
 		it('should throw on a missing vendorId', () => {
-			expect(() => new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId: '' }] })).toThrow(
+			expect(() => new InstanceRegistry({ instances: [{ instanceId: INSTANCE_A, vendorId: '' }] })).toThrow(
 				ConfigurationInputIsMissingException
 			);
 		});
@@ -202,15 +214,15 @@ describe(InstanceRegistry.name, () => {
 		it.each([
 			[
 				'instanceId',
-				{ instanceId: 'a', vendorId: VENDOR_A },
-				{ instanceId: 'a', vendorId: VENDOR_B },
-				"Duplicate instanceId 'a'"
+				{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+				{ instanceId: INSTANCE_A, vendorId: VENDOR_B },
+				`Duplicate instanceId '${INSTANCE_A}'`
 			],
 			[
 				'vendorId',
-				{ instanceId: 'a', vendorId: VENDOR_A },
-				{ instanceId: 'b', vendorId: VENDOR_A },
-				`Duplicate vendorId '${VENDOR_A}' on instances 'a' and 'b'`
+				{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+				{ instanceId: INSTANCE_B, vendorId: VENDOR_A },
+				`Duplicate vendorId '${VENDOR_A}' on instances '${INSTANCE_A}' and '${INSTANCE_B}'`
 			]
 		])('should throw on a duplicate %s', (_field, first, second, message) => {
 			const construct = (): InstanceRegistry => new InstanceRegistry({ instances: [first, second] });
@@ -221,60 +233,65 @@ describe(InstanceRegistry.name, () => {
 	});
 
 	describe('defaultInstanceId', () => {
-		it.each([['missing'], ['']])('should throw when defaultInstanceId %j is not a configured instance', (id) => {
-			const construct = (): InstanceRegistry =>
-				new InstanceRegistry({
-					instances: [
-						{ instanceId: 'a', vendorId: VENDOR_A },
-						{ instanceId: 'b', vendorId: VENDOR_B }
-					],
-					defaultInstanceId: id
-				});
+		it.each([[UNKNOWN_INSTANCE], ['']])(
+			'should throw when defaultInstanceId %j is not a configured instance',
+			(id) => {
+				const construct = (): InstanceRegistry =>
+					new InstanceRegistry({
+						instances: [
+							{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+							{ instanceId: INSTANCE_B, vendorId: VENDOR_B }
+						],
+						defaultInstanceId: id
+					});
 
-			expect(construct).toThrow(ConfigurationInputIsInvalidException);
-			expect(construct).toThrow(`defaultInstanceId '${id}' is not one of the configured instances: a, b`);
-		});
+				expect(construct).toThrow(ConfigurationInputIsInvalidException);
+				expect(construct).toThrow(
+					`defaultInstanceId '${id}' is not one of the configured instances: ${INSTANCE_A}, ${INSTANCE_B}`
+				);
+			}
+		);
 
 		it('should make the default the implicit instance', () => {
 			const registry = new InstanceRegistry({
 				instances: [
-					{ instanceId: 'a', vendorId: VENDOR_A },
-					{ instanceId: 'b', vendorId: VENDOR_B }
+					{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+					{ instanceId: INSTANCE_B, vendorId: VENDOR_B }
 				],
-				defaultInstanceId: 'b'
+				defaultInstanceId: INSTANCE_B
 			});
 
-			expect(registry.implicitInstance?.instanceId).toBe('b');
+			expect(registry.implicitInstance?.instanceId).toBe(INSTANCE_B);
 		});
 
 		it('should make a single instance the implicit instance without a default', () => {
-			const registry = new InstanceRegistry({ instances: [{ instanceId: 'a', vendorId: VENDOR_A }] });
+			const registry = new InstanceRegistry({ instances: [{ instanceId: INSTANCE_A, vendorId: VENDOR_A }] });
 
-			expect(registry.implicitInstance?.instanceId).toBe('a');
+			expect(registry.implicitInstance?.instanceId).toBe(INSTANCE_A);
 		});
 
 		it('should treat a null defaultInstanceId as unset', () => {
 			const single = new InstanceRegistry({
-				instances: [{ instanceId: 'a', vendorId: VENDOR_A }],
+				instances: [{ instanceId: INSTANCE_A, vendorId: VENDOR_A }],
 				defaultInstanceId: null
 			});
 			const pair = new InstanceRegistry({
 				instances: [
-					{ instanceId: 'a', vendorId: VENDOR_A },
-					{ instanceId: 'b', vendorId: VENDOR_B }
+					{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+					{ instanceId: INSTANCE_B, vendorId: VENDOR_B }
 				],
 				defaultInstanceId: null
 			});
 
-			expect(single.implicitInstance?.instanceId).toBe('a');
+			expect(single.implicitInstance?.instanceId).toBe(INSTANCE_A);
 			expect(pair.implicitInstance).toBeUndefined();
 		});
 
 		it('should have no implicit instance when several are configured without a default', () => {
 			const registry = new InstanceRegistry({
 				instances: [
-					{ instanceId: 'a', vendorId: VENDOR_A },
-					{ instanceId: 'b', vendorId: VENDOR_B }
+					{ instanceId: INSTANCE_A, vendorId: VENDOR_A },
+					{ instanceId: INSTANCE_B, vendorId: VENDOR_B }
 				]
 			});
 
