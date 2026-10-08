@@ -11,6 +11,18 @@ const LONGEST_NAME = 'a'.repeat(64);
 
 const LONGEST_PREFIX_SEGMENT = 'a'.repeat(63);
 
+const SYNCER_ACCEPTED_TYPE_PATHS = [['document'], ['acme/document'], ['acme/billing/document']];
+
+const SYNCER_REJECTED_TYPE_PATHS = [
+	['v_x/a/b', "Object type 'v_x/a/b' must not start with the reserved vendor schema prefix 'v_'."],
+	[
+		'acme//document',
+		"Object type 'acme//document' is not a valid SpiceDB name; its prefix '' must be 3 to 63 characters"
+	],
+	['/document', "Object type '/document' is not a valid SpiceDB name; its prefix '' must be 3 to 63 characters"],
+	['document/', "Object type 'document/' is not a valid SpiceDB name; its name '' must be 3 to 64 characters"]
+];
+
 describe(SchemaNamespace.name, () => {
 	describe('prefixed namespace', () => {
 		const namespace = SchemaNamespace.prefixed(PREFIX, 'eu');
@@ -102,9 +114,24 @@ describe(SchemaNamespace.name, () => {
 			expect(namespace.type('frontegg_feature')).toBe('frontegg_feature');
 		});
 
-		it('should pass a namespaced object type through, since that is valid SpiceDB syntax', () => {
-			expect(namespace.type('acme/document')).toBe('acme/document');
-		});
+		it.each(SYNCER_ACCEPTED_TYPE_PATHS)(
+			'should pass the type path %j through, as the syncer guard does',
+			(objectType) => {
+				expect(namespace.type(objectType)).toBe(objectType);
+			}
+		);
+
+		it.each(SYNCER_REJECTED_TYPE_PATHS)(
+			'should reject the type path %j, as the syncer guard does',
+			(objectType, message) => {
+				const type = (): string => namespace.type(objectType);
+
+				expect(type).toThrow(InvalidObjectTypeException);
+				expect(type).toThrow(expect.any(CallerInputException));
+				expect(type).toThrow(message);
+				expect(type).toThrow(expect.objectContaining({ name: 'InvalidObjectTypeException', objectType }));
+			}
+		);
 
 		it.each([['v_other/document'], ['v_acme/document']])(
 			'should reject %j because it escapes into the reserved vendor schema prefix',
@@ -152,10 +179,6 @@ describe(SchemaNamespace.name, () => {
 			expect(namespace.type(`${LONGEST_PREFIX_SEGMENT}/document`)).toBe(`${LONGEST_PREFIX_SEGMENT}/document`);
 		});
 
-		it('should accept a path of several prefix segments', () => {
-			expect(namespace.type('acme/billing/document')).toBe('acme/billing/document');
-		});
-
 		it('should reject a name one character too long behind a legacy prefix and name the name bound', () => {
 			const objectType = `acme/${LONGEST_NAME}a`;
 			const type = (): string => namespace.type(objectType);
@@ -175,13 +198,6 @@ describe(SchemaNamespace.name, () => {
 				expect(type).toThrow(
 					`Object type '${objectType}' is not a valid SpiceDB name; its prefix '${LONGEST_PREFIX_SEGMENT}a' must be 3 to 63 characters`
 				);
-			}
-		);
-
-		it.each([['/document'], ['acme/'], ['acme//document']])(
-			'should reject the empty segment in %j',
-			(objectType) => {
-				expect(() => namespace.type(objectType)).toThrow(InvalidObjectTypeException);
 			}
 		);
 	});
