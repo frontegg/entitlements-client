@@ -114,7 +114,7 @@ describe(InstanceRegistry.name, () => {
 		it.each([
 			['a single character', 'a'],
 			['a leading digit', '1eu'],
-			['a dash and an underscore', 'eu-west_1'],
+			['a dash', 'eu-west-1'],
 			['the longest allowed length', 'a'.repeat(63)]
 		])('should accept an instanceId with %s', (_case, instanceId) => {
 			const registry = new InstanceRegistry({ instances: [{ instanceId, vendorId: VENDOR_A }] });
@@ -135,6 +135,7 @@ describe(InstanceRegistry.name, () => {
 			['a non-ascii letter', 'eé'],
 			['a leading dash', '-eu'],
 			['a leading underscore', '_eu'],
+			['an underscore', 'a_b'],
 			['more than 63 characters', 'a'.repeat(64)]
 		])('should reject an instanceId with %s', (_case, instanceId) => {
 			const construct = (): InstanceRegistry =>
@@ -148,7 +149,7 @@ describe(InstanceRegistry.name, () => {
 			expect(construct).toThrow(ConfigurationInputIsInvalidException);
 			expect(construct).toThrow(
 				`instanceId ${JSON.stringify(instanceId)} on instances[1] is invalid; ` +
-					"expected 1 to 63 characters containing only a-z, 0-9, '-' and '_', and starting with a-z or 0-9"
+					"expected 1 to 63 characters containing only a-z, 0-9 and '-', and starting with a-z or 0-9"
 			);
 		});
 

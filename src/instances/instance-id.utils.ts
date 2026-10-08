@@ -1,7 +1,7 @@
 import { isDigit, isLower } from './character.utils';
 import { INSTANCE_ID_MAX_LENGTH } from './instance.constants';
 
-const isInstanceIdCharacter = (char: string): boolean => isLower(char) || isDigit(char) || char === '-' || char === '_';
+const isInstanceIdCharacter = (char: string): boolean => isLower(char) || isDigit(char) || char === '-';
 
 export function isValidInstanceId(instanceId: string): boolean {
 	if (instanceId.length === 0 || instanceId.length > INSTANCE_ID_MAX_LENGTH) {
