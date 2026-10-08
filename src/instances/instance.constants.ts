@@ -24,7 +24,20 @@ export const SCHEMA_PREFIX_RULE = `a valid SpiceDB object type prefix; see ${SPI
 export const VENDOR_ID_SCHEMA_PREFIX_RULE = `only a-z, 0-9 and '-', forming ${SCHEMA_PREFIX_RULE}`;
 export const FIELD_ACCESSOR = '.';
 
-export const SCHEMA_HEADER_KEYWORDS = ['definition', 'caveat'];
+export const SCHEMA_GROUP_OPENERS_BY_HEADER_KEYWORD = new Map([
+	['definition', ['{']],
+	['caveat', ['(', '{']]
+]);
+
+export const SCHEMA_CLOSER_BY_OPENER = new Map([
+	['{', '}'],
+	['(', ')'],
+	['[', ']']
+]);
+
+export const SCHEMA_USE_KEYWORD = 'use';
+
+export const SCHEMA_STATEMENT_TERMINATOR = ';';
 
 export const SCHEMA_STRING_DELIMITERS = ['"""', "'''", '"', "'", '`'];
 export const SCHEMA_RAW_STRING_PREFIXES = ['r', 'rb', 'br'];

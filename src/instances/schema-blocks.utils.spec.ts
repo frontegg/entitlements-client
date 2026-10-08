@@ -183,12 +183,36 @@ describe(filterSchemaBlocks.name, () => {
 			[
 				'a block left open before the next header',
 				lines('definition v_aaa/user {', '\trelation viewer: v_aaa/user', 'definition v_bbb/secret {}'),
-				"'definition' starts before the previous block is closed at line 3"
+				'Unclosed block at end of schema at line 3'
 			],
 			[
 				'a header without a body',
 				lines('caveat v_aaa/c(x int)', 'definition v_bbb/secret {}'),
-				"'definition' starts before the previous block is closed at line 2"
+				"Expected '{' at line 2"
+			],
+			[
+				'a statement other than a definition, a caveat or a use',
+				lines('definition v_aaa/user {}', 'relation viewer: v_aaa/user'),
+				'Expected a definition or a caveat at line 2'
+			],
+			[
+				'a use directive after a block',
+				lines('definition v_aaa/user {}', 'use expiration'),
+				'Expected a definition or a caveat at line 2'
+			],
+			[
+				'a string at the top level',
+				lines('definition v_aaa/user {}', '"definition v_bbb/secret {}"'),
+				'Expected a definition or a caveat at line 2'
+			],
+			['a keyword prefix of a word', 'definitions v_aaa/user {}', 'Expected a definition or a caveat at line 1'],
+			['a definition without a name', 'definition {}', "'definition' has no name at line 1"],
+			['a name with a trailing separator', 'definition v_aaa/ {}', "Expected '{' at line 1"],
+			['a caveat without parameters', 'caveat v_aaa/c { true }', "Expected '(' at line 1"],
+			[
+				'a mismatched closer',
+				lines('caveat v_aaa/c(x int) {', '\t(x }', 'definition v_bbb/secret {}'),
+				"Unbalanced '}' at line 2"
 			],
 			[
 				'a block left open at the end of the schema',
@@ -301,5 +325,62 @@ describe('a comment between the keyword and the name', () => {
 
 	it('should read the name past a line comment', () => {
 		expect(filterSchemaBlocks(schema, { kind: 'prefixed', prefix: 'v_bbb' })).toContain('secret');
+	});
+});
+
+describe('a keyword where SpiceDB reads an identifier', () => {
+	describe.each([
+		['prefixed', 'v_aaa/', { kind: 'prefixed', prefix: 'v_aaa' } as const],
+		['unprefixed', '', { kind: 'unprefixed' } as const]
+	])('with %s ownership', (_ownershipLabel, prefix, ownership) => {
+		it.each([
+			['a CEL comprehension variable named definition', '\titems.exists(definition, definition > 1)'],
+			['a CEL comprehension variable named caveat', '\titems.all(caveat, caveat < 9)'],
+			['a field named definition selected after whitespace', '\tattrs. definition == 1'],
+			['a field named caveat', '\tattrs.caveat == 1'],
+			['a string holding a header', '\tattrs.name == "} definition v_bbb/leak {"'],
+			['a comment holding a header', '\t/* } caveat v_bbb/leak(definition int) { */ true']
+		])('should keep a caveat whose body has %s', (_label, body) => {
+			const schema = lines(
+				'use expiration',
+				`caveat ${prefix}c(items list<int>, attrs map<any>) {`,
+				body,
+				'}',
+				'definition v_bbb/secret {}'
+			);
+
+			expect(filterSchemaBlocks(schema, ownership)).toBe(
+				lines('caveat c(items list<int>, attrs map<any>) {', body, '}')
+			);
+		});
+
+		it.each([
+			['a line comment holding a header', '\t// definition v_bbb/leak {'],
+			['a block comment holding a header', '\t/* } caveat v_bbb/leak(definition int) { */']
+		])('should keep a definition whose body has %s', (_label, body) => {
+			const schema = lines(
+				`definition ${prefix}user {}`,
+				`definition ${prefix}document {`,
+				body,
+				`\trelation viewer: ${prefix}user`,
+				'}',
+				'definition v_bbb/secret {}'
+			);
+
+			expect(filterSchemaBlocks(schema, ownership)).toBe(
+				lines('definition user {}', '', 'definition document {', body, '\trelation viewer: user', '}')
+			);
+		});
+
+		it('should keep the requested blocks when another instance uses the keywords as identifiers', () => {
+			const schema = lines(
+				`definition ${prefix}user {}`,
+				'caveat v_bbb/ranked(items list<int>) {',
+				'\titems.exists(definition, definition > 1) && items.all(caveat, caveat < 9)',
+				'}'
+			);
+
+			expect(filterSchemaBlocks(schema, ownership)).toBe('definition user {}');
+		});
 	});
 });

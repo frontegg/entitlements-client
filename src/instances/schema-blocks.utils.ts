@@ -2,11 +2,17 @@ import { ConfigurationInputIsInvalidException } from '../exceptions/configuratio
 import { SchemaParseException } from '../exceptions/schema-parse.exception';
 import {
 	FIELD_ACCESSOR,
-	SCHEMA_HEADER_KEYWORDS,
+	SCHEMA_CLOSER_BY_OPENER,
+	SCHEMA_GROUP_OPENERS_BY_HEADER_KEYWORD,
 	SCHEMA_RAW_STRING_PREFIXES,
-	SCHEMA_STRING_DELIMITERS
+	SCHEMA_STATEMENT_TERMINATOR,
+	SCHEMA_STRING_DELIMITERS,
+	SCHEMA_USE_KEYWORD,
+	TYPE_PATH_SEPARATOR
 } from './instance.constants';
 import { SchemaBlockOwnership } from './instance.types';
+
+const SCHEMA_CLOSERS = [...SCHEMA_CLOSER_BY_OPENER.values()];
 
 const isIdentifierChar = (char: string | undefined): boolean =>
 	char !== undefined &&
@@ -18,37 +24,10 @@ const isWhitespace = (char: string | undefined): boolean =>
 const isIdentifierStart = (text: string, index: number): boolean =>
 	!isIdentifierChar(text[index - 1]) && text[index - 1] !== '/' && text[index - 1] !== FIELD_ACCESSOR;
 
+const isCommentStart = (text: string, index: number): boolean =>
+	text.startsWith('//', index) || text.startsWith('/*', index);
+
 const lineAt = (text: string, index: number): number => text.slice(0, index).split('\n').length;
-
-function headerKeywordAt(text: string, index: number): string | undefined {
-	if (!isIdentifierStart(text, index)) {
-		return undefined;
-	}
-
-	return SCHEMA_HEADER_KEYWORDS.find(
-		(keyword) => text.startsWith(keyword, index) && isWhitespace(text[index + keyword.length])
-	);
-}
-
-function blockNameAfter(text: string, index: number): string {
-	let start = index;
-	for (;;) {
-		if (isWhitespace(text[start])) {
-			start += 1;
-		} else if (text.startsWith('//', start) || text.startsWith('/*', start)) {
-			start = endOfComment(text, start);
-		} else {
-			break;
-		}
-	}
-
-	let end = start;
-	while (isIdentifierChar(text[end]) || text[end] === '/') {
-		end += 1;
-	}
-
-	return text.slice(start, end);
-}
 
 function isRawString(text: string, index: number, delimiter: string): boolean {
 	if (delimiter === '`') {
@@ -94,6 +73,102 @@ function endOfComment(text: string, index: number): number {
 	return close + 2;
 }
 
+function endOfTrivia(text: string, index: number): number {
+	let cursor = index;
+	for (;;) {
+		if (isWhitespace(text[cursor])) {
+			cursor += 1;
+		} else if (isCommentStart(text, cursor)) {
+			cursor = endOfComment(text, cursor);
+		} else {
+			return cursor;
+		}
+	}
+}
+
+function endOfWord(text: string, index: number): number {
+	let end = index;
+	while (isIdentifierChar(text[end])) {
+		end += 1;
+	}
+
+	return end;
+}
+
+function endOfName(text: string, index: number): number {
+	let end = endOfWord(text, index);
+	while (end > index && text[end] === TYPE_PATH_SEPARATOR && isIdentifierChar(text[end + 1])) {
+		end = endOfWord(text, end + 1);
+	}
+
+	return end;
+}
+
+function endOfGroup(
+	text: string,
+	index: number,
+	opener: string,
+	marker: string | undefined,
+	markers: number[]
+): number {
+	if (text[index] !== opener) {
+		throw new SchemaParseException(lineAt(text, index), `Expected '${opener}'`);
+	}
+
+	const expectedClosers: string[] = [];
+	let cursor = index;
+
+	while (cursor < text.length) {
+		const char = text[cursor];
+
+		if (isCommentStart(text, cursor)) {
+			cursor = endOfComment(text, cursor);
+			continue;
+		}
+
+		const delimiter = SCHEMA_STRING_DELIMITERS.find((candidate) => text.startsWith(candidate, cursor));
+		if (delimiter) {
+			cursor = endOfString(text, cursor, delimiter);
+			continue;
+		}
+
+		const closer = SCHEMA_CLOSER_BY_OPENER.get(char);
+		if (closer !== undefined) {
+			expectedClosers.push(closer);
+			cursor += 1;
+			continue;
+		}
+
+		if (SCHEMA_CLOSERS.includes(char)) {
+			if (expectedClosers.pop() !== char) {
+				throw new SchemaParseException(lineAt(text, cursor), `Unbalanced '${char}'`);
+			}
+			cursor += 1;
+			if (expectedClosers.length === 0) {
+				return cursor;
+			}
+			continue;
+		}
+
+		if (marker !== undefined && isIdentifierStart(text, cursor) && text.startsWith(marker, cursor)) {
+			markers.push(cursor);
+			cursor += marker.length;
+			continue;
+		}
+
+		cursor += 1;
+	}
+
+	throw new SchemaParseException(lineAt(text, text.length), 'Unclosed block at end of schema');
+}
+
+function topLevelError(text: string, index: number): SchemaParseException {
+	const char = text[index];
+	const problem = SCHEMA_CLOSERS.includes(char) ? `Unbalanced '${char}'` : 'Expected a definition or a caveat';
+
+	return new SchemaParseException(lineAt(text, index), problem);
+}
+
 function withoutMarkers(text: string, [start, end]: [number, number], markers: number[], markerLength: number): string {
 	let result = '';
 	let cursor = start;
@@ -129,71 +204,46 @@ export function filterSchemaBlocks(schemaText: string, ownership: SchemaBlockOwn
 	const marker = markerFor(ownership);
 	const ownBlocks: [number, number][] = [];
 	const markers: number[] = [];
-	let depth = 0;
-	let blockStart: number | undefined;
-	let isOwnBlock = false;
-	let index = 0;
+	let hasBlock = false;
+	let index = endOfTrivia(schemaText, 0);
 
 	while (index < schemaText.length) {
-		const char = schemaText[index];
-
-		if (schemaText.startsWith('//', index) || schemaText.startsWith('/*', index)) {
-			index = endOfComment(schemaText, index);
+		if (schemaText[index] === SCHEMA_STATEMENT_TERMINATOR) {
+			index = endOfTrivia(schemaText, index + 1);
 			continue;
 		}
 
-		const delimiter = SCHEMA_STRING_DELIMITERS.find((candidate) => schemaText.startsWith(candidate, index));
-		if (delimiter) {
-			index = endOfString(schemaText, index, delimiter);
+		const keyword = schemaText.slice(index, endOfWord(schemaText, index));
+		if (keyword === SCHEMA_USE_KEYWORD && !hasBlock) {
+			const flagStart = endOfTrivia(schemaText, index + keyword.length);
+			index = endOfTrivia(schemaText, endOfWord(schemaText, flagStart));
 			continue;
 		}
 
-		if (char === '{') {
-			depth += 1;
-			index += 1;
-			continue;
+		const openers = SCHEMA_GROUP_OPENERS_BY_HEADER_KEYWORD.get(keyword);
+		if (openers === undefined) {
+			throw topLevelError(schemaText, index);
 		}
 
-		if (char === '}') {
-			depth -= 1;
-			if (depth < 0) {
-				throw new SchemaParseException(lineAt(schemaText, index), "Unbalanced '}'");
-			}
-			index += 1;
-			if (depth === 0 && blockStart !== undefined) {
-				if (isOwnBlock) {
-					ownBlocks.push([blockStart, index]);
-				}
-				blockStart = undefined;
-			}
-			continue;
+		const nameStart = endOfTrivia(schemaText, index + keyword.length);
+		const nameEnd = endOfName(schemaText, nameStart);
+		if (nameEnd === nameStart) {
+			throw new SchemaParseException(lineAt(schemaText, nameStart), `'${keyword}' has no name`);
+		}
+		if (marker !== undefined && schemaText.startsWith(marker, nameStart)) {
+			markers.push(nameStart);
 		}
 
-		const keyword = headerKeywordAt(schemaText, index);
-		if (keyword) {
-			if (depth > 0 || blockStart !== undefined) {
-				throw new SchemaParseException(
-					lineAt(schemaText, index),
-					`'${keyword}' starts before the previous block is closed`
-				);
-			}
-			blockStart = index;
-			isOwnBlock = isOwnBlockName(blockNameAfter(schemaText, index + keyword.length), marker);
-			index += keyword.length;
-			continue;
+		const blockEnd = openers.reduce(
+			(cursor, opener) => endOfGroup(schemaText, endOfTrivia(schemaText, cursor), opener, marker, markers),
+			nameEnd
+		);
+		if (isOwnBlockName(schemaText.slice(nameStart, nameEnd), marker)) {
+			ownBlocks.push([index, blockEnd]);
 		}
 
-		if (marker !== undefined && isIdentifierStart(schemaText, index) && schemaText.startsWith(marker, index)) {
-			markers.push(index);
-			index += marker.length;
-			continue;
-		}
-
-		index += 1;
-	}
-
-	if (depth !== 0 || blockStart !== undefined) {
-		throw new SchemaParseException(lineAt(schemaText, schemaText.length), 'Unclosed block at end of schema');
+		hasBlock = true;
+		index = endOfTrivia(schemaText, blockEnd);
 	}
 
 	return ownBlocks.map((span) => withoutMarkers(schemaText, span, markers, marker?.length ?? 0)).join('\n\n');

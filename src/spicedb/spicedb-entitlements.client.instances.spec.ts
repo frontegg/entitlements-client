@@ -394,6 +394,24 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 				)
 			);
 		});
+
+		it('should read one instance schema when another instance uses definition and caveat as CEL identifiers', async () => {
+			const spiceClient = mock<v1.ZedPromiseClientInterface>();
+			spiceClient.readSchema.mockResolvedValue(
+				v1.ReadSchemaResponse.create({
+					schemaText: [
+						`definition ${PREFIX_A}/frontegg_feature {}`,
+						`caveat ${PREFIX_B}/ranked(items list<int>) {`,
+						'\titems.exists(definition, definition > 1) && items.all(caveat, caveat < 9)',
+						'}'
+					].join('\n')
+				})
+			);
+			const client = buildClient({ instances: TWO_INSTANCES }, queryClient, loggingClient);
+			setSpiceClient(client, spiceClient);
+
+			await expect(client.readSchemaFor({ instanceId: 'a' })).resolves.toBe('definition frontegg_feature {}');
+		});
 	});
 
 	describe('legacy readSchemaFor', () => {
@@ -421,6 +439,23 @@ describe('SpiceDBEntitlementsClient instance isolation', () => {
 					'\n'
 				)
 			);
+		});
+		it('should read the legacy schema when a prefixed instance uses definition and caveat as CEL identifiers', async () => {
+			const spiceClient = mock<v1.ZedPromiseClientInterface>();
+			spiceClient.readSchema.mockResolvedValue(
+				v1.ReadSchemaResponse.create({
+					schemaText: [
+						'definition frontegg_feature {}',
+						`caveat ${PREFIX_B}/ranked(items list<int>) {`,
+						'\titems.exists(definition, definition > 1) && items.all(caveat, caveat < 9)',
+						'}'
+					].join('\n')
+				})
+			);
+			const client = buildClient({}, queryClient, loggingClient);
+			setSpiceClient(client, spiceClient);
+
+			await expect(client.readSchemaFor()).resolves.toBe('definition frontegg_feature {}');
 		});
 	});
 
