@@ -90,8 +90,8 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
 - The prefix always comes from the `vendorId` and cannot be set directly. A `vendorId` may
   contain only `a-z`, `0-9` and `-`, be at most 61 characters, and not end with `-`; anything
   else, including uppercase letters and `_`, throws `ConfigurationInputIsInvalidException`
-  when the client is created. An `instanceId` must be 1 to 63 characters of `a-z`, `0-9`, `-`
-  and `_`, starting with a letter or digit, and `legacy` is reserved; anything else throws
+  when the client is created. An `instanceId` must be 1 to 63 characters of `a-z`, `0-9` and `-`,
+  starting with a letter or digit, and `legacy` is reserved; anything else throws
   `ConfigurationInputIsInvalidException` when the client is created.
 - Each instance may carry its own `fallbackConfiguration`; the client-wide one applies
   otherwise.
