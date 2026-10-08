@@ -102,12 +102,14 @@ await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us'
   `isEntitledToMany` only that item fails: it comes back as
   `{ result: false, error: '<reason>' }` while the other items are still answered, so treat
   any `result !== true` as denied.
-- With no `instances` configured, the client behaves as before: every read is unprefixed and
-  object types are passed through unchanged, so a type such as `acme/document` keeps working,
-  and so does a plain name of your own such as `v_user`. The one exception is a namespaced type
-  whose prefix starts with the reserved vendor prefix `v_`, such as `v_acme/document`, which
-  throws `InvalidObjectTypeException`, so a legacy client can never address a vendor's namespace
-  on a shared SpiceDB.
+- With no `instances` configured, every read is unprefixed and valid object types are passed
+  through unchanged, so a type such as `acme/document` keeps working, and so does a plain name
+  of your own such as `v_user`. This is a breaking change for existing callers in two cases,
+  both of which now throw `InvalidObjectTypeException` instead of being answered with the
+  fallback: an object type that is not a valid SpiceDB name (see the next point), which used to
+  reach SpiceDB and come back as the configured fallback, and a namespaced type whose prefix
+  starts with the reserved vendor prefix `v_`, such as `v_acme/document`, so a legacy client can
+  never address a vendor's namespace on a shared SpiceDB.
 - In both modes an object type must be a valid SpiceDB name: 3 to 64 characters, starting with
   `a-z`, containing only `a-z`, `0-9` and `_`, and ending with `a-z` or `0-9`. In legacy mode
   each prefix before a `/` follows the same rules but is at most 63 characters. Anything else,
