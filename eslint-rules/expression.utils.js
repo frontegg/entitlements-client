@@ -107,6 +107,16 @@ function boundValues(identifier, sourcesOf, steps = []) {
 			);
 }
 
+function referencedValues(reference, sourcesOf, steps = []) {
+	if (reference.type !== 'MemberExpression') {
+		return boundValues(reference, sourcesOf, steps);
+	}
+
+	const key = staticPropertyName(reference.property, reference.computed);
+
+	return key === undefined ? UNRESOLVED_SELECTION : selectedValues(reference.object, [{ key }, ...steps], sourcesOf);
+}
+
 function selectedValues(node, steps, sourcesOf) {
 	if (steps.length === 0) {
 		return { values: [node], isExact: true };
@@ -115,7 +125,8 @@ function selectedValues(node, steps, sourcesOf) {
 	const value = unwrapExpression(node);
 	switch (value.type) {
 		case 'Identifier':
-			return boundValues(value, sourcesOf, steps);
+		case 'MemberExpression':
+			return referencedValues(value, sourcesOf, steps);
 		case 'ConditionalExpression':
 			return mergeSelections([
 				selectedValues(value.consequent, steps, sourcesOf),
@@ -214,6 +225,6 @@ module.exports = {
 	staticPropertyName,
 	constantSources,
 	variableSources,
-	boundValues,
+	referencedValues,
 	enclosingFunction
 };

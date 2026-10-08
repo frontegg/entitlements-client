@@ -4,15 +4,16 @@ const {
 	LIST_MAPPING_METHODS,
 	OBJECT_TYPE_FIELDS,
 	OBJECT_TYPE_LIST_FIELDS,
+	REFERENCE_EXPRESSION_TYPES,
 	RELATED_TYPE_DEPTH,
 	TRANSPARENT_EXPRESSION_TYPES
 } = require('./require-namespaced-object-type.consts');
 const { MissingTypeInformationError } = require('./missing-type-information.error');
 const { isGenericCall, isSchemaNamespaceType, isSpiceDBType, resolveSpiceDBField } = require('./spicedb-type.utils');
 const {
-	boundValues,
 	constantSources,
 	enclosingFunction,
+	referencedValues,
 	staticPropertyName,
 	unwrapExpression,
 	variableSources
@@ -79,8 +80,8 @@ module.exports = {
 			if (value.type === 'LogicalExpression') {
 				return everyValueBranch(value.left, isAccepted) && everyValueBranch(value.right, isAccepted);
 			}
-			if (value.type === 'Identifier') {
-				const bound = boundValues(value, constantSourcesOf);
+			if (REFERENCE_EXPRESSION_TYPES.has(value.type)) {
+				const bound = referencedValues(value, constantSourcesOf);
 				return (
 					bound.isExact &&
 					bound.values.length > 0 &&
@@ -231,7 +232,8 @@ module.exports = {
 			const value = unwrapExpression(node);
 			switch (value.type) {
 				case 'Identifier':
-					for (const bound of boundValues(value, variableSourcesOf).values) {
+				case 'MemberExpression':
+					for (const bound of referencedValues(value, variableSourcesOf).values) {
 						checkAgainstType(bound, expectedType, path);
 					}
 					return;

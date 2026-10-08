@@ -35,6 +35,8 @@ const TRANSPARENT_EXPRESSION_TYPES = new Set([
 
 const FUNCTION_TYPES = new Set(['ArrowFunctionExpression', 'FunctionExpression', 'FunctionDeclaration']);
 
+const REFERENCE_EXPRESSION_TYPES = new Set(['Identifier', 'MemberExpression']);
+
 const UNRESOLVABLE_STEP = Object.freeze({ isResolvable: false });
 
 const UNRESOLVED_SELECTION = Object.freeze({ values: [], isExact: false });
@@ -50,6 +52,7 @@ module.exports = {
 	ARRAY_FACTORY,
 	TRANSPARENT_EXPRESSION_TYPES,
 	FUNCTION_TYPES,
+	REFERENCE_EXPRESSION_TYPES,
 	UNRESOLVABLE_STEP,
 	UNRESOLVED_SELECTION
 };

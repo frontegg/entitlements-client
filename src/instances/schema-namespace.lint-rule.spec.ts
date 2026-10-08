@@ -223,6 +223,28 @@ runRequireNamespacedObjectType({
 			)
 		},
 		{
+			name: 'an object type read off a map of namespaced types',
+			code: source(
+				"const types = { document: namespace.type('document'), user: namespace.type('user') };",
+				"v1.ObjectReference.create({ objectType: types.document, objectId: '1' });"
+			)
+		},
+		{
+			name: 'an object type read along a nested member path',
+			code: source(
+				"const schema = { types: { document: namespace.type('document') } };",
+				"v1.ObjectReference.create({ objectType: schema.types.document, objectId: '1' });"
+			)
+		},
+		{
+			name: 'an object type read off a destructured map of namespaced types',
+			code: source(
+				"const schema = { types: { document: namespace.type('document') } };",
+				'const { types } = schema;',
+				"v1.ObjectReference.create({ objectType: types.document, objectId: '1' });"
+			)
+		},
+		{
 			name: 'a namespaced resource destructured from beside an unrelated raw object type',
 			code: source(
 				"const event = { objectType: 'audit', resource: { objectType: namespace.type('document'), objectId: '1' } };",
@@ -493,6 +515,50 @@ runRequireNamespacedObjectType({
 				"const field = 'resource';",
 				'const { [field]: resource } = request;',
 				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw object type read off a map of types',
+			code: source(
+				"const types = { document: 'document' };",
+				"v1.ObjectReference.create({ objectType: types.document, objectId: '1' });"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'a raw request read off a property and passed to the client',
+			code: source(
+				'const requests = {',
+				"	read: { relationshipFilter: { resourceType: 'document', optionalResourceId: '', optionalResourceIdPrefix: '', optionalRelation: '' }, optionalLimit: 0 }",
+				'};',
+				'client.readRelationships(requests.read);'
+			),
+			errors: unnamespaced('resourceType')
+		},
+		{
+			name: 'a raw resource destructured from a property of a request map',
+			code: source(
+				"const requests = { check: { resource: { objectType: 'document', objectId: '1' }, permission: 'view' } };",
+				'const { resource } = requests.check;',
+				"client.checkPermission(v1.CheckPermissionRequest.create({ resource, permission: 'view' }));"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'an object type read under a computed key',
+			code: source(
+				"const types = { document: namespace.type('document') };",
+				"const key = 'document';",
+				"v1.ObjectReference.create({ objectType: types[key], objectId: '1' });"
+			),
+			errors: unnamespaced('objectType')
+		},
+		{
+			name: 'an object type read off a reassignable map of types',
+			code: source(
+				"let types = { document: namespace.type('document') };",
+				"v1.ObjectReference.create({ objectType: types.document, objectId: '1' });"
 			),
 			errors: unnamespaced('objectType')
 		},
