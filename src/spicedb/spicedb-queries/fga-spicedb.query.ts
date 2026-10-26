@@ -5,6 +5,7 @@ import { SpiceDBResponse } from '../../types/spicedb.dto';
 import { v1 } from '@authzed/authzed-node';
 import { encodeObjectId } from './base64.utils';
 import { LoggingClient } from '../../logging';
+import { SchemaNamespace } from '../../instances/schema-namespace';
 
 export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 	constructor(
@@ -15,22 +16,22 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 		super(client, loggingClient, logResults);
 	}
 
-	async query({
-		requestContext,
-		subjectContext
-	}: EntitlementsDynamicQuery<RequestContextType.Entity>): Promise<SpiceDBResponse<EntitlementsResult>> {
+	async query(
+		{ requestContext, subjectContext }: EntitlementsDynamicQuery<RequestContextType.Entity>,
+		namespace: SchemaNamespace
+	): Promise<SpiceDBResponse<EntitlementsResult>> {
 		const context = subjectContext as FGASubjectContext;
 		const caveatContext = createActiveAtCaveatContext(requestContext.at);
 		const request = v1.CheckPermissionRequest.create({
 			subject: {
 				object: {
-					objectType: context.entityType,
+					objectType: namespace.type(context.entityType),
 					objectId: encodeObjectId(context.key)
 				},
 				optionalRelation: ''
 			},
 			resource: {
-				objectType: requestContext.entityType,
+				objectType: namespace.type(requestContext.entityType),
 				objectId: encodeObjectId(requestContext.key)
 			},
 			permission: requestContext.action,
@@ -41,6 +42,7 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			await this.loggingClient?.logRequest(
 				{
 					action: 'SpiceDB:checkPermission:request',
+					instanceId: namespace.instanceId,
 					objectType: requestContext.entityType,
 					objectId: requestContext.key,
 					subjectContext: context,
@@ -56,6 +58,7 @@ export class FgaSpiceDBQuery extends EntitlementsSpiceDBQuery {
 			await this.loggingClient?.logRequest(
 				{
 					action: 'SpiceDB:checkPermission:response',
+					instanceId: namespace.instanceId,
 					objectType: requestContext.entityType,
 					objectId: requestContext.key,
 					entityContext: requestContext

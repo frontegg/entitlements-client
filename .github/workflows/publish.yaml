@@ -5,7 +5,13 @@ on:
     branches: [ master, next ]
 
 jobs:
+  lint:
+    uses: ./.github/workflows/_lint.yaml
+    secrets:
+      npm_token: ${{ secrets.NPM_TOKEN }}
+
   build-and-test:
+    needs: lint
     uses: ./.github/workflows/_build-and-test.yaml
     secrets:
       npm_token: ${{ secrets.NPM_TOKEN }}

@@ -2,17 +2,15 @@ import { v1 } from '@authzed/authzed-node';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { EntitlementsDynamicQueryRequestContext, RequestContextType, UserSubjectContext } from '../../types';
 import { RouteSpiceDBQuery } from './route-spicedb.query';
+import { encodeObjectId } from './base64.utils';
+import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 
 describe(RouteSpiceDBQuery.name, () => {
 	let queryClient: RouteSpiceDBQuery;
 	let mockClient: MockProxy<v1.ZedPromiseClientInterface>;
-	let mockSpiceDBEndpoint: string;
-	let mockSpiceDBToken: string;
 
 	beforeAll(() => {
 		mockClient = mock<v1.ZedPromiseClientInterface>();
-		mockSpiceDBEndpoint = 'mock-endpoint';
-		mockSpiceDBToken = 'mock-token';
 
 		// Create a new instance of the query class with the mock client
 		queryClient = new RouteSpiceDBQuery(mockClient);
@@ -74,15 +72,18 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			mockClient.checkBulkPermissions.mockRejectedValue(mockError);
 
 			await expect(
-				queryClient.query({
-					subjectContext,
-					requestContext
-				})
+				queryClient.query(
+					{
+						subjectContext,
+						requestContext
+					},
+					LEGACY_NAMESPACE
+				)
 			).rejects.toThrow(mockError);
 		});
 
@@ -92,7 +93,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue([]),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			// We don't expect checkBulkPermissions to be called with empty relations
 			// but we'll mock it just in case the implementation changes
@@ -102,10 +103,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
 			try {
-				const result = await queryClient.query({
-					subjectContext,
-					requestContext
-				});
+				const result = await queryClient.query(
+					{
+						subjectContext,
+						requestContext
+					},
+					LEGACY_NAMESPACE
+				);
 
 				// If we get here, the implementation has changed to handle empty arrays
 				expect(result.result.result).toBe(false);
@@ -157,7 +161,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			const mockBulkResponse = v1.CheckBulkPermissionsResponse.create({
 				pairs: [
@@ -174,10 +178,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -225,7 +232,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			const mockBulkResponse = v1.CheckBulkPermissionsResponse.create({
 				pairs: [
@@ -242,10 +249,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.result.result).toBe(true);
 			expect(result.result.monitoring).toBe(true);
@@ -287,15 +297,18 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			// This shouldn't be called for allow policy type
-			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
+			mockClient.checkBulkPermissions.mockResolvedValue(v1.CheckBulkPermissionsResponse.create({ pairs: [] }));
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -337,15 +350,18 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			// This shouldn't be called for deny policy type
-			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
+			mockClient.checkBulkPermissions.mockResolvedValue(v1.CheckBulkPermissionsResponse.create({ pairs: [] }));
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(false);
@@ -426,15 +442,18 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			// This shouldn't be called because the highest priority rule is deny
-			mockClient.checkBulkPermissions.mockResolvedValue(null as any);
+			mockClient.checkBulkPermissions.mockResolvedValue(v1.CheckBulkPermissionsResponse.create({ pairs: [] }));
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(false);
@@ -452,7 +471,7 @@ describe(RouteSpiceDBQuery.name, () => {
 						relation: 'required_permission',
 						subject: {
 							object: {
-								objectId: 'read'
+								objectId: encodeObjectId('read')
 							}
 						},
 						optionalCaveat: {
@@ -481,10 +500,7 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
-
-			// Mock hasPermission method
-			jest.spyOn(queryClient as any, 'hasPermission').mockReturnValue(true);
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
 			const mockBulkResponse = v1.CheckBulkPermissionsResponse.create({
 				pairs: [
@@ -501,10 +517,13 @@ describe(RouteSpiceDBQuery.name, () => {
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockBulkResponse);
 
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.result.result).toBe(true);
 		});
@@ -550,15 +569,15 @@ describe(RouteSpiceDBQuery.name, () => {
 				get: jest.fn().mockReturnValue(mockRelations),
 				set: jest.fn()
 			};
-			(queryClient as any).cache = mockCache;
+			Object.defineProperty(queryClient, 'cache', { value: mockCache });
 
-			// Mock hasPermission method to return false (missing permission)
-			jest.spyOn(queryClient as any, 'hasPermission').mockReturnValue(false);
-
-			const result = await queryClient.query({
-				subjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(false);

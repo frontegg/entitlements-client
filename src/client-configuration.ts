@@ -1,7 +1,8 @@
 import { LoggingClient } from './logging';
 import { FallbackConfiguration } from './types';
+import { InstancesConfiguration } from './instances/instance.types';
 
-export interface ClientConfiguration {
+export interface ClientConfiguration extends InstancesConfiguration {
 	engineEndpoint: string;
 	engineToken: string;
 	logging?: {

@@ -5,6 +5,7 @@ import { LoggingClient } from '../logging';
 import { LookupEntitlementsRequest, RequestContextType } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
 import { SpiceDBEntitlementsClient } from './spicedb-entitlements.client';
+import { LEGACY_INSTANCE_ID } from '../instances/instance.constants';
 
 function readCaveatNow(request: v1.LookupResourcesRequest): string | undefined {
 	const userContext = request.context?.fields?.user_context?.kind;
@@ -501,6 +502,6 @@ describe('SpiceDBEntitlementsClient.lookupEntitlements', () => {
 
 		await expect(client.lookupEntitlements(defaultRequest)).rejects.toThrow('SpiceDB error');
 
-		expect(mockLoggingClient.error).toHaveBeenCalledWith(spiceDBError);
+		expect(mockLoggingClient.error).toHaveBeenCalledWith(spiceDBError, { instanceId: LEGACY_INSTANCE_ID });
 	});
 });

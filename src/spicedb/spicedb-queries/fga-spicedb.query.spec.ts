@@ -2,17 +2,14 @@ import { v1 } from '@authzed/authzed-node';
 import { mock, MockProxy, mockReset } from 'jest-mock-extended';
 import { EntitlementsDynamicQueryRequestContext, RequestContextType } from '../../types';
 import { FgaSpiceDBQuery } from './fga-spicedb.query';
+import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 
 describe(FgaSpiceDBQuery.name, () => {
 	let queryClient: FgaSpiceDBQuery;
 	let mockClient: MockProxy<v1.ZedPromiseClientInterface>;
-	let mockSpiceDBEndpoint: string;
-	let mockSpiceDBToken: string;
 
 	beforeAll(() => {
 		mockClient = mock<v1.ZedPromiseClientInterface>();
-		mockSpiceDBEndpoint = 'mock-endpoint';
-		mockSpiceDBToken = 'mock-token';
 
 		// Create a new instance of the query class with the mock client
 		queryClient = new FgaSpiceDBQuery(mockClient);
@@ -39,10 +36,13 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		const result = await queryClient.query({
-			subjectContext,
-			requestContext
-		});
+		const result = await queryClient.query(
+			{
+				subjectContext,
+				requestContext
+			},
+			LEGACY_NAMESPACE
+		);
 
 		expect(mockClient.checkPermission).toHaveBeenCalled();
 		expect(result.result.result).toBe(true);
@@ -65,13 +65,14 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		await queryClient.query({ subjectContext, requestContext });
+		await queryClient.query({ subjectContext, requestContext }, LEGACY_NAMESPACE);
 
 		const call = mockClient.checkPermission.mock.calls[0][0];
 		expect(call.context).toBeDefined();
 		expect(call.context?.fields?.at?.kind?.oneofKind).toBe('stringValue');
 		// Verify it's a valid ISO timestamp (approximately now)
-		const atValue = (call.context?.fields?.at?.kind as any)?.stringValue;
+		const atKind = call.context?.fields?.at?.kind;
+		const atValue = atKind?.oneofKind === 'stringValue' ? atKind.stringValue : undefined;
 		expect(atValue).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 	});
 
@@ -94,7 +95,7 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		await queryClient.query({ subjectContext, requestContext });
+		await queryClient.query({ subjectContext, requestContext }, LEGACY_NAMESPACE);
 
 		const call = mockClient.checkPermission.mock.calls[0][0];
 		expect(call.context?.fields?.at?.kind).toEqual({
@@ -122,7 +123,7 @@ describe(FgaSpiceDBQuery.name, () => {
 		});
 		mockClient.checkPermission.mockResolvedValue(mockResponse);
 
-		await queryClient.query({ subjectContext, requestContext });
+		await queryClient.query({ subjectContext, requestContext }, LEGACY_NAMESPACE);
 
 		const call = mockClient.checkPermission.mock.calls[0][0];
 		expect(call.context?.fields?.at?.kind).toEqual({
@@ -147,10 +148,13 @@ describe(FgaSpiceDBQuery.name, () => {
 		mockClient.checkPermission.mockRejectedValue(mockError);
 
 		await expect(
-			queryClient.query({
-				subjectContext,
-				requestContext
-			})
+			queryClient.query(
+				{
+					subjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			)
 		).rejects.toThrow(mockError);
 	});
 });

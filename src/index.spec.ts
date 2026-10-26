@@ -8,6 +8,7 @@ const PUBLIC_EXCEPTIONS = [
 	'InstanceIdRequiredException',
 	'InstanceResolutionException',
 	'InvalidObjectTypeException',
+	'SchemaParseException',
 	'UnknownInstanceException'
 ];
 
