@@ -1,9 +1,10 @@
-import { ClientConfiguration, FallbackConfiguration, StaticFallbackConfiguration } from '../client-configuration';
+import { ClientConfiguration } from '../client-configuration';
 import { DEFAULT_LOOKUP_LIMIT } from './lookup.constants';
 import {
 	EntitlementsManyResult,
 	EntitlementsResult,
 	EntityEntitlementsContext,
+	FallbackConfiguration,
 	FeatureEntitlementsContext,
 	LookupTargetEntitiesRequest,
 	LookupTargetEntitiesResponse,
@@ -18,6 +19,7 @@ import {
 	RequestContext,
 	RequestContextType,
 	RouteEntitlementsContext,
+	StaticFallbackConfiguration,
 	SubjectContext,
 	UserSubjectContext,
 	isFGASubjectContext
