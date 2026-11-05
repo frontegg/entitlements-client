@@ -9,17 +9,21 @@ import {
 import { encodeObjectId } from './base64.utils';
 import { createActiveAtCaveatContext, createTargetingCaveatContext } from './caveat-context.utils';
 import { SpiceDBEntities } from '../../types/spicedb-consts';
+import { SchemaNamespace } from '../../instances/schema-namespace';
 
-export function buildLookupTargetEntitiesRequest(params: LookupTargetEntitiesRequest): v1.LookupResourcesRequest {
+export function buildLookupTargetEntitiesRequest(
+	params: LookupTargetEntitiesRequest,
+	namespace: SchemaNamespace
+): v1.LookupResourcesRequest {
 	const { entityType, entityId, TargetEntityType, action, limit, cursor, at } = params;
 	const caveatContext = createActiveAtCaveatContext(at);
 
 	return v1.LookupResourcesRequest.create({
-		resourceObjectType: TargetEntityType,
+		resourceObjectType: namespace.type(TargetEntityType),
 		permission: action,
 		subject: {
 			object: {
-				objectType: entityType,
+				objectType: namespace.type(entityType),
 				objectId: encodeObjectId(entityId)
 			},
 			optionalRelation: ''
@@ -30,17 +34,20 @@ export function buildLookupTargetEntitiesRequest(params: LookupTargetEntitiesReq
 	});
 }
 
-export function buildLookupEntitiesRequest(params: LookupEntitiesRequest): v1.LookupSubjectsRequest {
+export function buildLookupEntitiesRequest(
+	params: LookupEntitiesRequest,
+	namespace: SchemaNamespace
+): v1.LookupSubjectsRequest {
 	const { TargetEntityType, TargetEntityId, entityType, action, at } = params;
 	const caveatContext = createActiveAtCaveatContext(at);
 
 	return v1.LookupSubjectsRequest.create({
 		resource: {
-			objectType: TargetEntityType,
+			objectType: namespace.type(TargetEntityType),
 			objectId: encodeObjectId(TargetEntityId)
 		},
 		permission: action,
-		subjectObjectType: entityType,
+		subjectObjectType: namespace.type(entityType),
 		context: caveatContext
 	});
 }
@@ -48,6 +55,7 @@ export function buildLookupEntitiesRequest(params: LookupEntitiesRequest): v1.Lo
 export function buildLookupEntitlementsRequest(
 	params: LookupEntitlementsRequest,
 	subject: LookupEntitlementsSubject,
+	namespace: SchemaNamespace,
 	now?: string
 ): v1.LookupResourcesRequest {
 	const { criteria, limit } = params;
@@ -61,11 +69,11 @@ export function buildLookupEntitlementsRequest(
 	}
 
 	return v1.LookupResourcesRequest.create({
-		resourceObjectType: SpiceDBEntities.Feature,
+		resourceObjectType: namespace.type(SpiceDBEntities.Feature),
 		permission: 'access',
 		subject: {
 			object: {
-				objectType: subject.entityType,
+				objectType: namespace.type(subject.entityType),
 				objectId: encodeObjectId(subject.entityId)
 			},
 			optionalRelation: ''

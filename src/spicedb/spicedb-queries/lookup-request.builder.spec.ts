@@ -5,18 +5,22 @@ import {
 } from './lookup-request.builder';
 import { encodeObjectId } from './base64.utils';
 import { RequestContextType } from '../../types';
+import { LEGACY_NAMESPACE } from './entitlements-spicedb.query.spec-helper';
 
 describe('lookup-request.builder', () => {
 	describe('buildLookupTargetEntitiesRequest', () => {
 		it('should build request with all parameters and encode entityId', () => {
-			const result = buildLookupTargetEntitiesRequest({
-				entityType: 'user',
-				entityId: 'user-123',
-				TargetEntityType: 'document',
-				action: 'read',
-				limit: 100,
-				cursor: 'cursor-token'
-			});
+			const result = buildLookupTargetEntitiesRequest(
+				{
+					entityType: 'user',
+					entityId: 'user-123',
+					TargetEntityType: 'document',
+					action: 'read',
+					limit: 100,
+					cursor: 'cursor-token'
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.resourceObjectType).toBe('document');
 			expect(result.permission).toBe('read');
@@ -29,25 +33,31 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should build request without cursor when not provided', () => {
-			const result = buildLookupTargetEntitiesRequest({
-				entityType: 'user',
-				entityId: 'user-123',
-				TargetEntityType: 'document',
-				action: 'read',
-				limit: 50
-			});
+			const result = buildLookupTargetEntitiesRequest(
+				{
+					entityType: 'user',
+					entityId: 'user-123',
+					TargetEntityType: 'document',
+					action: 'read',
+					limit: 50
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.optionalCursor).toBeUndefined();
 		});
 
 		it('should create valid v1.LookupResourcesRequest', () => {
-			const result = buildLookupTargetEntitiesRequest({
-				entityType: 'user',
-				entityId: 'user-123',
-				TargetEntityType: 'document',
-				action: 'read',
-				limit: 50
-			});
+			const result = buildLookupTargetEntitiesRequest(
+				{
+					entityType: 'user',
+					entityId: 'user-123',
+					TargetEntityType: 'document',
+					action: 'read',
+					limit: 50
+				},
+				LEGACY_NAMESPACE
+			);
 
 			// Verify it's a valid LookupResourcesRequest structure
 			expect(result).toHaveProperty('resourceObjectType');
@@ -57,13 +67,16 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should encode entityId to URL-safe base64', () => {
-			const result = buildLookupTargetEntitiesRequest({
-				entityType: 'user',
-				entityId: 'user+special/chars=test',
-				TargetEntityType: 'document',
-				action: 'read',
-				limit: 50
-			});
+			const result = buildLookupTargetEntitiesRequest(
+				{
+					entityType: 'user',
+					entityId: 'user+special/chars=test',
+					TargetEntityType: 'document',
+					action: 'read',
+					limit: 50
+				},
+				LEGACY_NAMESPACE
+			);
 
 			const encodedId = result.subject?.object?.objectId;
 			// Should not contain +, /, or = (URL-safe base64)
@@ -75,12 +88,15 @@ describe('lookup-request.builder', () => {
 
 	describe('buildLookupEntitiesRequest', () => {
 		it('should build request with all parameters and encode TargetEntityId', () => {
-			const result = buildLookupEntitiesRequest({
-				TargetEntityType: 'document',
-				TargetEntityId: 'doc-123',
-				entityType: 'user',
-				action: 'view'
-			});
+			const result = buildLookupEntitiesRequest(
+				{
+					TargetEntityType: 'document',
+					TargetEntityId: 'doc-123',
+					entityType: 'user',
+					action: 'view'
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.resource?.objectType).toBe('document');
 			// TargetEntityId should be base64 encoded
@@ -90,12 +106,15 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should create valid v1.LookupSubjectsRequest', () => {
-			const result = buildLookupEntitiesRequest({
-				TargetEntityType: 'document',
-				TargetEntityId: 'doc-123',
-				entityType: 'user',
-				action: 'view'
-			});
+			const result = buildLookupEntitiesRequest(
+				{
+					TargetEntityType: 'document',
+					TargetEntityId: 'doc-123',
+					entityType: 'user',
+					action: 'view'
+				},
+				LEGACY_NAMESPACE
+			);
 
 			// Verify it's a valid LookupSubjectsRequest structure
 			expect(result).toHaveProperty('resource');
@@ -104,12 +123,15 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should handle different target entity types and encode TargetEntityId', () => {
-			const result = buildLookupEntitiesRequest({
-				TargetEntityType: 'folder',
-				TargetEntityId: 'folder-456',
-				entityType: 'group',
-				action: 'admin'
-			});
+			const result = buildLookupEntitiesRequest(
+				{
+					TargetEntityType: 'folder',
+					TargetEntityId: 'folder-456',
+					entityType: 'group',
+					action: 'admin'
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(result.resource?.objectType).toBe('folder');
 			expect(result.resource?.objectId).toBe(encodeObjectId('folder-456'));
@@ -118,12 +140,15 @@ describe('lookup-request.builder', () => {
 		});
 
 		it('should encode TargetEntityId to URL-safe base64', () => {
-			const result = buildLookupEntitiesRequest({
-				TargetEntityType: 'document',
-				TargetEntityId: 'doc+special/chars=test',
-				entityType: 'user',
-				action: 'view'
-			});
+			const result = buildLookupEntitiesRequest(
+				{
+					TargetEntityType: 'document',
+					TargetEntityId: 'doc+special/chars=test',
+					entityType: 'user',
+					action: 'view'
+				},
+				LEGACY_NAMESPACE
+			);
 
 			const encodedId = result.resource?.objectId;
 			// Should not contain +, /, or = (URL-safe base64)
@@ -153,7 +178,8 @@ describe('lookup-request.builder', () => {
 					entityType: 'frontegg_tenant',
 					entityId: 'tenant-1',
 					cursor: 'cursor-token'
-				}
+				},
+				LEGACY_NAMESPACE
 			);
 
 			expect(result.resourceObjectType).toBe('frontegg_feature');
@@ -181,7 +207,8 @@ describe('lookup-request.builder', () => {
 				{
 					entityType: 'frontegg_user',
 					entityId: 'user-1'
-				}
+				},
+				LEGACY_NAMESPACE
 			);
 
 			expect(result.resourceObjectType).toBe('frontegg_feature');

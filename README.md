@@ -61,6 +61,80 @@ const e10sClient = EntitlementsClientFactory.create({
 });
 ```
 
+### Multiple Frontegg instances
+
+One SpiceDB can serve several Frontegg instances. Each instance is a vendor, and the SDK
+namespaces every read to that instance's schema prefix, derived from its `vendorId`
+(`v_` + the vendorId with `-` replaced by `_`). Configure the instances once and pick one per
+call with `instanceId`:
+
+```typescript
+const e10sClient = EntitlementsClientFactory.create({
+	engineEndpoint: 'localhost:50051',
+	engineToken: 'your-engine-token',
+	instances: [
+		{ instanceId: 'eu', vendorId: '2f9c1a44-7b0e-4a1e-9f8a-1c2d3e4f5a6b' },
+		{ instanceId: 'us', vendorId: '8b1d0e77-3c5a-4f2b-9d6e-7a8b9c0d1e2f' }
+	],
+	defaultInstanceId: 'eu'
+});
+
+await e10sClient.isEntitledTo(subjectContext, requestContext, { instanceId: 'us' });
+```
+
+- `instanceId` is optional on every call. With one instance configured, or with
+  `defaultInstanceId` set, it can be omitted; otherwise the call throws
+  `InstanceIdRequiredException`. An unknown id throws `UnknownInstanceException`. Both
+  extend `InstanceResolutionException` and are thrown rather than answered with the
+  fallback.
+- The prefix always comes from the `vendorId` and cannot be set directly. A `vendorId` may
+  contain only `a-z`, `0-9` and `-`, be at most 61 characters, and not end with `-`; anything
+  else, including uppercase letters and `_`, throws `ConfigurationInputIsInvalidException`
+  when the client is created. An `instanceId` must be 1 to 63 characters of `a-z`, `0-9` and `-`,
+  starting with a letter or digit, and `legacy` is reserved; anything else throws
+  `ConfigurationInputIsInvalidException` when the client is created.
+- Each instance may carry its own `fallbackConfiguration`; the client-wide one applies
+  otherwise.
+- With `instances` configured, object types passed to the SDK must not contain `/`, because
+  the SDK applies the prefix itself. Such a type throws `InvalidObjectTypeException` from
+  `isEntitledTo`, `lookupTargetEntities` and `lookupEntities` instead of being answered with
+  the fallback. In
+  `isEntitledToMany` only that item fails: it comes back as
+  `{ result: false, error: '<reason>' }` while the other items are still answered, so treat
+  any `result !== true` as denied.
+- With no `instances` configured, every read is unprefixed and valid object types are passed
+  through unchanged, so a type such as `acme/document` keeps working, and so does a plain name
+  of your own such as `v_user`. This is a breaking change for existing callers in two cases,
+  both of which now throw `InvalidObjectTypeException` instead of being answered with the
+  fallback: an object type that is not a valid SpiceDB name (see the next point), which used to
+  reach SpiceDB and come back as the configured fallback, and a namespaced type whose prefix
+  starts with the reserved vendor prefix `v_`, such as `v_acme/document`, so a legacy client can
+  never address a vendor's namespace on a shared SpiceDB.
+- In both modes an object type must be a valid SpiceDB name: 3 to 64 characters, starting with
+  `a-z`, containing only `a-z`, `0-9` and `_`, and ending with `a-z` or `0-9`. In legacy mode
+  each prefix before a `/` follows the same rules but is at most 63 characters. Anything else,
+  such as `Document`, `my-entity` or `a`, throws `InvalidObjectTypeException` instead of
+  reaching SpiceDB as a parse error.
+- Log payloads carry the resolved `instanceId` (`legacy` when no `instances` are configured).
+  `LoggingClient.log` and `LoggingClient.error` receive it as an optional trailing
+  `{ instanceId }` argument, so existing implementations keep working.
+
+#### Reading an instance schema
+
+```typescript
+const schema = await e10sClient.readSchemaFor({ instanceId: 'us' });
+```
+
+`readSchemaFor` returns only that instance's `definition` and `caveat` blocks, with its schema
+prefix stripped from their names and type references. It is a read-only view: top-level
+directives are dropped, so it cannot be written back. If the schema cannot be split into
+blocks safely it throws `SchemaParseException` rather than risk returning another instance's
+definitions. With no `instances` configured it returns only the unprefixed `definition` and
+`caveat` blocks, unchanged, and never another vendor's prefixed blocks.
+
+SpiceDB has no partial schema read, so every call reads the whole cluster schema and filters it
+here. Treat `readSchemaFor` as an administrative call and keep it off the request path.
+
 ### Setting up the Subject Context
 
 Subject context describes the user which performs the action, these can be taken from Frontegg JWT if authenticating with Frontegg

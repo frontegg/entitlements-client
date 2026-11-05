@@ -8,6 +8,10 @@ import {
 	UserSubjectContext,
 	EntitlementsDynamicQueryRequestContext
 } from '../../types';
+import { SchemaNamespace } from '../../instances/schema-namespace';
+import { LEGACY_INSTANCE_ID } from '../../instances/instance.constants';
+
+export const LEGACY_NAMESPACE = SchemaNamespace.legacy(LEGACY_INSTANCE_ID);
 
 export function getRequestContext(type: RequestContextType): RequestContext {
 	switch (type) {
@@ -51,13 +55,9 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 	describe(`[${ctor.name}] ${EntitlementsSpiceDBQuery.name} - common mocked tests`, () => {
 		let queryClient: R;
 		let mockClient: MockProxy<v1.ZedPromiseClientInterface>;
-		let mockSpiceDBEndpoint: string;
-		let mockSpiceDBToken: string;
 
 		beforeAll(() => {
 			mockClient = mock<v1.ZedPromiseClientInterface>();
-			mockSpiceDBEndpoint = 'mock-endpoint';
-			mockSpiceDBToken = 'mock-token';
 
 			// Create a new instance of the query class with the mock client
 			queryClient = new ctor(mockClient);
@@ -91,12 +91,15 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 				]
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
-			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
+			mockClient.lookupSubjects.mockResolvedValue([v1.LookupSubjectsResponse.create()]);
 
-			const result = await queryClient.query({
-				subjectContext: subjectContext || defaultSubjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext: subjectContext || defaultSubjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -128,10 +131,13 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			});
 			mockClient.checkBulkPermissions.mockResolvedValue(mockResponse);
 
-			const result = await queryClient.query({
-				subjectContext: subjectContext || defaultSubjectContext,
-				requestContext
-			});
+			const result = await queryClient.query(
+				{
+					subjectContext: subjectContext || defaultSubjectContext,
+					requestContext
+				},
+				LEGACY_NAMESPACE
+			);
 
 			expect(mockClient.checkBulkPermissions).not.toHaveBeenCalled();
 			expect(result.result.result).toBe(true);
@@ -147,13 +153,16 @@ export function EntitlementsSpiceDBQueryCommonTests<R extends EntitlementsSpiceD
 			const { requestContext, subjectContext } = contextProvider();
 			const mockError = new Error('mock-error');
 			mockClient.checkBulkPermissions.mockRejectedValue(mockError);
-			mockClient.lookupSubjects.mockResolvedValue([{}] as any);
+			mockClient.lookupSubjects.mockResolvedValue([v1.LookupSubjectsResponse.create()]);
 
 			await expect(
-				queryClient.query({
-					subjectContext: subjectContext || defaultSubjectContext,
-					requestContext
-				})
+				queryClient.query(
+					{
+						subjectContext: subjectContext || defaultSubjectContext,
+						requestContext
+					},
+					LEGACY_NAMESPACE
+				)
 			).rejects.toThrow(mockError);
 		});
 	});

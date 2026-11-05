@@ -5,6 +5,8 @@ import { ClientConfiguration } from '../client-configuration';
 import { v1 } from '@authzed/authzed-node';
 import { LookupEntitiesRequest } from '../types';
 import { encodeObjectId } from './spicedb-queries/base64.utils';
+import { LEGACY_INSTANCE_ID } from '../instances/instance.constants';
+import { setSpiceClient } from './spicedb-entitlements.client.spec-helper';
 
 describe('SpiceDBEntitlementsClient.lookupEntities', () => {
 	let mockSpiceClient: MockProxy<v1.ZedPromiseClientInterface>;
@@ -28,7 +30,7 @@ describe('SpiceDBEntitlementsClient.lookupEntities', () => {
 		mockLoggingClient = mock<LoggingClient>();
 		client = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, false);
 		// Replace the internal spiceClient with our mock
-		(client as any).spiceClient = mockSpiceClient;
+		setSpiceClient(client, mockSpiceClient);
 	});
 
 	describe('successful lookups', () => {
@@ -219,7 +221,7 @@ describe('SpiceDBEntitlementsClient.lookupEntities', () => {
 
 			await expect(client.lookupEntities(defaultRequest)).rejects.toThrow();
 
-			expect(mockLoggingClient.error).toHaveBeenCalledWith(spiceDBError);
+			expect(mockLoggingClient.error).toHaveBeenCalledWith(spiceDBError, { instanceId: LEGACY_INSTANCE_ID });
 		});
 	});
 
@@ -280,7 +282,7 @@ describe('SpiceDBEntitlementsClient.lookupEntities', () => {
 	describe('logging', () => {
 		it('should log request and results when logResults is enabled', async () => {
 			const clientWithLogging = new SpiceDBEntitlementsClient(mockClientConfig, mockLoggingClient, true);
-			(clientWithLogging as any).spiceClient = mockSpiceClient;
+			setSpiceClient(clientWithLogging, mockSpiceClient);
 
 			const mockResults: v1.LookupSubjectsResponse[] = [];
 			mockSpiceClient.lookupSubjects.mockResolvedValue(mockResults);

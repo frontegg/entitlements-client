@@ -11,10 +11,10 @@
 		"clean": "rm -rf dist coverage",
 		"build": "tsc",
 		"test": "jest --coverage --bail --detectOpenHandles --passWithNoTests",
-		"lint": "eslint -c eslint.config.js src/",
-		"lint:fix": "eslint -c eslint.config.js --fix src/",
-		"prettier": "prettier --config .prettierrc src --check",
-		"prettier:fix": "prettier --config .prettierrc src --write",
+		"lint": "eslint -c eslint.config.js src/ eslint-rules/",
+		"lint:fix": "eslint -c eslint.config.js --fix src/ eslint-rules/",
+		"prettier": "prettier --config .prettierrc src eslint-rules --check",
+		"prettier:fix": "prettier --config .prettierrc src eslint-rules --write",
 		"prepare": "husky install"
 	},
 	"peerDependencies": {
