@@ -1,3 +1,36 @@
+# [4.0.0](https://github.com/frontegg/entitlements-client/compare/3.0.1...4.0.0) (2026-11-05)
+
+
+### Bug Fixes
+
+* **instances:** make an invalid object type an error, not a false ([3876816](https://github.com/frontegg/entitlements-client/commit/3876816a3a5dbb74c5ddb6cca80feca461afaea3))
+* **instances:** read a block name past a comment ([aecf9c8](https://github.com/frontegg/entitlements-client/commit/aecf9c86af012a0dca6e7d388149cd79fb45df53))
+* **instances:** reject a prefix SpiceDB will not accept ([5ac231a](https://github.com/frontegg/entitlements-client/commit/5ac231a16a3e859dd75317f1b01d0ea53d1c04cc))
+* **instances:** stop a field access being read as the start of a block ([28b20e7](https://github.com/frontegg/entitlements-client/commit/28b20e7f4a7e3e3490a62d941d151116ed250f23))
+* **instances:** stop readSchemaFor leaking the next instance definitions ([aac4d68](https://github.com/frontegg/entitlements-client/commit/aac4d68dd1ecb80cda9888c1bf486537acf675aa))
+
+
+* FR-26219 fix(instances): narrow the legacy prefix guard and validate caller object types ([2ed1507](https://github.com/frontegg/entitlements-client/commit/2ed1507dfe96b380c80a2239c76ea3d32fddae43))
+* refactor(instances)!: make spiceClient private ([d72b46e](https://github.com/frontegg/entitlements-client/commit/d72b46efaf3ae5251705fb56af874b6c18666728))
+
+
+### Features
+
+* **instances:** model a Frontegg instance and how one is chosen ([09fdf96](https://github.com/frontegg/entitlements-client/commit/09fdf96605bd87bbd712c5d808db3de238389f8b))
+* **instances:** namespace every SpiceDB read to the resolved instance ([34deb41](https://github.com/frontegg/entitlements-client/commit/34deb41a77fcdbbfc427b7015e59e13e0e9e5e84))
+
+
+### BREAKING CHANGES
+
+* spiceClient is no longer public. Direct access bypasses
+instance namespacing and can read another instance's data. Use isEntitledTo,
+the lookup methods, or readSchemaFor with an instanceId instead.
+
+The field carried @deprecated in an earlier revision of this branch. A private
+field cannot be deprecated for callers who can no longer reach it, so the note
+goes with it.
+* a client with no instances configured now validates every object type against the SpiceDB naming rules and throws InvalidObjectTypeException for an invalid one, where it used to send it to SpiceDB and answer with the configured fallback.
+
 ## [3.0.1](https://github.com/frontegg/entitlements-client/compare/3.0.0...3.0.1) (2026-05-31)
 
 ## [3.0.1-alpha.1](https://github.com/frontegg/entitlements-client/compare/3.0.0...3.0.1-alpha.1) (2026-05-31)
